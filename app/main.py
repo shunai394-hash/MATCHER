@@ -731,6 +731,7 @@ def run_quality_patrol() -> dict[str, Any]:
             ) ident on true
             cross join freshness_policy fp
             group by so.id,s.status,snap.supplier_cost,snap.shipping_cost,
+                     ident.confidence,ident.hard_block,ident.reason_codes,
                      f.price_observed_at,f.inventory_observed_at,f.shipping_observed_at
             """
         ).fetchall()
