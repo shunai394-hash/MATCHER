@@ -39,13 +39,28 @@ jobs:
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/schema.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/002_domain_integrity.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 <<'SQL'
-          select 3 = count(*) from freshness_policy;
-          select to_regclass('public.supplier_product_identifier') is not null;
-          select to_regclass('public.identity_hard_block') is not null;
-          select to_regclass('public.supplier_offer_observation') is not null;
-          select to_regclass('public.supplier_offer_freshness') is not null;
-          select exists (
-            select 1 from information_schema.columns
-            where table_name = 'match_result' and column_name = 'hard_block'
-          );
+          do $
+          begin
+            if (select count(*) from freshness_policy) <> 3 then
+              raise exception 'freshness_policy must contain exactly 3 default metrics';
+            end if;
+            if to_regclass('public.supplier_product_identifier') is null then
+              raise exception 'supplier_product_identifier missing';
+            end if;
+            if to_regclass('public.identity_hard_block') is null then
+              raise exception 'identity_hard_block missing';
+            end if;
+            if to_regclass('public.supplier_offer_observation') is null then
+              raise exception 'supplier_offer_observation missing';
+            end if;
+            if to_regclass('public.supplier_offer_freshness') is null then
+              raise exception 'supplier_offer_freshness missing';
+            end if;
+            if not exists (
+              select 1 from information_schema.columns
+              where table_name = 'match_result' and column_name = 'hard_block'
+            ) then
+              raise exception 'match_result.hard_block missing';
+            end if;
+          end $;
           SQL
