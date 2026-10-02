@@ -28,3 +28,28 @@ MATCHER consumes relevant data and performs product-master, supplier-linking, pr
 7. Monitoring and automatic stop
 
 See docs/data-model.md for the initial domain model.
+
+
+## API v1
+
+- GET /health
+- POST /v1/products
+- POST /v1/supplier-products
+- POST /v1/identity/evaluate
+- GET /v1/products/:id
+- GET /v1/products/:id/offers
+- GET /v1/products/:id/sellability
+- POST /v1/products/search
+
+## Identity rule
+
+A high numeric confidence never overrides a hard identity mismatch. MPN, set count, color, size, condition, or other critical variant mismatches produce a BLOCK decision.
+
+## Data freshness
+
+Price, inventory, and shipping freshness are tracked independently. Missing or stale mandatory data must fail the sellability gate.
+
+## Quality lifecycle
+
+Quality operations are persisted as:
+patrol run -> diagnosis -> repair -> retest.
