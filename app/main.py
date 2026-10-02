@@ -151,6 +151,16 @@ def add_offer_observation(offer_id: UUID, body: OfferObservationCreate) -> dict[
         offer=conn.execute("select id from supplier_offer where id=%s",(offer_id,)).fetchone()
         if not offer:
             raise HTTPException(status_code=404, detail="offer not found")
+        previous = conn.execute(
+            """
+            select supplier_cost, shipping_cost, inventory
+            from supplier_offer_snapshot
+            where supplier_offer_id=%s
+            order by observed_at desc
+            limit 1
+            """,
+            (offer_id,),
+        ).fetchone()
         result=conn.execute(
             """
             insert into supplier_offer_observation
@@ -163,13 +173,16 @@ def add_offer_observation(offer_id: UUID, body: OfferObservationCreate) -> dict[
         )
         row=result.fetchone()
         columns=[d.name for d in result.description]
+        supplier_cost = body.supplier_cost if body.supplier_cost is not None else (previous[0] if previous else None)
+        shipping_cost = body.shipping_cost if body.shipping_cost is not None else (previous[1] if previous else None)
+        inventory = body.inventory if body.inventory is not None else (previous[2] if previous else None)
         conn.execute(
             """
             insert into supplier_offer_snapshot
               (supplier_offer_id,supplier_cost,shipping_cost,inventory,observed_at)
             values (%s,%s,%s,%s,%s)
             """,
-            (offer_id,body.supplier_cost,body.shipping_cost,body.inventory,row[6]),
+            (offer_id,supplier_cost,shipping_cost,inventory,row[6]),
         )
         freshness_column={
             "PRICE":"price_observed_at",
@@ -181,7 +194,7 @@ def add_offer_observation(offer_id: UUID, body: OfferObservationCreate) -> dict[
             insert into supplier_offer_freshness(supplier_offer_id,{freshness_column})
             values (%s,%s)
             on conflict (supplier_offer_id) do update set
-              {freshness_column}=excluded.{freshness_column},
+              {freshness_column}=greatest(coalesce(supplier_offer_freshness.{freshness_column}, excluded.{freshness_column}), excluded.{freshness_column}),
               updated_at=now()
             """,
             (offer_id,row[6]),
@@ -282,12 +295,21 @@ def create_product(body: ProductCreate) -> dict[str, Any]:
             identifier_value = item.get("value")
             if identifier_type not in {"JAN", "EAN", "UPC", "MPN", "SKU"} or not identifier_value:
                 raise HTTPException(status_code=400, detail="invalid product identifier")
+            existing = conn.execute(
+                """
+                select master_product_id
+                from product_identifier
+                where identifier_type=%s and identifier_value=%s
+                """,
+                (identifier_type, identifier_value),
+            ).fetchone()
+            if existing and existing[0] != product_id:
+                raise HTTPException(status_code=409, detail="product identifier already belongs to another master product")
             conn.execute(
                 """
                 insert into product_identifier(master_product_id, identifier_type, identifier_value)
                 values (%s,%s,%s)
-                on conflict (identifier_type, identifier_value) do update
-                  set master_product_id=excluded.master_product_id
+                on conflict (identifier_type, identifier_value) do nothing
                 """,
                 (product_id, identifier_type, identifier_value),
             )
