@@ -45,10 +45,12 @@ class ProductCreate(BaseModel):
     brand: str | None = None
     manufacturer: str | None = None
     model_number: str | None = None
+    identifiers: list[dict[str, str]] = Field(default_factory=list)
 
 
 class SupplierProductCreate(BaseModel):
     supplier: str = Field(min_length=1, max_length=200)
+    identifiers: list[dict[str, str]] = Field(default_factory=list)
     supplier_product_id: str = Field(min_length=1, max_length=200)
     supplier_sku: str | None = None
     product_name: str = Field(min_length=1, max_length=500)
@@ -81,6 +83,21 @@ def create_product(body: ProductCreate) -> dict[str, Any]:
         )
         row = result.fetchone()
         columns = [d.name for d in result.description]
+        product_id = row[0]
+        for item in body.identifiers:
+            identifier_type = item.get("type")
+            identifier_value = item.get("value")
+            if identifier_type not in {"JAN", "EAN", "UPC", "MPN", "SKU"} or not identifier_value:
+                raise HTTPException(status_code=400, detail="invalid product identifier")
+            conn.execute(
+                """
+                insert into product_identifier(master_product_id, identifier_type, identifier_value)
+                values (%s,%s,%s)
+                on conflict (identifier_type, identifier_value) do update
+                  set master_product_id=excluded.master_product_id
+                """,
+                (product_id, identifier_type, identifier_value),
+            )
         conn.commit()
         return dict(zip(columns, row))
 
@@ -142,6 +159,21 @@ def evaluate_identity(body: IdentityEvaluateRequest) -> dict[str, Any]:
             raise HTTPException(status_code=404, detail="product not found")
 
         hard_blocks: list[tuple[str, str | None, str | None]] = []
+
+        identifier_sql = """
+        select pi.identifier_type, pi.identifier_value
+        from product_identifier pi
+        where pi.master_product_id=%s
+        """
+        supplier_identifier_sql = """
+        select identifier_type, identifier_value
+        from supplier_product_identifier
+        where supplier_product_id=%s
+        """
+        master_ids = {(r[0], r[1].strip()) for r in conn.execute(identifier_sql, (body.master_product_id,)).fetchall()}
+        supplier_ids = {(r[0], r[1].strip()) for r in conn.execute(supplier_identifier_sql, (body.supplier_product_id,)).fetchall()}
+        identifier_matches = sorted(master_ids & supplier_ids)
+
         if master[2] and supplier[2] and master[2].strip().lower() != supplier[2].strip().lower():
             hard_blocks.append(("MPN_MISMATCH", master[2], supplier[2]))
 
@@ -219,6 +251,10 @@ def evaluate_identity(body: IdentityEvaluateRequest) -> dict[str, Any]:
             "evidence": [
                 {"field": f, "master": mv, "supplier": sv, "result": r}
                 for f, mv, sv, r in evidence
+            ],
+            "identifier_matches": [
+                {"type": identifier_type, "value": value}
+                for identifier_type, value in identifier_matches
             ],
             "blocking_reasons": [x[0] for x in hard_blocks],
         }
