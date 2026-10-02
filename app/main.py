@@ -240,7 +240,7 @@ def create_profit(product_id: UUID, body: ProfitCreate) -> dict[str, Any]:
                 "code":"PROFIT_COST_UNKNOWN",
                 "missing_costs":result["missing_costs"]
             })
-        row=conn.execute(
+        result_cursor=conn.execute(
             """
             insert into profit_snapshot
               (supplier_offer_id,sale_price,supplier_cost,shipping_cost,payment_fee,
@@ -253,7 +253,8 @@ def create_profit(product_id: UUID, body: ProfitCreate) -> dict[str, Any]:
              body.payment_fee,body.marketplace_fee,body.tax,body.other_cost,
              result["expected_profit"]),
         )
-        out=dict(zip([d.name for d in result.description], row))
+        row=result_cursor.fetchone()
+        out=dict(zip([d.name for d in result_cursor.description], row))
         conn.commit()
         return out
 
