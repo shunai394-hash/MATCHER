@@ -9,6 +9,22 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: matcher
+          POSTGRES_PASSWORD: matcher
+          POSTGRES_DB: matcher
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U matcher -d matcher"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: matcher
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,3 +34,52 @@ jobs:
       - run: npm run verify:gate
       - run: npm run lint
       - run: npm run build
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+          psql --version
+      - name: Load MATCHER database schema
+        run: |
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/schema.sql
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/002_domain_integrity.sql
+      - name: Verify database schema and domain hardening
+        run: |
+          set -euo pipefail
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 <<'SQL'
+          select 'freshness_policy' as check_name, count(*) as actual_count from freshness_policy;
+          select 'supplier_product_identifier' as check_name, to_regclass('public.supplier_product_identifier') as relation_name;
+          select 'identity_hard_block' as check_name, to_regclass('public.identity_hard_block') as relation_name;
+          select 'supplier_offer_observation' as check_name, to_regclass('public.supplier_offer_observation') as relation_name;
+          select 'supplier_offer_freshness' as check_name, to_regclass('public.supplier_offer_freshness') as relation_name;
+          select 'match_result.hard_block' as check_name, exists (
+            select 1 from information_schema.columns
+            where table_schema = 'public' and table_name = 'match_result' and column_name = 'hard_block'
+          ) as exists;
+          SQL
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 <<'SQL'
+          do $matcher_schema_check$
+          begin
+            if (select count(*) from freshness_policy) <> 3 then
+              raise exception 'freshness_policy must contain exactly 3 default metrics';
+            end if;
+            if to_regclass('public.supplier_product_identifier') is null then
+              raise exception 'supplier_product_identifier missing';
+            end if;
+            if to_regclass('public.identity_hard_block') is null then
+              raise exception 'identity_hard_block missing';
+            end if;
+            if to_regclass('public.supplier_offer_observation') is null then
+              raise exception 'supplier_offer_observation missing';
+            end if;
+            if to_regclass('public.supplier_offer_freshness') is null then
+              raise exception 'supplier_offer_freshness missing';
+            end if;
+            if not exists (
+              select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'match_result' and column_name = 'hard_block'
+            ) then
+              raise exception 'match_result.hard_block missing';
+            end if;
+          end $matcher_schema_check$;
+          SQL

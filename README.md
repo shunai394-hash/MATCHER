@@ -28,3 +28,6 @@ MATCHER consumes relevant data and performs product-master, supplier-linking, pr
 7. Monitoring and automatic stop
 
 See docs/data-model.md for the initial domain model.
+
+
+<!-- CI verification checkpoint -->
