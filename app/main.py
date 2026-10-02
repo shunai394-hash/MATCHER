@@ -253,7 +253,7 @@ def create_profit(product_id: UUID, body: ProfitCreate) -> dict[str, Any]:
              body.payment_fee,body.marketplace_fee,body.tax,body.other_cost,
              result["expected_profit"]),
         )
-        out=dict(zip([d.name for d in conn.execute("select * from profit_snapshot where id=%s",(row[0],)).description], row))
+        out=dict(zip([d.name for d in result.description], row))
         conn.commit()
         return out
 
