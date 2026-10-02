@@ -40,6 +40,191 @@ def health() -> dict[str, str]:
         raise HTTPException(status_code=503, detail="database unavailable")
 
 
+class ProductCreate(BaseModel):
+    product_name: str = Field(min_length=1, max_length=500)
+    brand: str | None = None
+    manufacturer: str | None = None
+    model_number: str | None = None
+
+
+class SupplierProductCreate(BaseModel):
+    supplier: str = Field(min_length=1, max_length=200)
+    supplier_product_id: str = Field(min_length=1, max_length=200)
+    supplier_sku: str | None = None
+    product_name: str = Field(min_length=1, max_length=500)
+    brand: str | None = None
+    manufacturer: str | None = None
+    model_number: str | None = None
+    color: str | None = None
+    size: str | None = None
+    capacity: str | None = None
+    generation: str | None = None
+    set_count: int | None = Field(default=None, gt=0)
+    condition: str | None = None
+
+
+class IdentityEvaluateRequest(BaseModel):
+    supplier_product_id: UUID
+    master_product_id: UUID
+
+
+@app.post("/v1/products")
+def create_product(body: ProductCreate) -> dict[str, Any]:
+    sql = """
+    insert into master_product (product_name, brand, manufacturer, model_number)
+    values (%s, %s, %s, %s)
+    returning id, product_name, brand, manufacturer, model_number, status, created_at, updated_at
+    """
+    with db() as conn:
+        row = conn.execute(
+            sql, (body.product_name, body.brand, body.manufacturer, body.model_number)
+        ).fetchone()
+        conn.commit()
+        columns = [d.name for d in conn.execute(sql, (body.product_name, body.brand, body.manufacturer, body.model_number)).description]
+        return dict(zip(columns, row))
+
+
+@app.post("/v1/supplier-products")
+def create_supplier_product(body: SupplierProductCreate) -> dict[str, Any]:
+    with db() as conn:
+        supplier = conn.execute(
+            "insert into supplier(name) values (%s) on conflict(name) do update set updated_at=now() returning id, name, status",
+            (body.supplier,),
+        ).fetchone()
+        supplier_id = supplier[0]
+        sql = """
+        insert into supplier_product (
+          supplier_id, supplier_product_id, supplier_sku, brand, product_name,
+          manufacturer, model_number, color, size, capacity, generation, set_count, condition
+        )
+        values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        on conflict (supplier_id, supplier_product_id) do update set
+          supplier_sku=excluded.supplier_sku,
+          brand=excluded.brand,
+          product_name=excluded.product_name,
+          manufacturer=excluded.manufacturer,
+          model_number=excluded.model_number,
+          color=excluded.color,
+          size=excluded.size,
+          capacity=excluded.capacity,
+          generation=excluded.generation,
+          set_count=excluded.set_count,
+          condition=excluded.condition,
+          last_seen_at=now()
+        returning id, supplier_id, supplier_product_id, supplier_sku, product_name,
+                  brand, manufacturer, model_number, color, size, capacity, generation, set_count, condition
+        """
+        row = conn.execute(sql, (
+            supplier_id, body.supplier_product_id, body.supplier_sku, body.brand,
+            body.product_name, body.manufacturer, body.model_number, body.color,
+            body.size, body.capacity, body.generation, body.set_count, body.condition
+        )).fetchone()
+        conn.commit()
+        columns = [d.name for d in conn.execute(sql, (
+            supplier_id, body.supplier_product_id, body.supplier_sku, body.brand,
+            body.product_name, body.manufacturer, body.model_number, body.color,
+            body.size, body.capacity, body.generation, body.set_count, body.condition
+        )).description]
+        return dict(zip(columns, row))
+
+
+@app.post("/v1/identity/evaluate")
+def evaluate_identity(body: IdentityEvaluateRequest) -> dict[str, Any]:
+    master_sql = """
+    select id, brand, model_number from master_product where id=%s
+    """
+    supplier_sql = """
+    select id, brand, model_number, color, size, set_count, condition
+    from supplier_product where id=%s
+    """
+    with db() as conn:
+        master = conn.execute(master_sql, (body.master_product_id,)).fetchone()
+        supplier = conn.execute(supplier_sql, (body.supplier_product_id,)).fetchone()
+        if not master or not supplier:
+            raise HTTPException(status_code=404, detail="product not found")
+
+        hard_blocks: list[tuple[str, str | None, str | None]] = []
+        if master[2] and supplier[2] and master[2].strip().lower() != supplier[2].strip().lower():
+            hard_blocks.append(("MPN_MISMATCH", master[2], supplier[2]))
+
+        # Variant fields are compared when both sides explicitly provide a value.
+        # A missing supplier value remains UNKNOWN and is not silently treated as equal.
+        checks = [
+            ("color", None, supplier[3]),
+            ("size", None, supplier[4]),
+            ("set_count", None, supplier[5]),
+            ("condition", None, supplier[6]),
+        ]
+        variant = conn.execute(
+            "select color, size, set_count, condition from product_variant where master_product_id=%s order by updated_at desc limit 1",
+            (body.master_product_id,),
+        ).fetchone()
+        if variant:
+            checks = [
+                ("color", variant[0], supplier[3]),
+                ("size", variant[1], supplier[4]),
+                ("set_count", variant[2], supplier[5]),
+                ("condition", variant[3], supplier[6]),
+            ]
+
+        evidence = []
+        for field, master_value, supplier_value in checks:
+            if master_value is None or supplier_value is None:
+                result = "UNKNOWN"
+            elif str(master_value).strip().lower() == str(supplier_value).strip().lower():
+                result = "EXACT"
+            else:
+                result = "MISMATCH"
+                code = f"{field.upper()}_MISMATCH"
+                hard_blocks.append((code, str(master_value), str(supplier_value)))
+            evidence.append((field, master_value, supplier_value, result))
+
+        critical = bool(hard_blocks)
+        confidence = 0.98 if not critical else 0.40
+        decision = "BLOCK" if critical else "AUTO_LINK"
+
+        match = conn.execute(
+            """
+            insert into identity_match(supplier_product_id, master_product_id, confidence, decision, hard_block)
+            values (%s,%s,%s,%s,%s) returning id
+            """,
+            (body.supplier_product_id, body.master_product_id, confidence, decision, critical),
+        ).fetchone()
+        match_id = match[0]
+
+        for field, master_value, supplier_value, result in evidence:
+            conn.execute(
+                """
+                insert into identity_match_evidence
+                (identity_match_id, field_name, master_value, supplier_value, result, critical)
+                values (%s,%s,%s,%s,%s,%s)
+                """,
+                (match_id, field, str(master_value) if master_value is not None else None,
+                 str(supplier_value) if supplier_value is not None else None, result,
+                 result == "MISMATCH"),
+            )
+        for code, master_value, supplier_value in hard_blocks:
+            conn.execute(
+                """
+                insert into identity_hard_block(identity_match_id, reason_code, details)
+                values (%s,%s,%s)
+                """,
+                (match_id, code, {"master": master_value, "supplier": supplier_value}),
+            )
+        conn.commit()
+
+        return {
+            "identity_match_id": str(match_id),
+            "confidence": confidence,
+            "decision": decision,
+            "hard_block": critical,
+            "evidence": [
+                {"field": f, "master": mv, "supplier": sv, "result": r}
+                for f, mv, sv, r in evidence
+            ],
+            "blocking_reasons": [x[0] for x in hard_blocks],
+        }
+
 @app.get("/v1/products/{product_id}")
 def get_product(product_id: UUID) -> dict[str, Any]:
     sql = """
