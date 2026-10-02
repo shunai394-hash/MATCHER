@@ -9,6 +9,22 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: matcher
+          POSTGRES_PASSWORD: matcher
+          POSTGRES_DB: matcher
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U matcher -d matcher"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGPASSWORD: matcher
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,3 +34,18 @@ jobs:
       - run: npm run verify:gate
       - run: npm run lint
       - run: npm run build
+      - name: Verify database schema and domain hardening
+        run: |
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/schema.sql
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/002_domain_integrity.sql
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 <<'SQL'
+          select 3 = count(*) from freshness_policy;
+          select to_regclass('public.supplier_product_identifier') is not null;
+          select to_regclass('public.identity_hard_block') is not null;
+          select to_regclass('public.supplier_offer_observation') is not null;
+          select to_regclass('public.supplier_offer_freshness') is not null;
+          select exists (
+            select 1 from information_schema.columns
+            where table_name = 'match_result' and column_name = 'hard_block'
+          );
+          SQL
