@@ -23,6 +23,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
+      PYTHONPATH: .
       DATABASE_URL: postgresql://matcher:matcher@127.0.0.1:5432/matcher
     steps:
       - uses: actions/checkout@v4
