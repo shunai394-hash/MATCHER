@@ -139,6 +139,20 @@ def create_supplier_product(body: SupplierProductCreate) -> dict[str, Any]:
         ))
         row = result.fetchone()
         columns = [d.name for d in result.description]
+        supplier_product_uuid = row[0]
+        for item in body.identifiers:
+            identifier_type = item.get("type")
+            identifier_value = item.get("value")
+            if identifier_type not in {"JAN", "EAN", "UPC", "MPN", "SKU"} or not identifier_value:
+                raise HTTPException(status_code=400, detail="invalid supplier product identifier")
+            conn.execute(
+                """
+                insert into supplier_product_identifier(supplier_product_id, identifier_type, identifier_value)
+                values (%s,%s,%s)
+                on conflict (supplier_product_id, identifier_type, identifier_value) do nothing
+                """,
+                (supplier_product_uuid, identifier_type, identifier_value),
+            )
         conn.commit()
         return dict(zip(columns, row))
 
