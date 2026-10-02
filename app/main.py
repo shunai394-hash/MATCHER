@@ -28,7 +28,7 @@ class ProductSearch(BaseModel):
     limit: int = Field(default=20, ge=1, le=100)
 
 
-@app.get("/health")
+@app.get("/", include_in_schema=False)\ndef dashboard():\n    return FileResponse("app/static/index.html")\n\n\n@app.get("/health")
 def health() -> dict[str, str]:
     try:
         with db() as conn:
