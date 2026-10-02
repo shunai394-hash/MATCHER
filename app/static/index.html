@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MATCHER</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:1200px;margin:40px auto;padding:0 20px;background:#f7f7f7;color:#111}
+header{margin-bottom:24px}.card{background:white;border:1px solid #ddd;border-radius:12px;padding:20px;margin-bottom:18px}
+input,button{font:inherit;padding:10px;border:1px solid #bbb;border-radius:8px}
+input{width:min(560px,80%)}button{cursor:pointer;margin-left:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+pre{white-space:pre-wrap;overflow:auto;background:#111;color:#eee;padding:14px;border-radius:8px}
+.badge{font-weight:700}.blocked{color:#b00020}.sellable{color:#067d3f}
+small{color:#666}
+</style>
+</head>
+<body>
+<header>
+<h1>MATCHER</h1>
+<p>Master Product / Identity / Supplier Offers / Profit / Sellability / Quality</p>
+</header>
+<section class="card">
+<h2>Product Search</h2>
+<input id="q" placeholder="商品名・ブランド・型番">
+<button onclick="search()">検索</button>
+<div id="results"></div>
+</section>
+<section class="card">
+<h2>Product Detail</h2>
+<div id="detail"><small>検索結果から商品を選択してください。</small></div>
+</section>
+<script>
+const esc = s => String(s ?? '').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function search(){
+  const q=document.getElementById('q').value.trim();
+  if(!q)return;
+  const r=await fetch('/v1/products/search',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({query:q,limit:20})});
+  const d=await r.json();
+  document.getElementById('results').innerHTML=(d.results||[]).map(x=>
+    '<div class="card"><b>'+esc(x.product_name)+'</b><br>'+esc(x.brand||'')+' / '+esc(x.model_number||'')+
+    '<br><button onclick="loadProduct(\''+esc(x.id)+'\')">詳細</button></div>'
+  ).join('') || '<small>該当なし</small>';
+}
+async function loadProduct(id){
+  const [p,o,s]=await Promise.all([
+    fetch('/v1/products/'+id),fetch('/v1/products/'+id+'/offers'),fetch('/v1/products/'+id+'/sellability')
+  ]);
+  const product=await p.json(), offers=await o.json(), sell=await s.json();
+  document.getElementById('detail').innerHTML=
+    '<div class="grid"><div><h3>Master Product</h3><pre>'+esc(JSON.stringify(product,null,2))+'</pre></div>'+
+    '<div><h3>Supplier Offers</h3><pre>'+esc(JSON.stringify(offers,null,2))+'</pre></div>'+
+    '<div><h3>Sellability</h3><pre>'+esc(JSON.stringify(sell,null,2))+'</pre></div></div>';
+}
+</script>
+</body>
+</html>
