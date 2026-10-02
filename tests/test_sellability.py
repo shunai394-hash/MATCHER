@@ -52,3 +52,26 @@ def test_stale_inventory_blocks():
     status, reasons = evaluate_sellability(x)
     assert status == "BLOCKED"
     assert "INVENTORY_STALE" in reasons
+
+
+def test_variant_mismatches_each_block():
+    fields = [
+        ("color_mismatch", "COLOR_MISMATCH"),
+        ("size_mismatch", "SIZE_MISMATCH"),
+        ("condition_mismatch", "CONDITION_MISMATCH"),
+    ]
+    for attr, reason in fields:
+        x = base()
+        x = x.__class__(**{**x.__dict__, attr: True})
+        status, reasons = evaluate_sellability(x)
+        assert status == "BLOCKED"
+        assert reason in reasons
+
+
+def test_stale_price_and_shipping_block():
+    x = base()
+    x = x.__class__(**{**x.__dict__, "price_age_seconds": 99999, "shipping_age_seconds": 99999})
+    status, reasons = evaluate_sellability(x)
+    assert status == "BLOCKED"
+    assert "PRICE_STALE" in reasons
+    assert "SHIPPING_STALE" in reasons
