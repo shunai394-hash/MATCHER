@@ -614,12 +614,7 @@ def evaluate_product_sellability(product_id: UUID) -> dict[str, Any]:
       from identity_hard_block ihb
       where ihb.identity_match_id=im.id
     ) blocks on true
-    where so.id in (
-      select so2.id
-      from supplier_offer so2
-      join supplier_product sp2 on sp2.id=so2.supplier_product_id
-      where sp2.id=so.supplier_product_id
-    )
+    where im.id is not null
     order by so.updated_at desc
     """
     with db() as conn:
