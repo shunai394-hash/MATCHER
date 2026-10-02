@@ -4,6 +4,7 @@ from uuid import UUID
 from pathlib import Path
 
 import psycopg
+from psycopg.types.json import Jsonb
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -469,7 +470,7 @@ def evaluate_identity(body: IdentityEvaluateRequest) -> dict[str, Any]:
                 insert into identity_hard_block(identity_match_id, reason_code, details)
                 values (%s,%s,%s)
                 """,
-                (match_id, code, {"master": master_value, "supplier": supplier_value}),
+                (match_id, code, Jsonb({"master": master_value, "supplier": supplier_value})),
             )
         conn.commit()
 
@@ -659,7 +660,7 @@ def evaluate_product_sellability(product_id: UUID) -> dict[str, Any]:
             values (%s,%s,%s,%s)
             returning id,supplier_offer_id,status,checks,blocking_reasons,evaluated_at
             """,
-            (data["supplier_offer_id"],status,checks,blocking_reasons),
+            (data["supplier_offer_id"],status,Jsonb(checks),Jsonb(blocking_reasons)),
         )
         row=result.fetchone()
         out=dict(zip([d.name for d in result.description],row))
@@ -764,7 +765,7 @@ def run_quality_patrol() -> dict[str, Any]:
                           (patrol_run_id,supplier_offer_id,severity,code,details)
                         values (%s,%s,'ERROR',%s,%s)
                         """,
-                        (patrol_id,row[0],reason,{"source":"quality_patrol"}),
+                        (patrol_id,row[0],reason,Jsonb({"source":"quality_patrol"})),
                     )
                     diagnosis_count += 1
             conn.execute(
@@ -772,7 +773,7 @@ def run_quality_patrol() -> dict[str, Any]:
                 insert into quality_gate_result(supplier_offer_id,status,checks,blocking_reasons)
                 values (%s,%s,%s,%s)
                 """,
-                (row[0],status,{"source":"quality_patrol"},reasons),
+                (row[0],status,Jsonb({"source":"quality_patrol"}),Jsonb(reasons)),
             )
         final_status="PASSED" if blocked == 0 else "FAILED"
         conn.execute(
@@ -782,7 +783,7 @@ def run_quality_patrol() -> dict[str, Any]:
                 summary=%s
             where id=%s
             """,
-            (final_status,{"offers_checked":len(rows),"blocked_offers":blocked,"diagnoses":diagnosis_count},patrol_id),
+            (final_status,Jsonb({"offers_checked":len(rows),"blocked_offers":blocked,"diagnoses":diagnosis_count}),patrol_id),
         )
         conn.commit()
         return {
@@ -826,7 +827,7 @@ def record_quality_retest(diagnosis_id: UUID, body: RetestCreate) -> dict[str, A
             values (%s,%s,%s)
             returning id,diagnosis_id,passed,details,tested_at
             """,
-            (diagnosis_id,body.passed,body.details),
+            (diagnosis_id,body.passed,Jsonb(body.details)),
         )
         row=result.fetchone()
         out=dict(zip([d.name for d in result.description],row))
