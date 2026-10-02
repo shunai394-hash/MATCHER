@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "verify:gate": "node --experimental-strip-types scripts/verify-gate.ts"
   },
   "dependencies": {
     "next": "16.3.5",
