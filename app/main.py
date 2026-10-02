@@ -76,11 +76,12 @@ def create_product(body: ProductCreate) -> dict[str, Any]:
     returning id, product_name, brand, manufacturer, model_number, status, created_at, updated_at
     """
     with db() as conn:
-        row = conn.execute(
+        result = conn.execute(
             sql, (body.product_name, body.brand, body.manufacturer, body.model_number)
-        ).fetchone()
+        )
+        row = result.fetchone()
+        columns = [d.name for d in result.description]
         conn.commit()
-        columns = [d.name for d in conn.execute(sql, (body.product_name, body.brand, body.manufacturer, body.model_number)).description]
         return dict(zip(columns, row))
 
 
@@ -114,17 +115,14 @@ def create_supplier_product(body: SupplierProductCreate) -> dict[str, Any]:
         returning id, supplier_id, supplier_product_id, supplier_sku, product_name,
                   brand, manufacturer, model_number, color, size, capacity, generation, set_count, condition
         """
-        row = conn.execute(sql, (
+        result = conn.execute(sql, (
             supplier_id, body.supplier_product_id, body.supplier_sku, body.brand,
             body.product_name, body.manufacturer, body.model_number, body.color,
             body.size, body.capacity, body.generation, body.set_count, body.condition
-        )).fetchone()
+        ))
+        row = result.fetchone()
+        columns = [d.name for d in result.description]
         conn.commit()
-        columns = [d.name for d in conn.execute(sql, (
-            supplier_id, body.supplier_product_id, body.supplier_sku, body.brand,
-            body.product_name, body.manufacturer, body.model_number, body.color,
-            body.size, body.capacity, body.generation, body.set_count, body.condition
-        )).description]
         return dict(zip(columns, row))
 
 
