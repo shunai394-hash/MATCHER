@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { calculateExpectedProfit, evaluateSellability } from "../lib/matcher/gate";
+import { calculateExpectedProfit, evaluateSellability } from "../lib/matcher/gate.ts";
 
 const incomplete = calculateExpectedProfit({
   salePrice: 10000,
