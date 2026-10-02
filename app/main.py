@@ -563,6 +563,114 @@ def get_product_offers(product_id: UUID) -> dict[str, Any]:
         return {"product_id": str(product_id), "offers": rows_as_dicts(conn, sql, (product_id,))}
 
 
+@app.post("/v1/products/{product_id}/sellability/evaluate")
+def evaluate_product_sellability(product_id: UUID) -> dict[str, Any]:
+    from app.services.sellability import SellabilityInput, evaluate_sellability
+    sql = """
+    select
+      so.id as supplier_offer_id,
+      so.orderability,
+      s.status as supplier_status,
+      snap.supplier_cost,
+      snap.shipping_cost,
+      extract(epoch from (now() - f.price_observed_at))::bigint as price_age_seconds,
+      extract(epoch from (now() - f.inventory_observed_at))::bigint as inventory_age_seconds,
+      extract(epoch from (now() - f.shipping_observed_at))::bigint as shipping_age_seconds,
+      pp.max_price_age,
+      pp.max_inventory_age,
+      pp.max_shipping_age,
+      im.confidence,
+      im.hard_block,
+      coalesce(blocks.reason_codes, '[]'::jsonb) as reason_codes
+    from supplier_offer so
+    join supplier_product sp on sp.id=so.supplier_product_id
+    join supplier s on s.id=sp.supplier_id
+    left join lateral (
+      select supplier_cost, shipping_cost, inventory
+      from supplier_offer_snapshot x
+      where x.supplier_offer_id=so.id
+      order by x.observed_at desc
+      limit 1
+    ) snap on true
+    left join supplier_offer_freshness f on f.supplier_offer_id=so.id
+    left join lateral (
+      select
+        max(case when data_type='PRICE' then max_age_seconds end) as max_price_age,
+        max(case when data_type='INVENTORY' then max_age_seconds end) as max_inventory_age,
+        max(case when data_type='SHIPPING' then max_age_seconds end) as max_shipping_age
+      from freshness_policy
+    ) pp on true
+    left join lateral (
+      select im.*
+      from identity_match im
+      where im.supplier_product_id=sp.id
+        and im.master_product_id=%s
+      order by im.created_at desc
+      limit 1
+    ) im on true
+    left join lateral (
+      select jsonb_agg(ihb.reason_code order by ihb.reason_code) as reason_codes
+      from identity_hard_block ihb
+      where ihb.identity_match_id=im.id
+    ) blocks on true
+    where so.id in (
+      select so2.id
+      from supplier_offer so2
+      join supplier_product sp2 on sp2.id=so2.supplier_product_id
+      where sp2.id=so.supplier_product_id
+    )
+    order by so.updated_at desc
+    """
+    with db() as conn:
+        row = conn.execute(sql, (product_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="no supplier offer found for product")
+        columns=[d.name for d in conn.execute(sql, (product_id,)).description]
+        data=dict(zip(columns,row))
+        reasons=set(data["reason_codes"] or [])
+        x=SellabilityInput(
+            identity_hard_block=bool(data["hard_block"]) if data["hard_block"] is not None else True,
+            identity_confidence=float(data["confidence"]) if data["confidence"] is not None else 0.0,
+            mpn_mismatch="MPN_MISMATCH" in reasons,
+            set_count_mismatch="SET_COUNT_MISMATCH" in reasons,
+            color_mismatch="COLOR_MISMATCH" in reasons,
+            size_mismatch="SIZE_MISMATCH" in reasons,
+            condition_mismatch="CONDITION_MISMATCH" in reasons,
+            price_age_seconds=int(data["price_age_seconds"]) if data["price_age_seconds"] is not None else None,
+            inventory_age_seconds=int(data["inventory_age_seconds"]) if data["inventory_age_seconds"] is not None else None,
+            shipping_age_seconds=int(data["shipping_age_seconds"]) if data["shipping_age_seconds"] is not None else None,
+            price_max_age_seconds=int(data["max_price_age"]),
+            inventory_max_age_seconds=int(data["max_inventory_age"]),
+            shipping_max_age_seconds=int(data["max_shipping_age"]),
+            orderable=data["orderability"] == "ORDERABLE",
+            supplier_active=data["supplier_status"] == "ACTIVE",
+            supplier_cost=float(data["supplier_cost"]) if data["supplier_cost"] is not None else None,
+            shipping_cost=float(data["shipping_cost"]) if data["shipping_cost"] is not None else None,
+        )
+        status, blocking_reasons=evaluate_sellability(x)
+        checks={
+            "identity_confidence": x.identity_confidence,
+            "identity_hard_block": x.identity_hard_block,
+            "orderability": data["orderability"],
+            "supplier_status": data["supplier_status"],
+            "price_age_seconds": x.price_age_seconds,
+            "inventory_age_seconds": x.inventory_age_seconds,
+            "shipping_age_seconds": x.shipping_age_seconds,
+        }
+        result=conn.execute(
+            """
+            insert into quality_gate_result(supplier_offer_id,status,checks,blocking_reasons)
+            values (%s,%s,%s,%s)
+            returning id,supplier_offer_id,status,checks,blocking_reasons,evaluated_at
+            """,
+            (data["supplier_offer_id"],status,checks,blocking_reasons),
+        )
+        row=result.fetchone()
+        out=dict(zip([d.name for d in result.description],row))
+        conn.commit()
+        return out
+
+
 @app.get("/v1/products/{product_id}/sellability")
 def get_sellability(product_id: UUID) -> dict[str, Any]:
     sql = """
