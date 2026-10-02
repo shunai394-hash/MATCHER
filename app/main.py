@@ -698,6 +698,9 @@ def run_quality_patrol() -> dict[str, Any]:
               s.status,
               snap.supplier_cost,
               snap.shipping_cost,
+              ident.confidence,
+              ident.hard_block,
+              ident.reason_codes,
               extract(epoch from (now()-f.price_observed_at))::bigint,
               extract(epoch from (now()-f.inventory_observed_at))::bigint,
               extract(epoch from (now()-f.shipping_observed_at))::bigint,
@@ -714,6 +717,21 @@ def run_quality_patrol() -> dict[str, Any]:
               order by x.observed_at desc limit 1
             ) snap on true
             left join supplier_offer_freshness f on f.supplier_offer_id=so.id
+            left join lateral (
+              select
+                im.confidence,
+                im.hard_block,
+                coalesce(
+                  (select array_agg(ihb.reason_code)
+                   from identity_hard_block ihb
+                   where ihb.identity_match_id=im.id),
+                  '{}'::text[]
+                ) as reason_codes
+              from identity_match im
+              where im.supplier_product_id=sp.id
+              order by im.created_at desc
+              limit 1
+            ) ident on true
             cross join freshness_policy fp
             group by so.id,s.status,snap.supplier_cost,snap.shipping_cost,
                      f.price_observed_at,f.inventory_observed_at,f.shipping_observed_at
@@ -723,19 +741,19 @@ def run_quality_patrol() -> dict[str, Any]:
         diagnosis_count=0
         for row in rows:
             x=SellabilityInput(
-                identity_hard_block=False,
-                identity_confidence=1.0,
-                mpn_mismatch=False,
-                set_count_mismatch=False,
-                color_mismatch=False,
-                size_mismatch=False,
-                condition_mismatch=False,
-                price_age_seconds=int(row[5]) if row[5] is not None else None,
-                inventory_age_seconds=int(row[6]) if row[6] is not None else None,
-                shipping_age_seconds=int(row[7]) if row[7] is not None else None,
-                price_max_age_seconds=int(row[8]),
-                inventory_max_age_seconds=int(row[9]),
-                shipping_max_age_seconds=int(row[10]),
+                identity_hard_block=bool(row[5]) if row[5] is not None else True,
+                identity_confidence=float(row[4]) if row[4] is not None else 0.0,
+                mpn_mismatch="MPN_MISMATCH" in (row[6] or []),
+                set_count_mismatch="SET_COUNT_MISMATCH" in (row[6] or []),
+                color_mismatch="COLOR_MISMATCH" in (row[6] or []),
+                size_mismatch="SIZE_MISMATCH" in (row[6] or []),
+                condition_mismatch="CONDITION_MISMATCH" in (row[6] or []),
+                price_age_seconds=int(row[7]) if row[7] is not None else None,
+                inventory_age_seconds=int(row[8]) if row[8] is not None else None,
+                shipping_age_seconds=int(row[9]) if row[9] is not None else None,
+                price_max_age_seconds=int(row[10]),
+                inventory_max_age_seconds=int(row[11]),
+                shipping_max_age_seconds=int(row[12]),
                 orderable=row[1] == "ORDERABLE",
                 supplier_active=row[2] == "ACTIVE",
                 supplier_cost=float(row[3]) if row[3] is not None else None,
