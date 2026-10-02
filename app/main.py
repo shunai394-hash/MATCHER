@@ -672,6 +672,155 @@ def evaluate_product_sellability(product_id: UUID) -> dict[str, Any]:
         return out
 
 
+class RepairCreate(BaseModel):
+    action: str = Field(min_length=1, max_length=500)
+    result: str = Field(min_length=1, max_length=100)
+
+
+class RetestCreate(BaseModel):
+    passed: bool
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+@app.post("/v1/quality/patrol")
+def run_quality_patrol() -> dict[str, Any]:
+    from app.services.sellability import SellabilityInput, evaluate_sellability
+    with db() as conn:
+        patrol=conn.execute(
+            "insert into quality_patrol_run(status) values ('RUNNING') returning id"
+        ).fetchone()
+        patrol_id=patrol[0]
+        rows=conn.execute(
+            """
+            select
+              so.id,
+              so.orderability,
+              s.status,
+              snap.supplier_cost,
+              snap.shipping_cost,
+              extract(epoch from (now()-f.price_observed_at))::bigint,
+              extract(epoch from (now()-f.inventory_observed_at))::bigint,
+              extract(epoch from (now()-f.shipping_observed_at))::bigint,
+              max(case when fp.data_type='PRICE' then fp.max_age_seconds end),
+              max(case when fp.data_type='INVENTORY' then fp.max_age_seconds end),
+              max(case when fp.data_type='SHIPPING' then fp.max_age_seconds end)
+            from supplier_offer so
+            join supplier_product sp on sp.id=so.supplier_product_id
+            join supplier s on s.id=sp.supplier_id
+            left join lateral (
+              select supplier_cost,shipping_cost,inventory
+              from supplier_offer_snapshot x
+              where x.supplier_offer_id=so.id
+              order by x.observed_at desc limit 1
+            ) snap on true
+            left join supplier_offer_freshness f on f.supplier_offer_id=so.id
+            cross join freshness_policy fp
+            group by so.id,s.status,snap.supplier_cost,snap.shipping_cost,
+                     f.price_observed_at,f.inventory_observed_at,f.shipping_observed_at
+            """
+        ).fetchall()
+        blocked=0
+        diagnosis_count=0
+        for row in rows:
+            x=SellabilityInput(
+                identity_hard_block=False,
+                identity_confidence=1.0,
+                mpn_mismatch=False,
+                set_count_mismatch=False,
+                color_mismatch=False,
+                size_mismatch=False,
+                condition_mismatch=False,
+                price_age_seconds=int(row[5]) if row[5] is not None else None,
+                inventory_age_seconds=int(row[6]) if row[6] is not None else None,
+                shipping_age_seconds=int(row[7]) if row[7] is not None else None,
+                price_max_age_seconds=int(row[8]),
+                inventory_max_age_seconds=int(row[9]),
+                shipping_max_age_seconds=int(row[10]),
+                orderable=row[1] == "ORDERABLE",
+                supplier_active=row[2] == "ACTIVE",
+                supplier_cost=float(row[3]) if row[3] is not None else None,
+                shipping_cost=float(row[4]) if row[4] is not None else None,
+            )
+            status,reasons=evaluate_sellability(x)
+            if status == "BLOCKED":
+                blocked += 1
+                for reason in reasons:
+                    conn.execute(
+                        """
+                        insert into quality_diagnosis
+                          (patrol_run_id,supplier_offer_id,severity,code,details)
+                        values (%s,%s,'ERROR',%s,%s)
+                        """,
+                        (patrol_id,row[0],reason,{"source":"quality_patrol"}),
+                    )
+                    diagnosis_count += 1
+            conn.execute(
+                """
+                insert into quality_gate_result(supplier_offer_id,status,checks,blocking_reasons)
+                values (%s,%s,%s,%s)
+                """,
+                (row[0],status,{"source":"quality_patrol"},reasons),
+            )
+        final_status="PASSED" if blocked == 0 else "FAILED"
+        conn.execute(
+            """
+            update quality_patrol_run
+            set status=%s,finished_at=now(),
+                summary=%s
+            where id=%s
+            """,
+            (final_status,{"offers_checked":len(rows),"blocked_offers":blocked,"diagnoses":diagnosis_count},patrol_id),
+        )
+        conn.commit()
+        return {
+            "patrol_run_id":str(patrol_id),
+            "status":final_status,
+            "offers_checked":len(rows),
+            "blocked_offers":blocked,
+            "diagnoses":diagnosis_count,
+        }
+
+
+@app.post("/v1/quality/diagnoses/{diagnosis_id}/repair")
+def record_quality_repair(diagnosis_id: UUID, body: RepairCreate) -> dict[str, Any]:
+    with db() as conn:
+        diagnosis=conn.execute("select id from quality_diagnosis where id=%s",(diagnosis_id,)).fetchone()
+        if not diagnosis:
+            raise HTTPException(status_code=404, detail="diagnosis not found")
+        result=conn.execute(
+            """
+            insert into quality_repair(diagnosis_id,action,result)
+            values (%s,%s,%s)
+            returning id,diagnosis_id,action,result,details,repaired_at
+            """,
+            (diagnosis_id,body.action,body.result),
+        )
+        row=result.fetchone()
+        out=dict(zip([d.name for d in result.description],row))
+        conn.commit()
+        return out
+
+
+@app.post("/v1/quality/diagnoses/{diagnosis_id}/retest")
+def record_quality_retest(diagnosis_id: UUID, body: RetestCreate) -> dict[str, Any]:
+    with db() as conn:
+        diagnosis=conn.execute("select id from quality_diagnosis where id=%s",(diagnosis_id,)).fetchone()
+        if not diagnosis:
+            raise HTTPException(status_code=404, detail="diagnosis not found")
+        result=conn.execute(
+            """
+            insert into quality_retest(diagnosis_id,passed,details)
+            values (%s,%s,%s)
+            returning id,diagnosis_id,passed,details,tested_at
+            """,
+            (diagnosis_id,body.passed,body.details),
+        )
+        row=result.fetchone()
+        out=dict(zip([d.name for d in result.description],row))
+        conn.commit()
+        return out
+
+
 @app.get("/v1/products/{product_id}/sellability")
 def get_sellability(product_id: UUID) -> dict[str, Any]:
     sql = """
