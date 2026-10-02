@@ -1,6 +1,7 @@
 import os
 from typing import Any
 from uuid import UUID
+from pathlib import Path
 
 import psycopg
 from fastapi import FastAPI, HTTPException
@@ -28,7 +29,12 @@ class ProductSearch(BaseModel):
     limit: int = Field(default=20, ge=1, le=100)
 
 
-@app.get("/", include_in_schema=False)\ndef dashboard():\n    return FileResponse(Path(__file__).parent / "static" / "index.html")\n\n\n@app.get("/health")
+@app.get("/", include_in_schema=False)
+def dashboard():
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
+
+
+@app.get("/health")
 def health() -> dict[str, str]:
     try:
         with db() as conn:
@@ -68,6 +74,193 @@ class SupplierProductCreate(BaseModel):
 class IdentityEvaluateRequest(BaseModel):
     supplier_product_id: UUID
     master_product_id: UUID
+
+
+class OfferCreate(BaseModel):
+    supplier_product_id: UUID
+    currency: str = Field(default="JPY", min_length=3, max_length=3)
+    orderability: str = Field(default="UNKNOWN")
+
+
+class OfferObservationCreate(BaseModel):
+    observation_type: str
+    supplier_cost: float | None = Field(default=None, ge=0)
+    shipping_cost: float | None = Field(default=None, ge=0)
+    inventory: int | None = None
+    observed_at: str | None = None
+
+
+class ProfitCreate(BaseModel):
+    supplier_offer_id: UUID
+    sale_price: float = Field(ge=0)
+    supplier_cost: float | None = Field(default=None, ge=0)
+    shipping_cost: float | None = Field(default=None, ge=0)
+    payment_fee: float | None = Field(default=None, ge=0)
+    marketplace_fee: float | None = Field(default=None, ge=0)
+    tax: float | None = Field(default=None, ge=0)
+    other_cost: float | None = Field(default=None, ge=0)
+
+
+@app.post("/v1/supplier-offers")
+def create_supplier_offer(body: OfferCreate) -> dict[str, Any]:
+    if body.orderability not in {"ORDERABLE", "OUT_OF_STOCK", "UNKNOWN", "BLOCKED"}:
+        raise HTTPException(status_code=400, detail="invalid orderability")
+    with db() as conn:
+        exists = conn.execute(
+            "select id from supplier_product where id=%s", (body.supplier_product_id,)
+        ).fetchone()
+        if not exists:
+            raise HTTPException(status_code=404, detail="supplier product not found")
+        result = conn.execute(
+            """
+            insert into supplier_offer(supplier_product_id,currency,orderability)
+            values (%s,%s,%s)
+            on conflict (supplier_product_id) do update set
+              currency=excluded.currency,
+              orderability=excluded.orderability,
+              updated_at=now()
+            returning id,supplier_product_id,currency,orderability,created_at,updated_at
+            """,
+            (body.supplier_product_id, body.currency.upper(), body.orderability),
+        )
+        row=result.fetchone()
+        columns=[d.name for d in result.description]
+        conn.execute(
+            """
+            insert into supplier_offer_freshness(supplier_offer_id)
+            values (%s)
+            on conflict (supplier_offer_id) do nothing
+            """,
+            (row[0],),
+        )
+        conn.commit()
+        return dict(zip(columns,row))
+
+
+@app.post("/v1/supplier-offers/{offer_id}/observations")
+def add_offer_observation(offer_id: UUID, body: OfferObservationCreate) -> dict[str, Any]:
+    if body.observation_type not in {"PRICE", "INVENTORY", "SHIPPING"}:
+        raise HTTPException(status_code=400, detail="invalid observation_type")
+    if body.observation_type == "PRICE" and body.supplier_cost is None:
+        raise HTTPException(status_code=400, detail="supplier_cost is required for PRICE")
+    if body.observation_type == "INVENTORY" and body.inventory is None:
+        raise HTTPException(status_code=400, detail="inventory is required for INVENTORY")
+    if body.observation_type == "SHIPPING" and body.shipping_cost is None:
+        raise HTTPException(status_code=400, detail="shipping_cost is required for SHIPPING")
+    with db() as conn:
+        offer=conn.execute("select id from supplier_offer where id=%s",(offer_id,)).fetchone()
+        if not offer:
+            raise HTTPException(status_code=404, detail="offer not found")
+        result=conn.execute(
+            """
+            insert into supplier_offer_observation
+              (supplier_offer_id,observation_type,price,inventory,shipping_cost,observed_at)
+            values (%s,%s,%s,%s,%s,coalesce(%s::timestamptz,now()))
+            returning id,supplier_offer_id,observation_type,price,inventory,shipping_cost,observed_at
+            """,
+            (offer_id,body.observation_type,body.supplier_cost,body.inventory,
+             body.shipping_cost,body.observed_at),
+        )
+        row=result.fetchone()
+        columns=[d.name for d in result.description]
+        conn.execute(
+            """
+            insert into supplier_offer_snapshot
+              (supplier_offer_id,supplier_cost,shipping_cost,inventory,observed_at)
+            values (%s,%s,%s,%s,%s)
+            """,
+            (offer_id,body.supplier_cost,body.shipping_cost,body.inventory,row[6]),
+        )
+        freshness_column={
+            "PRICE":"price_observed_at",
+            "INVENTORY":"inventory_observed_at",
+            "SHIPPING":"shipping_observed_at",
+        }[body.observation_type]
+        conn.execute(
+            f"""
+            insert into supplier_offer_freshness(supplier_offer_id,{freshness_column})
+            values (%s,%s)
+            on conflict (supplier_offer_id) do update set
+              {freshness_column}=excluded.{freshness_column},
+              updated_at=now()
+            """,
+            (offer_id,row[6]),
+        )
+        conn.commit()
+        return dict(zip(columns,row))
+
+
+@app.post("/v1/products/{product_id}/profit")
+def create_profit(product_id: UUID, body: ProfitCreate) -> dict[str, Any]:
+    from app.services.profit import calculate_profit
+    with db() as conn:
+        offer=conn.execute(
+            """
+            select so.id
+            from supplier_offer so
+            join supplier_product sp on sp.id=so.supplier_product_id
+            join lateral (
+              select im.*
+              from identity_match im
+              where im.supplier_product_id=sp.id and im.master_product_id=%s
+              order by im.created_at desc limit 1
+            ) im on im.hard_block=false and im.decision in ('AUTO_LINK','REVIEW')
+            where so.id=%s
+            """,
+            (product_id,body.supplier_offer_id),
+        ).fetchone()
+        if not offer:
+            raise HTTPException(status_code=404, detail="offer is not linked to product")
+        result=calculate_profit(
+            sale_price=body.sale_price,
+            supplier_cost=body.supplier_cost,
+            shipping_cost=body.shipping_cost,
+            payment_fee=body.payment_fee,
+            marketplace_fee=body.marketplace_fee,
+            tax=body.tax,
+            other_cost=body.other_cost,
+        )
+        if result["missing_costs"]:
+            raise HTTPException(status_code=422, detail={
+                "code":"PROFIT_COST_UNKNOWN",
+                "missing_costs":result["missing_costs"]
+            })
+        row=conn.execute(
+            """
+            insert into profit_snapshot
+              (supplier_offer_id,sale_price,supplier_cost,shipping_cost,payment_fee,
+               marketplace_fee,tax,other_cost,expected_profit)
+            values (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            returning id,supplier_offer_id,sale_price,supplier_cost,shipping_cost,
+                      payment_fee,marketplace_fee,tax,other_cost,expected_profit,calculated_at
+            """,
+            (body.supplier_offer_id,body.sale_price,body.supplier_cost,body.shipping_cost,
+             body.payment_fee,body.marketplace_fee,body.tax,body.other_cost,
+             result["expected_profit"]),
+        )
+        out=dict(zip([d.name for d in conn.execute("select * from profit_snapshot where id=%s",(row[0],)).description], row))
+        conn.commit()
+        return out
+
+
+@app.get("/v1/products/{product_id}/profit")
+def get_profit(product_id: UUID) -> dict[str, Any]:
+    with db() as conn:
+        rows=rows_as_dicts(conn,
+            """
+            select ps.*
+            from profit_snapshot ps
+            join supplier_offer so on so.id=ps.supplier_offer_id
+            join supplier_product sp on sp.id=so.supplier_product_id
+            join lateral (
+              select im.*
+              from identity_match im
+              where im.supplier_product_id=sp.id and im.master_product_id=%s
+              order by im.created_at desc limit 1
+            ) im on im.hard_block=false
+            order by ps.calculated_at desc
+            """,(product_id,))
+        return {"product_id":str(product_id),"results":rows}
 
 
 @app.post("/v1/products")
