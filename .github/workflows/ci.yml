@@ -39,7 +39,7 @@ jobs:
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/schema.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/002_domain_integrity.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 <<'SQL'
-          do $
+          do $matcher_schema_check$
           begin
             if (select count(*) from freshness_policy) <> 3 then
               raise exception 'freshness_policy must contain exactly 3 default metrics';
@@ -62,5 +62,5 @@ jobs:
             ) then
               raise exception 'match_result.hard_block missing';
             end if;
-          end $;
+          end $matcher_schema_check$;
           SQL
