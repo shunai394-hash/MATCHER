@@ -106,3 +106,59 @@ def test_product_to_offer_identity_and_sellability_flow(client):
     patrol = client.post("/v1/quality/patrol")
     assert patrol.status_code == 200, patrol.text
     assert patrol.json()["status"] == "PASSED"
+
+    mismatched = client.post("/v1/supplier-products", json={
+        "supplier": "TEST SUPPLIER",
+        "supplier_product_id": "SP-101",
+        "product_name": "MATCHER TEST",
+        "brand": "TEST",
+        "model_number": "M-100",
+        "color": "Black",
+        "set_count": 3,
+        "condition": "NEW",
+        "identifiers": [{"type": "JAN", "value": "4900000000011"}],
+    })
+    assert mismatched.status_code == 200, mismatched.text
+    mismatched_id = mismatched.json()["id"]
+
+    bad_identity = client.post("/v1/identity/evaluate", json={
+        "supplier_product_id": mismatched_id,
+        "master_product_id": product_id,
+    })
+    assert bad_identity.status_code == 200, bad_identity.text
+    assert bad_identity.json()["decision"] == "BLOCK"
+    assert "SET_COUNT_MISMATCH" in bad_identity.json()["blocking_reasons"]
+
+    bad_offer = client.post("/v1/supplier-offers", json={
+        "supplier_product_id": mismatched_id,
+        "currency": "JPY",
+        "orderability": "ORDERABLE",
+    })
+    assert bad_offer.status_code == 200, bad_offer.text
+
+    failed_patrol = client.post("/v1/quality/patrol")
+    assert failed_patrol.status_code == 200, failed_patrol.text
+    assert failed_patrol.json()["status"] == "FAILED"
+    assert failed_patrol.json()["diagnoses"] > 0
+
+    with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
+        diagnosis_id = conn.execute(
+            """
+            select id from quality_diagnosis
+            order by diagnosed_at desc
+            limit 1
+            """
+        ).fetchone()[0]
+
+    repair = client.post(f"/v1/quality/diagnoses/{diagnosis_id}/repair", json={
+        "action": "BLOCKED_OFFER_REVIEW",
+        "result": "RECORDED",
+    })
+    assert repair.status_code == 200, repair.text
+
+    retest = client.post(f"/v1/quality/diagnoses/{diagnosis_id}/retest", json={
+        "passed": False,
+        "details": {"reason": "identity hard block remains"},
+    })
+    assert retest.status_code == 200, retest.text
+    assert retest.json()["passed"] is False
