@@ -49,7 +49,7 @@ export function IdentityProof() {
     <section className="proof" aria-labelledby="proof-title">
       <div className="proof-head">
         <div>
-          <p className="proof-kicker">LIVE IDENTITY PROOF</p>
+          <p className="proof-kicker">IDENTITY DECISION PROOF</p>
           <h2 id="proof-title">一致を「推測」ではなく、証拠で見る。</h2>
         </div>
         <span className={current.decision === "BLOCK" ? "decision block" : current.decision === "REVIEW" ? "decision review" : "decision"}>
