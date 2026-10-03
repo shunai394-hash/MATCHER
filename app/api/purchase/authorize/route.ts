@@ -88,6 +88,7 @@ export async function POST(request: Request) {
         currency: (offer.currency ?? body.currency ?? "jpy").toLowerCase(),
         status: "AUTHORIZING",
         decision_snapshot: body.decisionSnapshot ?? {},
+        authorized_at: new Date().toISOString(),
       })
       .select("id")
       .single();
