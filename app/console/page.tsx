@@ -27,6 +27,10 @@ export default function ConsolePage() {
         ...payload,
         salePrice: payload.salePrice ? Number(payload.salePrice) : null,
         setCount: payload.setCount ? Number(payload.setCount) : null,
+        paymentFee: payload.paymentFee ? Number(payload.paymentFee) : null,
+        marketplaceFee: payload.marketplaceFee ? Number(payload.marketplaceFee) : null,
+        tax: payload.tax ? Number(payload.tax) : null,
+        otherCost: payload.otherCost ? Number(payload.otherCost) : null,
       }),
     });
     setResult(await response.json());
@@ -72,7 +76,13 @@ export default function ConsolePage() {
 
         <div className="form-section">
           <h2>3. 販売価格</h2>
-          <label>想定販売価格<input name="salePrice" type="number" min="0" step="1" placeholder="円" /></label>
+          <div className="form-grid">
+            <label>想定販売価格<input name="salePrice" type="number" min="0" step="1" placeholder="円" /></label>
+            <label>決済手数料<input name="paymentFee" type="number" min="0" step="1" placeholder="円" /></label>
+            <label>モール手数料<input name="marketplaceFee" type="number" min="0" step="1" placeholder="円" /></label>
+            <label>税<input name="tax" type="number" min="0" step="1" placeholder="円" /></label>
+            <label>その他コスト<input name="otherCost" type="number" min="0" step="1" placeholder="円" /></label>
+          </div>
         </div>
 
         <button className="decision-submit" disabled={busy}>{busy ? "判定中…" : "仕入れ判断を実行 →"}</button>
