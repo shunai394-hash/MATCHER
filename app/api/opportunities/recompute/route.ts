@@ -51,8 +51,8 @@ export async function POST(request: Request) {
     for (const offer of offers ?? []) {
       const { data: snapshots, error: snapshotError } = await supabase.from("supplier_offer_snapshot").select("supplier_cost,shipping_cost,inventory,observed_at").eq("supplier_offer_id", offer.id).order("observed_at", { ascending: false }).limit(1);
       if (snapshotError) throw snapshotError;
-      const snapshot = snapshots?.[0];
-      if (snapshot?.supplier_cost == null || snapshot?.shipping_cost == null || snapshot?.inventory == null || snapshot.inventory <= 0) continue;
+      const offerSnapshot = snapshots?.[0];
+      if (offerSnapshot?.supplier_cost == null || offerSnapshot?.shipping_cost == null || offerSnapshot?.inventory == null || snapshot.inventory <= 0) continue;
       const match = latestMatch.get(offer.supplier_product_id);
       if (!match?.master_product_id) continue;
       const market = latestMarket.get(match.master_product_id + ":");
@@ -71,8 +71,8 @@ export async function POST(request: Request) {
       const snapshot = await supabase.from("profit_snapshot").insert({
         supplier_offer_id: offer.id,
         sale_price: market.sale_price,
-        supplier_cost: snapshot.supplier_cost,
-        shipping_cost: snapshot.shipping_cost,
+        supplier_cost: offerSnapshot.supplier_cost,
+        shipping_cost: offerSnapshot.shipping_cost,
         payment_fee: market.payment_fee,
         marketplace_fee: market.marketplace_fee,
         tax: market.tax,
