@@ -29,6 +29,7 @@ export default function Home() {
         </a>
         <nav className="header-nav" aria-label="ページ内ナビゲーション">
           <a href="/console">仕入れ判断</a>
+          <a href="/quality">品質センター</a>
           <a href="#identity-proof">判定を見る</a>
           <a href="#quality-loop">品質ループ</a>
           <a href="#core-flow-title">全体像</a>
