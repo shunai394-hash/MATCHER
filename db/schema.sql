@@ -28,7 +28,7 @@ create table product_identifier (
   source text,
   is_primary boolean not null default false,
   created_at timestamptz not null default now(),
-  unique (identifier_type, normalized_value)
+  unique (master_product_id, identifier_type, normalized_value)
 );
 
 create table product_variant (
@@ -164,6 +164,9 @@ create table quality_run (
 );
 
 create index idx_identifier_lookup on product_identifier(identifier_type, normalized_value);
+create unique index idx_product_identifier_global_gtin
+  on product_identifier(identifier_type, normalized_value)
+  where identifier_type in ('JAN','EAN','UPC');
 create index idx_variant_master on product_variant(master_product_id);
 create index idx_supplier_product_supplier on supplier_product(supplier_id);
 create index idx_supplier_offer_product on supplier_offer(supplier_product_id);
