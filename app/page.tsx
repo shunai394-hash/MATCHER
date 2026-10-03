@@ -1,42 +1,4 @@
-const pillars = [
-  ["01", "Product Master", "内部商品IDを中心に、識別子・仕様・バリアントを統合"],
-  ["02", "Identity Matching", "JAN / EAN / UPC / MPN / SKU / ブランド・型番・仕様を証拠付きで照合"],
-  ["03", "Supplier Linking", "1商品 : 多サプライヤーで価格・在庫・注文可否を管理"],
-  ["04", "Profit & Safety", "実コストと利益を計算し、危険条件は利益が出ても自動ブロック"],
-];
-
-export default function Home() {
-  return (
-    <main className="shell">
-      <header className="header">
-        <div className="brand">MATCHER</div>
-        <div className="status"><span /> foundation online</div>
-      </header>
-
-      <section className="hero">
-        <p className="eyebrow">PRODUCT IDENTITY & SUPPLIER INTELLIGENCE</p>
-        <h1>同じ商品を、<br /><em>正しく見つける。</em></h1>
-        <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する基盤。</p>
-      </section>
-
-      <section className="grid">
-        {pillars.map(([num, title, text]) => (
-          <article className="card" key={num}>
-            <div className="num">{num}</div>
-            <h2>{title}</h2>
-            <p>{text}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="flow">
-        <div className="flow-title">CORE FLOW</div>
-        <div className="flow-row">
-          {['Supplier Data', 'Identity Match', 'Product Master', 'Cost / Profit', 'Safety Gate', 'Sellability'].map((item, i) => (
-            <div className="flow-item" key={item}><b>{String(i + 1).padStart(2, '0')}</b>{item}</div>
-          ))}
-        </div>
-      </section>
-    </main>
-  );
-}
+const pillars = [{ number: "01", label: "IDENTITY", title: "商品を、商品として認識する。", text: "JAN / EAN / UPC、MPN、SKU、ブランド、型番、仕様を重ね、ひとつのProduct Masterへ。", accent: "Evidence first" }, { number: "02", label: "MATCH", title: "一致と推測を分ける。", text: "確かな一致は自動連携。証拠が足りないものはReviewへ。危険な差異はBlockする。", accent: "Deterministic" }, { number: "03", label: "SUPPLY", title: "供給先を、同じ商品につなぐ。", text: "複数サプライヤーの価格・在庫・注文可否を、Product Masterを軸に一つへ集約。", accent: "One product / many offers" }, { number: "04", label: "GATE", title: "売れるだけでは、通さない。", text: "実コスト、利益、安全条件を通過して初めてSELLABLE。危険な取引は止める。", accent: "Safety by default" }];
+const flow = [["01", "Supplier data", "取り込む"], ["02", "Normalize", "正規化"], ["03", "Identity", "照合する"], ["04", "Evidence", "根拠を見る"], ["05", "Cost / Profit", "計算する"], ["06", "Safety gate", "通す / 止める"]];
+const signals = [["JAN / EAN / UPC", "EXACT"], ["Brand + MPN", "STRONG"], ["Variant", "CRITICAL"]];
+export default function Home() { return (<main className="shell"><header className="header"><a className="brand" href="/" aria-label="MATCHER home">MATCHER<span>.</span></a><div className="header-meta"><span className="system-label">PRODUCT IDENTITY SYSTEM</span><span className="system-dot" aria-hidden="true" /><span>01 / FOUNDATION</span></div></header><section className="hero" aria-labelledby="hero-title"><div className="hero-copy"><p className="eyebrow"><span>PRODUCT IDENTITY</span> / SUPPLIER INTELLIGENCE</p><h1 id="hero-title">同じ商品を、<br /><em>正しく見つける。</em></h1><p className="lead">商品の「同一性」を証拠から組み立て、サプライヤー、コスト、安全性まで一本につなぐ。</p><div className="hero-actions"><a href="#system" className="primary-action">MATCHING SYSTEM <span aria-hidden="true">↓</span></a><span className="micro-copy">No guesswork. Evidence → decision.</span></div></div><div className="identity-panel" aria-label="Identity evidence example"><div className="panel-top"><span>IDENTITY CHECK</span><span className="panel-live"><i aria-hidden="true" /> deterministic</span></div><div className="identity-core"><div className="orbit orbit-one" aria-hidden="true" /><div className="orbit orbit-two" aria-hidden="true" /><div className="core-mark" aria-hidden="true"><span /><span /></div><div className="core-label">PRODUCT<br /><strong>MASTER</strong></div></div><div className="signal-list">{signals.map(([label, value]) => <div className="signal" key={label}><span>{label}</span><b>{value}</b></div>)}</div><div className="decision"><span>DECISION</span><strong>AUTO LINK</strong><span className="decision-arrow" aria-hidden="true">↗</span></div></div></section><section className="proof-strip" aria-label="MATCHER principles">{[["01","IDENTITY","canonical product"],["02","EVIDENCE","traceable decision"],["03","SUPPLY","connected offers"],["04","SAFETY","automatic gate"]].map(([n,t,s])=><div key={n}><span>{n}</span><strong>{t}</strong><small>{s}</small></div>)}</section><section className="system-section" id="system" aria-labelledby="system-title"><div className="section-heading"><div><p className="section-kicker">THE SYSTEM</p><h2 id="system-title">Matching is not a guess.<br />It is a chain of evidence.</h2></div><p className="section-note">Every decision should remain explainable, reversible, and safe to automate.</p></div><div className="grid">{pillars.map((pillar)=><article className="card" key={pillar.number}><div className="card-head"><span className="num">{pillar.number}</span><span className="card-label">{pillar.label}</span></div><div className="card-body"><h3>{pillar.title}</h3><p>{pillar.text}</p></div><div className="card-foot"><span>{pillar.accent}</span><span aria-hidden="true">↗</span></div></article>)}</div></section><section className="flow-section" aria-labelledby="flow-title"><div className="flow-heading"><p className="section-kicker">CORE FLOW</p><h2 id="flow-title">From raw supplier data<br />to a decision you can trust.</h2></div><div className="flow-row">{flow.map(([number,title,label],index)=><div className="flow-item" key={number}><div className="flow-number">{number}</div><div className="flow-name">{title}</div><div className="flow-label">{label}</div>{index<flow.length-1&&<span className="flow-arrow" aria-hidden="true">→</span>}</div>)}</div></section><footer className="footer"><div className="footer-brand">MATCHER<span>.</span></div><p>Product identity & supplier intelligence infrastructure.</p><span>BUILDING THE TRUST LAYER</span></footer></main>); }
