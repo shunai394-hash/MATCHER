@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MATCHER",
-  description: "Product identity and supplier matching engine",
+  title: "MATCHER — Product Identity & Supplier Intelligence",
+  description: "商品同一性を証拠から判定し、サプライヤーと安全につなぐプロダクト・アイデンティティ基盤。",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
