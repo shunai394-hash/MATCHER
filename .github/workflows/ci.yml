@@ -32,6 +32,7 @@ jobs:
           node-version: 24
       - run: npm install --no-audit --no-fund
       - run: npm run verify:gate
+      - run: npm run verify:experience
       - run: npm run lint
       - run: npm run build
       - name: Install PostgreSQL client
