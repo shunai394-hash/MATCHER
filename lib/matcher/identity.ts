@@ -36,7 +36,7 @@ const GLOBAL_IDENTIFIERS: IdentifierType[] = ["JAN", "EAN", "UPC"];
 
 function normalize(value: string | null | undefined): string | null {
   if (!value) return null;
-  const normalized = value.normalize("NFKC").trim().toUpperCase().replace(/[\\s-]/g, "");
+  const normalized = value.normalize("NFKC").trim().toUpperCase().split(" ").join("").replaceAll("-", "");
   return normalized || null;
 }
 
