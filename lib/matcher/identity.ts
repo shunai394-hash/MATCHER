@@ -25,7 +25,7 @@ export type IdentityRecord = {
 
 export type MatchEvidence = {
   field: string;
-  kind: "EXACT_IDENTIFIER" | "EXACT_ATTRIBUTE" | "VARIANT_COMPATIBLE" | "VARIANT_CONFLICT";
+  kind: "EXACT_IDENTIFIER" | "EXACT_ATTRIBUTE" | "VARIANT_COMPATIBLE" | "VARIANT_CONFLICT" | "ATTRIBUTE_CONFLICT";
   source: string | null;
   master: string | null;
   weight: number;
@@ -137,7 +137,7 @@ export function matchIdentity(source: IdentityRecord, candidates: IdentityRecord
 
   const evaluated = candidates.map((master) => {
     const evidence = evidenceFor(source, master);
-    const conflicts = evidence.filter((item) => item.kind === "VARIANT_CONFLICT");
+    const conflicts = evidence.filter((item) => item.kind === "VARIANT_CONFLICT" || item.kind === "ATTRIBUTE_CONFLICT");
     const confidence = score(source, master, evidence);
     const exactGtin = evidence.some((item) => item.kind === "EXACT_IDENTIFIER");
     const brandExact = evidence.some((item) => item.field === "brand");
@@ -163,7 +163,7 @@ export function matchIdentity(source: IdentityRecord, candidates: IdentityRecord
       decision: "BLOCK",
       masterProductId: top.master.id,
       confidence: top.confidence,
-      reasons: ["VARIANT_CONFLICT"],
+      reasons: [top.evidence.some((item) => item.kind === "ATTRIBUTE_CONFLICT") ? "IDENTITY_ATTRIBUTE_CONFLICT" : "VARIANT_CONFLICT"],
       evidence: top.evidence,
     };
   }
@@ -192,7 +192,7 @@ export function matchIdentity(source: IdentityRecord, candidates: IdentityRecord
     decision: "REVIEW",
     masterProductId: null,
     confidence: top.confidence,
-    reasons: top.hardBlock ? ["VARIANT_CONFLICT"] : ["INSUFFICIENT_IDENTITY_EVIDENCE"],
+    reasons: top.hardBlock\n      ? [top.evidence.some((item) => item.kind === "ATTRIBUTE_CONFLICT") ? "IDENTITY_ATTRIBUTE_CONFLICT" : "VARIANT_CONFLICT"]\n      : ["INSUFFICIENT_IDENTITY_EVIDENCE"],
     evidence: top.evidence,
   };
 }
