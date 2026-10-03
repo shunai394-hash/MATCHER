@@ -73,6 +73,22 @@ export async function GET(request: Request) {
 
     const supplierMap = new Map((suppliers ?? []).map((row) => [row.id, row]));
 
+    const { data: freshnessRows, error: freshnessError } = await supabase
+      .from("supplier_offer_freshness")
+      .select("supplier_offer_id,price_observed_at,inventory_observed_at,shipping_observed_at")
+      .in("supplier_offer_id", offerIds);
+    if (freshnessError) throw freshnessError;
+    const { data: policies, error: policyError } = await supabase
+      .from("freshness_policy")
+      .select("data_type,max_age_seconds");
+    if (policyError) throw policyError;
+    const policyMap = new Map((policies ?? []).map((row) => [row.data_type, Number(row.max_age_seconds)]));
+    const isFresh = (timestamp: string | null, type: string) => {
+      const maxAge = policyMap.get(type);
+      return !!timestamp && maxAge != null && (Date.now() - new Date(timestamp).getTime()) / 1000 <= maxAge;
+    };
+    const freshnessMap = new Map((freshnessRows ?? []).map((row) => [row.supplier_offer_id, row]));
+
     const gateRows = await supabase
       .from("quality_gate_result")
       .select("supplier_offer_id,status,evaluated_at")
@@ -123,6 +139,8 @@ export async function GET(request: Request) {
       if (!master || !supplier) continue;
       const gate = gateMap.get(profit.supplier_offer_id);
       if (gate?.status && gate.status !== "SELLABLE") continue;
+      const freshness = freshnessMap.get(profit.supplier_offer_id);
+      if (!freshness || !isFresh(freshness.price_observed_at, "PRICE") || !isFresh(freshness.inventory_observed_at, "INVENTORY") || !isFresh(freshness.shipping_observed_at, "SHIPPING")) continue;
 
       opportunities.push({
         masterProductId: master.id,
