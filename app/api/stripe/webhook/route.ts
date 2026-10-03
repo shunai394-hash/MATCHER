@@ -41,14 +41,20 @@ export async function POST(request: Request) {
     if (!review) return NextResponse.json({ received: true });
 
     const now = new Date().toISOString();
+    let update: Record<string, unknown> | null = null;
     if (event.type === "payment_intent.amount_capturable_updated" && review.status === "AUTHORIZING") {
-      await supabase.from("purchase_review").update({ status: "AWAITING_HUMAN", updated_at: now }).eq("id", review.id);
+      update = { status: "AWAITING_HUMAN", updated_at: now };
     } else if (event.type === "payment_intent.payment_failed" && !["APPROVED","REJECTED"].includes(review.status)) {
-      await supabase.from("purchase_review").update({ status: "FAILED", updated_at: now }).eq("id", review.id);
+      update = { status: "FAILED", updated_at: now };
     } else if (event.type === "payment_intent.canceled" && !["APPROVED","REJECTED"].includes(review.status)) {
-      await supabase.from("purchase_review").update({ status: "EXPIRED", updated_at: now }).eq("id", review.id);
+      update = { status: "EXPIRED", updated_at: now };
     } else if (event.type === "payment_intent.succeeded" && review.status === "AWAITING_HUMAN") {
-      await supabase.from("purchase_review").update({ status: "APPROVED", captured_at: now, reviewed_at: now, updated_at: now }).eq("id", review.id);
+      update = { status: "APPROVED", captured_at: now, reviewed_at: now, updated_at: now };
+    }
+    if (update) {
+      // Fail loudly so Stripe retries the event instead of silently losing a state transition.
+      const { error: updateError } = await supabase.from("purchase_review").update(update).eq("id", review.id);
+      if (updateError) throw updateError;
     }
     return NextResponse.json({ received: true });
   } catch (error) {

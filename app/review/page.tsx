@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 type Review = {
@@ -46,7 +47,7 @@ export default function ReviewPage() {
 
   return (
     <main className="review-shell">
-      <header className="review-header"><a href="/" className="console-brand">MATCHER</a><span>購入レビュー</span></header>
+      <header className="review-header"><Link href="/" className="console-brand">MATCHER</Link><span>購入レビュー</span></header>
       <section className="review-hero">
         <p className="section-kicker">HUMAN PURCHASE GATE</p>
         <h1>自動購入の最後は、<em>人が確認する。</em></h1>

@@ -5,7 +5,7 @@ const files = {
   ebay: readFileSync("app/api/sources/ebay/search/route.ts", "utf8"),
   adapters: readFileSync("lib/sources/marketplace.ts", "utf8"),
   ingest: readFileSync("app/api/ingest/route.ts", "utf8"),
-  recompute: readFileSync("app/api/opportunities/recompute/route.ts", "utf8"),
+  recompute: readFileSync("lib/server/recompute.ts", "utf8"),
 };
 assert.ok(files.ebay.includes("EBAY_CLIENT_ID"));
 assert.ok(files.ebay.includes("X-EBAY-C-MARKETPLACE-ID"));

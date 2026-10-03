@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 type Result = {
@@ -49,7 +50,7 @@ export default function ConsolePage() {
   return (
     <main className="console-shell">
       <header className="console-header">
-        <a href="/" className="console-brand">MATCHER</a>
+        <Link href="/" className="console-brand">MATCHER</Link>
         <span>仕入れ判断コンソール</span>
       </header>
 

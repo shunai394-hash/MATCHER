@@ -30,4 +30,24 @@ MATCHER consumes relevant data and performs product-master, supplier-linking, pr
 See docs/data-model.md for the initial domain model.
 
 
-<!-- CI verification checkpoint -->
+## Running
+
+Environment (server only):
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Supabase (service role, server-side only) |
+| `MATCHER_INGEST_TOKEN` | Required header `x-matcher-ingest-token` for `/api/ingest`, `/api/opportunities/recompute` |
+| `CRON_SECRET` | Lets Vercel Cron call `/api/opportunities/recompute` (see `vercel.json`) |
+| `MATCHER_REVIEW_TOKEN` | Human purchase review API |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Manual-capture purchase authorization |
+
+Checks:
+
+```bash
+npm run verify:gate && npm run verify:opportunity && npm run verify:schema   # unit + schema-usage audit
+npm run typecheck && npm run lint && npm run build
+npm run test:e2e   # Postgres + PostgREST + next start, full ingest → recompute → opportunities scenario
+```
+
+`test:e2e` needs PostgreSQL 16 server binaries and downloads PostgREST into `.e2e/` (or set `POSTGREST_BIN`).

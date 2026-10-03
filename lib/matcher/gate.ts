@@ -6,6 +6,7 @@ export type SellabilityInput = {
   hardBlockReasons: string[];
   orderability: Orderability;
   inventoryKnown: boolean;
+  inventoryAvailable: boolean;
   inventoryFresh: boolean;
   priceKnown: boolean;
   priceFresh: boolean;
@@ -27,6 +28,7 @@ export function evaluateSellability(input: SellabilityInput): SellabilityResult 
   if (input.identityDecision !== "AUTO_LINK") reasons.push("IDENTITY_NOT_AUTO_LINKED");
   if (input.orderability !== "ORDERABLE") reasons.push("SUPPLIER_NOT_ORDERABLE");
   if (!input.inventoryKnown) reasons.push("INVENTORY_UNKNOWN");
+  else if (!input.inventoryAvailable) reasons.push("OUT_OF_STOCK");
   if (!input.inventoryFresh) reasons.push("INVENTORY_STALE");
   if (!input.priceKnown) reasons.push("PRICE_UNKNOWN");
   if (!input.priceFresh) reasons.push("PRICE_STALE");

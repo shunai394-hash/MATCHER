@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/server/supabase";
 import { matchIdentity, type IdentityIdentifier, type IdentityRecord } from "@/lib/matcher/identity";
 import { calculateExpectedProfit, evaluateSellability } from "@/lib/matcher/gate";
+import { checkFreshness, toNumber } from "@/lib/matcher/opportunity";
+import { fetchFreshnessPolicy, fetchLatestMatches, loadMasterCandidates } from "@/lib/server/matcher-data";
 
 type Body = {
   brand?: string;
@@ -39,65 +41,6 @@ export async function POST(request: Request) {
       .filter(([, value]) => Boolean(value))
       .map(([type, value]) => ({ type: type as IdentityIdentifier["type"], value }));
 
-    const { data: masters, error } = await supabase
-      .from("master_product")
-      .select("id,brand,model_number,product_name")
-      .eq("status", "ACTIVE")
-      .limit(100);
-
-    if (error) throw error;
-
-    const masterIds = (masters ?? []).map((row) => row.id);
-    const { data: masterIdentifiers, error: idError } = masterIds.length
-      ? await supabase.from("product_identifier")
-          .select("master_product_id,identifier_type,identifier_value")
-          .in("master_product_id", masterIds)
-      : { data: [], error: null };
-
-    if (idError) throw idError;
-
-    const byMaster = new Map<string, IdentityRecord>();
-    for (const row of masters ?? []) {
-      byMaster.set(row.id, {
-        id: row.id,
-        brand: row.brand,
-        modelNumber: row.model_number,
-        identifiers: [],
-      });
-    }
-
-    for (const row of masterIdentifiers ?? []) {
-      const master = byMaster.get(row.master_product_id);
-      if (master) {
-        master.identifiers = [
-          ...(master.identifiers ?? []),
-          { type: row.identifier_type, value: row.identifier_value },
-        ];
-      }
-    }
-
-    const { data: variants, error: variantError } = masterIds.length
-      ? await supabase
-          .from("product_variant")
-          .select("master_product_id,color,size,capacity,generation,set_count,condition")
-          .in("master_product_id", masterIds)
-      : { data: [], error: null };
-    if (variantError) throw variantError;
-
-    const variantsByMaster = new Map<string, Array<IdentityRecord["variant"]>>();
-    for (const row of variants ?? []) {
-      const list = variantsByMaster.get(row.master_product_id) ?? [];
-      list.push({
-        color: row.color,
-        size: row.size,
-        capacity: row.capacity,
-        generation: row.generation,
-        setCount: row.set_count,
-        condition: row.condition,
-      });
-      variantsByMaster.set(row.master_product_id, list);
-    }
-
     const source: IdentityRecord = {
       id: "customer-input",
       brand: clean(body.brand) || null,
@@ -113,52 +56,55 @@ export async function POST(request: Request) {
       },
     };
 
-    const candidates = [...byMaster.values()].flatMap((master) => {
-      const variants = variantsByMaster.get(master.id);
-      if (!variants?.length) return [master];
-      return variants.map((variant) => ({ ...master, id: master.id, variant }));
-    });
-
+    const candidates = await loadMasterCandidates(supabase);
     const identity = matchIdentity(source, candidates);
     let profitability = null;
     let sellability = null;
     let purchase = null;
 
     if (identity.masterProductId && body.salePrice != null) {
+      // Only supplier products whose *latest* identity decision is an un-blocked AUTO_LINK to this master.
       const { data: links, error: linkError } = await supabase
         .from("identity_match")
-        .select("supplier_product_id,confidence,decision")
+        .select("supplier_product_id,master_product_id,confidence,decision,hard_block,created_at")
         .eq("master_product_id", identity.masterProductId)
-        .eq("decision", "AUTO_LINK")
-        .order("confidence", { ascending: false })
-        .limit(20);
+        .order("created_at", { ascending: false })
+        .limit(200);
       if (linkError) throw linkError;
+      const candidateProductIds = [...new Set((links ?? []).map((link) => link.supplier_product_id as string))];
+      const latestMatches = await fetchLatestMatches(supabase, candidateProductIds);
+      const supplierProductIds = [...latestMatches.values()]
+        .filter((row) => row.decision === "AUTO_LINK" && !row.hard_block && row.master_product_id === identity.masterProductId)
+        .map((row) => row.supplier_product_id);
 
-      const supplierProductIds = (links ?? []).map((link) => link.supplier_product_id);
       const { data: offers, error: offerError } = supplierProductIds.length
         ? await supabase
             .from("supplier_offer")
             .select("id,supplier_product_id,orderability,currency")
             .in("supplier_product_id", supplierProductIds)
+            .eq("orderability", "ORDERABLE")
+            .order("updated_at", { ascending: false })
         : { data: [], error: null };
       if (offerError) throw offerError;
 
-      const matchedOffers = (offers ?? []).filter((offer) => offer.orderability === "ORDERABLE");
-      if (matchedOffers.length > 0) {
-        const offer = matchedOffers[0];
+      const offer = (offers ?? [])[0];
+      if (offer) {
         const { data: snapshots, error: snapshotError } = await supabase
           .from("supplier_offer_snapshot")
-          .select("supplier_cost,shipping_cost,inventory,observed_at")
+          .select("supplier_cost,shipping_cost,inventory,shipping_confidence,observed_at")
           .eq("supplier_offer_id", offer.id)
           .order("observed_at", { ascending: false })
           .limit(1);
         if (snapshotError) throw snapshotError;
 
         const snapshot = snapshots?.[0];
+        const supplierCost = toNumber(snapshot?.supplier_cost);
+        const shippingCost = toNumber(snapshot?.shipping_cost);
+        const inventory = toNumber(snapshot?.inventory);
         profitability = calculateExpectedProfit({
           salePrice: body.salePrice,
-          supplierCost: snapshot?.supplier_cost ?? null,
-          shippingCost: snapshot?.shipping_cost ?? null,
+          supplierCost,
+          shippingCost,
           paymentFee: body.paymentFee ?? null,
           marketplaceFee: body.marketplaceFee ?? null,
           tax: body.tax ?? null,
@@ -171,16 +117,11 @@ export async function POST(request: Request) {
           .eq("supplier_offer_id", offer.id)
           .maybeSingle();
         if (freshnessError) throw freshnessError;
-        const { data: policies, error: policyError } = await supabase
-          .from("freshness_policy")
-          .select("data_type,max_age_seconds");
-        if (policyError) throw policyError;
-        const policyMap = new Map((policies ?? []).map((policy) => [policy.data_type, policy.max_age_seconds]));
-        const fresh = (timestamp: string | null | undefined, type: string) =>
-          !!timestamp && (Date.now() - new Date(timestamp).getTime()) / 1000 <= (policyMap.get(type) ?? 0);
-        const priceFresh = fresh(freshness?.price_observed_at, "PRICE");
-        const inventoryFresh = fresh(freshness?.inventory_observed_at, "INVENTORY");
-        const shippingFresh = fresh(freshness?.shipping_observed_at, "SHIPPING");
+        const policy = await fetchFreshnessPolicy(supabase);
+        const now = Date.now();
+        const priceFresh = checkFreshness(freshness?.price_observed_at, "PRICE", policy, now).fresh;
+        const inventoryFresh = checkFreshness(freshness?.inventory_observed_at, "INVENTORY", policy, now).fresh;
+        const shippingFresh = checkFreshness(freshness?.shipping_observed_at, "SHIPPING", policy, now).fresh;
 
         sellability = evaluateSellability({
           identityDecision: identity.decision,
@@ -189,25 +130,23 @@ export async function POST(request: Request) {
             ...(!shippingFresh ? ["SHIPPING_STALE"] : []),
           ],
           orderability: offer.orderability,
-          inventoryKnown: snapshot?.inventory != null,
+          inventoryKnown: inventory !== null,
+          inventoryAvailable: inventory !== null && inventory > 0,
           inventoryFresh,
-          priceKnown: snapshot?.supplier_cost != null,
+          priceKnown: supplierCost !== null,
           priceFresh,
-          supplierCost: snapshot?.supplier_cost ?? null,
-          shippingCost: snapshot?.shipping_cost ?? null,
+          supplierCost,
+          shippingCost,
           requiredFeesKnown: profitability.complete,
           expectedProfit: profitability.expectedProfit,
           profitCurrency: offer.currency ?? "JPY",
         });
-        if (!shippingFresh && sellability.status === "SELLABLE") {
-          sellability = { status: "BLOCKED", reasons: [...sellability.reasons, "SHIPPING_STALE"] };
-        }
-        if (sellability.status === "SELLABLE" && snapshot?.supplier_cost != null && snapshot?.shipping_cost != null) {
+        if (sellability.status === "SELLABLE" && supplierCost !== null && shippingCost !== null) {
           purchase = {
             masterProductId: identity.masterProductId,
             supplierOfferId: offer.id,
-            amount: Math.round(Number(snapshot.supplier_cost) + Number(snapshot.shipping_cost)),
-            currency: (offer.currency ?? "jpy").toLowerCase(),
+            amount: supplierCost + shippingCost,
+            currency: (offer.currency ?? "JPY").toLowerCase(),
           };
         }
       }

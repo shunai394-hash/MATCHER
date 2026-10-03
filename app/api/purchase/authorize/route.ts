@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/server/supabase";
-import { createManualCaptureCheckout } from "@/lib/server/stripe";
+import { createManualCaptureCheckout, toStripeMinorUnits } from "@/lib/server/stripe";
+import { checkFreshness } from "@/lib/matcher/opportunity";
+import { fetchFreshnessPolicy } from "@/lib/server/matcher-data";
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +17,10 @@ export async function POST(request: Request) {
     if (!body.masterProductId || !body.supplierOfferId) {
       return NextResponse.json({ error: "PURCHASE_TARGET_REQUIRED" }, { status: 400 });
     }
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuid.test(body.masterProductId) || !uuid.test(body.supplierOfferId)) {
+      return NextResponse.json({ error: "PURCHASE_TARGET_INVALID" }, { status: 400 });
+    }
 
     const supabase = getSupabaseAdmin();
 
@@ -23,19 +29,21 @@ export async function POST(request: Request) {
       .select("id,supplier_product_id,orderability,currency")
       .eq("id", body.supplierOfferId)
       .single();
-    if (offerError || !offer || offer.orderability !== "ORDERABLE") {
+    if (offerError && offerError.code !== "PGRST116") throw offerError;
+    if (!offer || offer.orderability !== "ORDERABLE") {
       return NextResponse.json({ error: "OFFER_NOT_ORDERABLE" }, { status: 409 });
     }
 
+    // The newest identity decision for this supplier product must be an un-blocked AUTO_LINK to this master.
     const { data: link, error: linkError } = await supabase
       .from("identity_match")
-      .select("master_product_id,decision")
-      .eq("master_product_id", body.masterProductId)
+      .select("master_product_id,decision,hard_block,created_at")
       .eq("supplier_product_id", offer.supplier_product_id)
-      .eq("decision", "AUTO_LINK")
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (linkError || !link) {
+    if (linkError) throw linkError;
+    if (!link || link.decision !== "AUTO_LINK" || link.hard_block || link.master_product_id !== body.masterProductId) {
       return NextResponse.json({ error: "IDENTITY_LINK_NOT_CONFIRMED" }, { status: 409 });
     }
 
@@ -46,7 +54,8 @@ export async function POST(request: Request) {
       .order("observed_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (snapshotError || !snapshot || snapshot.supplier_cost == null || snapshot.shipping_cost == null) {
+    if (snapshotError) throw snapshotError;
+    if (!snapshot || snapshot.supplier_cost == null || snapshot.shipping_cost == null) {
       return NextResponse.json({ error: "PURCHASE_COST_DATA_MISSING" }, { status: 409 });
     }
     if (snapshot.inventory == null || snapshot.inventory <= 0) {
@@ -58,24 +67,20 @@ export async function POST(request: Request) {
       .select("price_observed_at,inventory_observed_at,shipping_observed_at")
       .eq("supplier_offer_id", offer.id)
       .maybeSingle();
-    if (freshnessError || !freshness) {
+    if (freshnessError) throw freshnessError;
+    if (!freshness) {
       return NextResponse.json({ error: "PURCHASE_FRESHNESS_DATA_MISSING" }, { status: 409 });
     }
-    const { data: policies, error: policyError } = await supabase
-      .from("freshness_policy")
-      .select("data_type,max_age_seconds");
-    if (policyError) throw policyError;
-    const policyMap = new Map((policies ?? []).map((policy) => [policy.data_type, Number(policy.max_age_seconds)]));
-    const fresh = (timestamp: string | null | undefined, type: string) =>
-      !!timestamp && Number.isFinite(new Date(timestamp).getTime()) &&
-      (Date.now() - new Date(timestamp).getTime()) / 1000 <= (policyMap.get(type) ?? 0);
-    if (!fresh(freshness.price_observed_at, "PRICE") ||
-        !fresh(freshness.inventory_observed_at, "INVENTORY") ||
-        !fresh(freshness.shipping_observed_at, "SHIPPING")) {
+    const policy = await fetchFreshnessPolicy(supabase);
+    const now = Date.now();
+    if (!checkFreshness(freshness.price_observed_at, "PRICE", policy, now).fresh ||
+        !checkFreshness(freshness.inventory_observed_at, "INVENTORY", policy, now).fresh ||
+        !checkFreshness(freshness.shipping_observed_at, "SHIPPING", policy, now).fresh) {
       return NextResponse.json({ error: "PURCHASE_OFFER_DATA_STALE" }, { status: 409 });
     }
 
-    const amount = Math.round(Number(snapshot.supplier_cost) + Number(snapshot.shipping_cost));
+    const currency = (offer.currency ?? "JPY").toLowerCase();
+    const amount = toStripeMinorUnits(Number(snapshot.supplier_cost) + Number(snapshot.shipping_cost), currency);
     if (!Number.isInteger(amount) || amount <= 0) {
       return NextResponse.json({ error: "INVALID_PURCHASE_AMOUNT" }, { status: 409 });
     }
@@ -85,7 +90,7 @@ export async function POST(request: Request) {
         master_product_id: body.masterProductId ?? null,
         supplier_offer_id: body.supplierOfferId ?? null,
         amount,
-        currency: (offer.currency ?? body.currency ?? "jpy").toLowerCase(),
+        currency,
         status: "AUTHORIZING",
         decision_snapshot: body.decisionSnapshot ?? {},
         authorized_at: new Date().toISOString(),
@@ -95,13 +100,21 @@ export async function POST(request: Request) {
     if (error) throw error;
 
     const origin = new URL(request.url).origin;
-    const session = await createManualCaptureCheckout({
-      amount,
-      currency: offer.currency ?? body.currency ?? "jpy",
-      purchaseReviewId: review.id,
-      successUrl: `${origin}/console?purchase_review=${review.id}&payment=authorized`,
-      cancelUrl: `${origin}/console?purchase_review=${review.id}&payment=cancelled`,
-    });
+    let session: Awaited<ReturnType<typeof createManualCaptureCheckout>>;
+    try {
+      session = await createManualCaptureCheckout({
+        amount,
+        currency,
+        purchaseReviewId: review.id,
+        successUrl: `${origin}/console?purchase_review=${review.id}&payment=authorized`,
+        cancelUrl: `${origin}/console?purchase_review=${review.id}&payment=cancelled`,
+      });
+    } catch (stripeError) {
+      // Do not leave a review stuck in AUTHORIZING when no checkout exists.
+      const { error: failError } = await supabase.from("purchase_review").update({ status: "FAILED", updated_at: new Date().toISOString() }).eq("id", review.id);
+      if (failError) throw failError;
+      throw stripeError;
+    }
 
     const { error: updateError } = await supabase
       .from("purchase_review")

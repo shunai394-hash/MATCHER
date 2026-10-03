@@ -1,5 +1,14 @@
 const STRIPE_API = "https://api.stripe.com/v1";
 
+// https://docs.stripe.com/currencies#zero-decimal
+const ZERO_DECIMAL = new Set(["bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga", "pyg", "rwf", "ugx", "vnd", "vuv", "xaf", "xof", "xpf"]);
+
+/** Converts a major-unit amount (e.g. 1234 JPY, 12.34 USD) into Stripe's integer minor units. */
+export function toStripeMinorUnits(amount: number, currency: string) {
+  if (!Number.isFinite(amount)) return NaN;
+  return ZERO_DECIMAL.has(currency.toLowerCase()) ? Math.round(amount) : Math.round(amount * 100);
+}
+
 function secret() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("STRIPE_SERVER_CONFIG_MISSING");

@@ -78,6 +78,7 @@ const blocked = evaluateSellability({
   hardBlockReasons: ["MODEL_MISMATCH"],
   orderability: "ORDERABLE",
   inventoryKnown: true,
+  inventoryAvailable: true,
   inventoryFresh: true,
   priceKnown: true,
   priceFresh: true,
@@ -95,6 +96,7 @@ const sellable = evaluateSellability({
   hardBlockReasons: [],
   orderability: "ORDERABLE",
   inventoryKnown: true,
+  inventoryAvailable: true,
   inventoryFresh: true,
   priceKnown: true,
   priceFresh: true,
@@ -105,5 +107,23 @@ const sellable = evaluateSellability({
   profitCurrency: "JPY",
 });
 assert.equal(sellable.status, "SELLABLE");
+
+const outOfStock = evaluateSellability({
+  identityDecision: "AUTO_LINK",
+  hardBlockReasons: [],
+  orderability: "ORDERABLE",
+  inventoryKnown: true,
+  inventoryAvailable: false,
+  inventoryFresh: true,
+  priceKnown: true,
+  priceFresh: true,
+  supplierCost: 4000,
+  shippingCost: 500,
+  requiredFeesKnown: true,
+  expectedProfit: 3000,
+  profitCurrency: "JPY",
+});
+assert.equal(outOfStock.status, "BLOCKED");
+assert.ok(outOfStock.reasons.includes("OUT_OF_STOCK"));
 
 console.log("MATCHER gate verification: PASS");
