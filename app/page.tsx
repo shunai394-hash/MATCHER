@@ -23,29 +23,34 @@ export default function Home() {
   return (
     <main className="shell">
       <header className="header">
-        <div>
+        <a className="brand-lockup" href="#" aria-label="MATCHER トップ">
           <div className="brand">MATCHER</div>
           <div className="brand-sub">IDENTITY INTELLIGENCE</div>
-        </div>
-        <div className="status"><span /> evidence-first mode</div>
+        </a>
+        <nav className="header-nav" aria-label="ページ内ナビゲーション">
+          <a href="#identity-proof">判定を見る</a>
+          <a href="#quality-loop">品質ループ</a>
+          <a href="#core-flow-title">全体像</a>
+        </nav>
       </header>
 
-      <section className="hero">
+      <section className="hero" aria-labelledby="hero-title">
         <p className="eyebrow">PRODUCT IDENTITY & SUPPLIER INTELLIGENCE</p>
-        <h1>同じ商品を、<br /><em>正しく見つける。</em></h1>
+        <h1 id="hero-title">同じ商品を、<br /><em>正しく見つける。</em></h1>
         <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する基盤。</p>
-        <div className="hero-actions" aria-label="MATCHERの使い方">
+        <div className="hero-actions" aria-label="MATCHERを理解する">
           <a className="primary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></a>
           <a className="secondary-action" href="#quality-loop">品質チェックを見る</a>
         </div>
+        <p className="hero-note"><span aria-hidden="true">01</span> まず「なぜ一致したか」を見る。そこから品質ループへ進む。</p>
       </section>
 
       <section className="customer-flow" id="customer-flow" aria-labelledby="customer-flow-title">
-        <div className="section-kicker">FIRST SESSION · 3 STEPS</div>
+        <div className="section-kicker">DECISION JOURNEY · 3 STEPS</div>
         <div className="section-heading">
           <div>
-            <h2 id="customer-flow-title">最初の1分で、何が分かるか。</h2>
-            <p>専門知識がなくても、MATCHERがどこまで確認できたかを追える設計にする。</p>
+            <h2 id="customer-flow-title">迷わず、判定の根拠までたどれる。</h2>
+            <p>専門知識がなくても、何を確認し、どこで止まり、次に何を見るかを追える設計。</p>
           </div>
           <span className="flow-status">EVIDENCE FIRST</span>
         </div>
@@ -72,7 +77,7 @@ export default function Home() {
         <div className="section-heading">
           <div>
             <h2 id="quality-loop-title">一度で終わらせず、弱点を見つけて再確認する。</h2>
-            <p>判定を通すこと自体を目的にせず、チェック → 検証 → ゲート → 再確認を同じ流れで回す。</p>
+            <p>判定を通すこと自体を目的にせず、チェック → 検証 → ゲート → 再確認を同じ品質基準で回す。</p>
           </div>
           <span className="flow-status">PRECISION FIRST</span>
         </div>
@@ -91,7 +96,7 @@ export default function Home() {
         </div>
         <div className="loop-note">
           <span>AI / AUTOMATION PRINCIPLE</span>
-          <p>自動化を使う場合も、AIの推測だけで一致を確定しない。根拠・ゲート・再確認を同じ品質ループに残す。</p>
+          <p>AIや自動化を使う場合も、推測だけで一致を確定しない。根拠・ゲート・再確認を同じ品質ループに残す。</p>
         </div>
       </section>
 
