@@ -28,6 +28,7 @@ export default function Home() {
           <div className="brand-sub">IDENTITY INTELLIGENCE</div>
         </a>
         <nav className="header-nav" aria-label="ページ内ナビゲーション">
+          <a href="/opportunities">儲かる候補</a>
           <a href="/console">仕入れ判断</a>
           <a href="/quality">品質センター</a>
           <a href="#identity-proof">判定を見る</a>
@@ -35,6 +36,7 @@ export default function Home() {
           <a href="#core-flow-title">全体像</a>
         </nav>
         <nav className="mobile-nav" aria-label="主要ページ">
+          <a href="/opportunities">候補</a>
           <a href="/console">仕入れ判断</a>
           <a href="/quality">品質</a>
         </nav>
@@ -46,9 +48,14 @@ export default function Home() {
         <p className="lead">「これ、本当に同じ商品？」「仕入れて利益が残る？」を、証拠から一つずつ確認。迷ったまま買わないための仕入れ判断基盤。</p>
         <div className="hero-actions" aria-label="MATCHERを理解する">
           <a className="primary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></a>
+          <a className="secondary-action" href="/opportunities">儲かる候補を見る</a>
           <a className="secondary-action" href="/console">仕入れ判断を試す</a>
         </div>
         <p className="hero-note"><span aria-hidden="true">01</span> まず「なぜ一致したか」を見る。そこから品質ループへ進む。</p>
+      </section>
+
+      <section className="opportunity-callout" aria-labelledby="opportunity-callout-title">
+        <div><span className="section-kicker">THE CUSTOMER OUTCOME</span><h2 id="opportunity-callout-title">「何を仕入れればいい？」を、サイト側から先に出す。</h2><p>実データが揃えば、利益・仕入れ条件・販売可能性を通過した候補を自動で並べる。人間はゼロから商品を探すのではなく、候補を確認して仕入れ判断に集中する。</p></div><a className="primary-action" href="/opportunities">仕入れ候補を見る →</a>
       </section>
 
       <section className="customer-flow" id="customer-flow" aria-labelledby="customer-flow-title">
