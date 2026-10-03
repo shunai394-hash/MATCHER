@@ -43,6 +43,7 @@ jobs:
         run: |
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/schema.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/002_domain_integrity.sql
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/003_identifier_scope_repair.sql
       - name: Verify database schema and domain hardening
         run: |
           set -euo pipefail
@@ -55,6 +56,14 @@ jobs:
           select 'match_result.hard_block' as check_name, exists (
             select 1 from information_schema.columns
             where table_schema = 'public' and table_name = 'match_result' and column_name = 'hard_block'
+          ) as exists;
+          select 'identifier_product_scope' as check_name, exists (
+            select 1 from pg_indexes
+            where schemaname = 'public' and indexname = 'idx_product_identifier_product_scoped'
+          ) as exists;
+          select 'identifier_global_gtin' as check_name, exists (
+            select 1 from pg_indexes
+            where schemaname = 'public' and indexname = 'idx_product_identifier_global_gtin'
           ) as exists;
           SQL
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 <<'SQL'
@@ -80,6 +89,18 @@ jobs:
               where table_schema = 'public' and table_name = 'match_result' and column_name = 'hard_block'
             ) then
               raise exception 'match_result.hard_block missing';
+            end if;
+            if not exists (
+              select 1 from pg_indexes
+              where schemaname = 'public' and indexname = 'idx_product_identifier_product_scoped'
+            ) then
+              raise exception 'product-scoped identifier index missing';
+            end if;
+            if not exists (
+              select 1 from pg_indexes
+              where schemaname = 'public' and indexname = 'idx_product_identifier_global_gtin'
+            ) then
+              raise exception 'global GTIN uniqueness index missing';
             end if;
           end $matcher_schema_check$;
           SQL
