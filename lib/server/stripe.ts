@@ -6,13 +6,15 @@ function secret() {
   return key;
 }
 
-async function stripeRequest(path: string, params: URLSearchParams) {
+async function stripeRequest(path: string, params: URLSearchParams, idempotencyKey?: string) {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${secret()}`,
+    "Content-Type": "application/x-www-form-urlencoded",
+  };
+  if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
   const response = await fetch(`${STRIPE_API}${path}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${secret()}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+    headers,
     body: params,
     cache: "no-store",
   });
@@ -41,13 +43,13 @@ export async function createManualCaptureCheckout(input: {
   p.set("metadata[purchase_review_id]", input.purchaseReviewId);
   p.set("success_url", input.successUrl);
   p.set("cancel_url", input.cancelUrl);
-  return stripeRequest("/checkout/sessions", p);
+  return stripeRequest("/checkout/sessions", p, `purchase-review-${input.purchaseReviewId}`);
 }
 
 export async function capturePaymentIntent(paymentIntentId: string) {
-  return stripeRequest(`/payment_intents/${encodeURIComponent(paymentIntentId)}/capture`, new URLSearchParams());
+  return stripeRequest(`/payment_intents/${encodeURIComponent(paymentIntentId)}/capture`, new URLSearchParams(), `capture-${paymentIntentId}`);
 }
 
 export async function cancelPaymentIntent(paymentIntentId: string) {
-  return stripeRequest(`/payment_intents/${encodeURIComponent(paymentIntentId)}/cancel`, new URLSearchParams());
+  return stripeRequest(`/payment_intents/${encodeURIComponent(paymentIntentId)}/cancel`, new URLSearchParams(), `cancel-${paymentIntentId}`);
 }
