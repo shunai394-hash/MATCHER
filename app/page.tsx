@@ -78,6 +78,29 @@ export default function Home() {
         <IdentityProof />
       </div>
 
+
+
+      <section className="value-proposition" aria-labelledby="value-title">
+        <div className="section-kicker">WHY MATCHER</div>
+        <div className="section-heading">
+          <div>
+            <h2 id="value-title">「探す」ではなく、<em>仕入れて後悔しない。</em></h2>
+            <p>他の仕入れ先を増やすだけでは、同じ商品を取り違えたり、送料・手数料を見落として利益が消えます。MATCHERは「買う前の不安」を減らすために使います。</p>
+          </div>
+          <span className="flow-status">VALUE FIRST</span>
+        </div>
+        <div className="value-grid">
+          <article><b>01 · 時間</b><h3>同じ商品かを毎回手作業で調べない</h3><p>JAN・型番・ブランド・仕様をまとめて確認し、候補と根拠を一つの判断画面に集める。</p></article>
+          <article><b>02 · 損失</b><h3>「安く買えたのに赤字」を減らす</h3><p>仕入れ・送料・手数料など、利益計算に必要な条件が揃わなければ販売可能にしない。</p></article>
+          <article><b>03 · 安心</b><h3>自信がない商品を無理に通さない</h3><p>一致・要確認・ブロックを分け、証拠不足を「たぶん同じ」で済ませない。</p></article>
+          <article><b>04 · 改善</b><h3>使うほど「どこで迷ったか」が残る</h3><p>品質ループで弱点を再チェックし、次の判定品質を上げるための対象として残す。</p></article>
+        </div>
+        <div className="value-promise">
+          <strong>あなたが欲しいのは商品情報ではなく、<em>「この仕入れで進んでいい」という判断材料。</em></strong>
+          <a className="primary-action" href="/console">実際に仕入れ判断を試す →</a>
+        </div>
+      </section>
+
       <section className="quality-loop" id="quality-loop" aria-labelledby="quality-loop-title">
         <div className="section-kicker">QUALITY LOOP · REPEATABLE CHECK</div>
         <div className="section-heading">
