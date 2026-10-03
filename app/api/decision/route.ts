@@ -31,11 +31,13 @@ export async function POST(request: Request) {
     const body = (await request.json()) as Body;
     const supabase = getSupabaseAdmin();
 
-    const identifiers = [
+    const identifiers: IdentityRecord["identifiers"] = [
       ["JAN", clean(body.jan)],
       ["EAN", clean(body.ean)],
       ["UPC", clean(body.upc)],
-    ].filter(([, value]) => value) as Array<["JAN" | "EAN" | "UPC", string]>;
+    ]
+      .filter(([, value]) => Boolean(value))
+      .map(([type, value]) => ({ type, value }));
 
     const { data: masters, error } = await supabase
       .from("master_product")
