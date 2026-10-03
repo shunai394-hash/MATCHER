@@ -16,6 +16,10 @@ type Body = {
   setCount?: number | null;
   condition?: string;
   salePrice?: number | null;
+  paymentFee?: number | null;
+  marketplaceFee?: number | null;
+  tax?: number | null;
+  otherCost?: number | null;
 };
 
 function clean(v: unknown) {
@@ -130,19 +134,29 @@ export async function POST(request: Request) {
           otherCost: null,
         });
 
-        const observedAt = snapshot?.observed_at ? new Date(snapshot.observed_at).getTime() : 0;
-        const ageSeconds = observedAt ? Math.max(0, (Date.now() - observedAt) / 1000) : Infinity;
-        const { data: policies } = await supabase
+        const { data: freshness, error: freshnessError } = await supabase
+          .from("supplier_offer_freshness")
+          .select("price_observed_at,inventory_observed_at,shipping_observed_at")
+          .eq("supplier_offer_id", offer.id)
+          .maybeSingle();
+        if (freshnessError) throw freshnessError;
+        const { data: policies, error: policyError } = await supabase
           .from("freshness_policy")
           .select("data_type,max_age_seconds");
+        if (policyError) throw policyError;
         const policyMap = new Map((policies ?? []).map((policy) => [policy.data_type, policy.max_age_seconds]));
-        const priceFresh = ageSeconds <= (policyMap.get("PRICE") ?? 0);
-        const inventoryFresh = ageSeconds <= (policyMap.get("INVENTORY") ?? 0);
-        const shippingFresh = ageSeconds <= (policyMap.get("SHIPPING") ?? 0);
+        const fresh = (timestamp: string | null | undefined, type: string) =>
+          !!timestamp && (Date.now() - new Date(timestamp).getTime()) / 1000 <= (policyMap.get(type) ?? 0);
+        const priceFresh = fresh(freshness?.price_observed_at, "PRICE");
+        const inventoryFresh = fresh(freshness?.inventory_observed_at, "INVENTORY");
+        const shippingFresh = fresh(freshness?.shipping_observed_at, "SHIPPING");
 
         sellability = evaluateSellability({
           identityDecision: identity.decision,
-          hardBlockReasons: identity.reasons.filter((r) => r.includes("CONFLICT") || r.includes("VARIANT")),
+          hardBlockReasons: [
+            ...identity.reasons.filter((r) => r.includes("CONFLICT") || r.includes("VARIANT")),
+            ...(!shippingFresh ? ["SHIPPING_STALE"] : []),
+          ],
           orderability: offer.orderability,
           inventoryKnown: snapshot?.inventory != null,
           inventoryFresh,
