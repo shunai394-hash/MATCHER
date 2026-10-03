@@ -1,6 +1,6 @@
 export type MatchDecision = "AUTO_LINK" | "REVIEW" | "BLOCK";
 
-export type IdentityRecord = {
+export type IdentityIdentifier = {\n  type: "JAN" | "EAN" | "UPC" | "MPN" | "SKU" | "SUPPLIER_PRODUCT_NO";\n  value: string;\n};\n\nexport type IdentityRecord = {
   id: string;
   brand?: string | null;
   modelNumber?: string | null;
@@ -41,7 +41,7 @@ function compact(value: string | null | undefined): string {
   return (value ?? "").normalize("NFKC").trim().toUpperCase().replace(/[\s\-_/.,()[\]{}:]+/g, "");
 }
 
-function normalizeIdentifier(type: IdentityRecord["identifiers"][number]["type"], value: string): string {
+function normalizeIdentifier(type: IdentityIdentifier["type"], value: string): string {
   const normalized = compact(value);
   return GTIN_TYPES.has(type) ? normalized.replace(/\D/g, "") : normalized;
 }
