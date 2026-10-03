@@ -68,9 +68,9 @@ function identifierMap(record: IdentityRecord): Map<string, string> {
   ]));
 }
 
-function variantConflicts(source: IdentityRecord["variant"], master: IdentityRecord["variant"]): string[] {
+function variantConflicts(source: IdentityRecord["variant"], master: IdentityRecord["variant"]): Array<typeof VARIANT_FIELDS[number]> {
   if (!source || !master) return [];
-  return VARIANT_FIELDS.filter((field) => {
+  return VARIANT_FIELDS.filter((field: typeof VARIANT_FIELDS[number]) => {
     const a = source[field];
     const b = master[field];
     return a !== null && a !== undefined && b !== null && b !== undefined &&
