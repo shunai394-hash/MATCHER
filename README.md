@@ -52,7 +52,7 @@ Without a credential the corresponding path fails explicitly (401/403/503); noth
 
 Production is changed **only** by `db/migrations/NNN_*.sql`, applied in order. Past migrations are never edited
 or removed; a correction is a new migration. `db/schema.sql` is generated from the migration chain
-(`npm run verify:migrations -- --write`) and is what local/CI E2E loads. CI fails if the two differ, re-applies
+(`npm run verify:migrations -- --write`) and is what local/CI E2E loads. Production rollout: docs/production-runbook.md (preflight, per-migration checks, rollback, first one-product test). CI fails if the two differ, re-applies
 006+ on the reported production shape (`db/snapshots/`), and checks legacy data survives.
 
 Checks:

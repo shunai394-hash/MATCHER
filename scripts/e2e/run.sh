@@ -69,5 +69,15 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
+# The read-only production trace must show every stage for a product the scenario took end to end.
+trace_check() {
+  local out
+  out="$(psql_db "$PGPORT" matcher -v supplier_key=netsea -v supplier_product_id=NS-NOVA -f db/ops/trace_supplier_product.sql 2>&1)" || { echo "$out"; return 1; }
+  for needle in "NOVA ポータブル扇風機 NV-10" "JAN" "ORDERABLE" "AUTO_LINK" "SUPPLIER_CANDIDATE" "amazon_jp" "SELLABLE" "2720.00"; do
+    echo "$out" | grep -q "$needle" || { echo "$out"; echo "FAIL: trace output lacks $needle"; return 1; }
+  done
+  echo "  ✓ db/ops/trace_supplier_product.sql shows all stages (product → offer → snapshot → freshness → candidate master → identity → market → profit → gate)"
+}
+
 E2E_APP="http://127.0.0.1:$APP_PORT" E2E_REST="http://127.0.0.1:$PROXY_PORT/rest/v1" \
-  node --experimental-strip-types --no-warnings scripts/e2e/flow.ts || { echo "--- next.log"; tail -40 "$WORK/next.log"; echo "--- postgrest.log"; tail -20 "$WORK/postgrest.log"; exit 1; }
+  node --experimental-strip-types --no-warnings scripts/e2e/flow.ts && trace_check || { echo "--- next.log"; tail -40 "$WORK/next.log"; echo "--- postgrest.log"; tail -20 "$WORK/postgrest.log"; exit 1; }

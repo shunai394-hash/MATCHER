@@ -10,8 +10,9 @@
 -- Every statement is idempotent so this migration is safe on BOTH
 --   (a) a database built from 001-005, and
 --   (b) the live database, where most of these objects already exist (no-op there).
--- Columns are only dropped when the project owner confirmed they do not exist in
--- production, and only after their data has been copied to the new location.
+-- No data is merged, rewritten or deleted automatically: legacy columns are dropped only when
+-- they are entirely NULL; otherwise the migration raises and (with --single-transaction)
+-- leaves the database untouched. Apply with: psql --single-transaction -v ON_ERROR_STOP=1 -f ...
 
 /* ---------- supplier_product ---------- */
 
@@ -26,19 +27,30 @@ alter table supplier_product add column if not exists condition text;
 alter table supplier_product add column if not exists first_seen_at timestamptz not null default now();
 alter table supplier_product add column if not exists last_seen_at timestamptz not null default now();
 
+-- Legacy columns (absent in production per the owner). This migration never merges or deletes
+-- data automatically: if a legacy column still holds any value it STOPS (the whole transaction
+-- rolls back) and the data must be migrated by a human. Only an all-NULL legacy column is dropped.
+create or replace function pg_temp.matcher_drop_empty_legacy_column(tbl text, col text)
+returns void
+language plpgsql
+as $$
+declare filled bigint;
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = tbl and column_name = col) then
+    execute format('select count(*) from public.%I where %I is not null', tbl, col) into filled;
+    if filled > 0 then
+      raise exception 'MATCHER 006 stopped: legacy column %.% still holds % non-null value(s). Migrate it manually; nothing was changed.', tbl, col, filled;
+    end if;
+    execute format('alter table public.%I drop column %I', tbl, col);
+  end if;
+end;
+$$;
+
 do $$
 begin
-  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_product' and column_name = 'title') then
-    execute 'update supplier_product set product_name = coalesce(product_name, title)';
-    execute 'alter table supplier_product drop column title';
-  end if;
-  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_product' and column_name = 'fetched_at') then
-    execute 'update supplier_product set last_seen_at = greatest(last_seen_at, fetched_at), first_seen_at = least(first_seen_at, fetched_at)';
-    execute 'alter table supplier_product drop column fetched_at';
-  end if;
-  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_product' and column_name = 'source_updated_at') then
-    execute 'alter table supplier_product drop column source_updated_at';
-  end if;
+  perform pg_temp.matcher_drop_empty_legacy_column('supplier_product', 'title');
+  perform pg_temp.matcher_drop_empty_legacy_column('supplier_product', 'fetched_at');
+  perform pg_temp.matcher_drop_empty_legacy_column('supplier_product', 'source_updated_at');
   if not exists (select 1 from pg_constraint where conname = 'supplier_product_set_count_check') then
     alter table supplier_product add constraint supplier_product_set_count_check check (set_count is null or set_count > 0);
   end if;
@@ -63,30 +75,36 @@ alter table supplier_offer add column if not exists updated_at timestamptz not n
 
 do $$
 begin
-  -- Legacy price/stock columns on supplier_offer: copy every observation into a snapshot, then drop.
-  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_offer' and column_name = 'cost') then
-    execute $sql$
-      insert into supplier_offer_snapshot (supplier_offer_id, supplier_cost, shipping_cost, inventory, shipping_confidence, observed_at)
-      select id, cost, shipping_cost, inventory, case when shipping_verified then 1 else 0 end, observed_at
-      from supplier_offer
-      where cost is not null or shipping_cost is not null or inventory is not null
-    $sql$;
-    execute 'alter table supplier_offer drop column cost';
-    execute 'alter table supplier_offer drop column if exists shipping_cost';
-    execute 'alter table supplier_offer drop column if exists inventory';
-    execute 'alter table supplier_offer drop column if exists shipping_verified';
-    execute 'alter table supplier_offer drop column if exists observed_at';
+  -- Legacy price/stock columns on supplier_offer. Prices/stock now live in supplier_offer_snapshot.
+  -- Same rule: stop if any value exists (no automatic copy/merge), drop only all-NULL columns.
+  -- shipping_verified is NOT NULL DEFAULT false in 001, so it only counts as data when true.
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_offer' and column_name = 'shipping_verified') then
+    if exists (select 1 from supplier_offer where shipping_verified) then
+      raise exception 'MATCHER 006 stopped: legacy column supplier_offer.shipping_verified is true on some rows. Migrate it manually; nothing was changed.';
+    end if;
+    alter table supplier_offer drop column shipping_verified;
+  end if;
+  perform pg_temp.matcher_drop_empty_legacy_column('supplier_offer', 'cost');
+  perform pg_temp.matcher_drop_empty_legacy_column('supplier_offer', 'shipping_cost');
+  perform pg_temp.matcher_drop_empty_legacy_column('supplier_offer', 'inventory');
+  -- observed_at is NOT NULL DEFAULT now() in 001: it carries no observation unless a price/stock
+  -- value existed, which was rejected above. Drop it only when those columns are gone.
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_offer' and column_name = 'observed_at')
+     and not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_offer' and column_name in ('cost', 'shipping_cost', 'inventory')) then
+    alter table supplier_offer drop column observed_at;
   end if;
 end $$;
-drop index if exists idx_supplier_offer_observed;
 
 /* ---------- supplier_offer_freshness ---------- */
 
-alter table supplier_offer_freshness add column if not exists updated_at timestamptz not null default now();
 do $$
 begin
-  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_offer_freshness' and column_name = 'checked_at') then
-    execute 'update supplier_offer_freshness set updated_at = checked_at';
+  -- Backfill only at the moment the column is created, so re-running 006 never rewinds updated_at.
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_offer_freshness' and column_name = 'updated_at') then
+    alter table supplier_offer_freshness add column updated_at timestamptz not null default now();
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'supplier_offer_freshness' and column_name = 'checked_at') then
+      execute 'update supplier_offer_freshness set updated_at = checked_at where checked_at is not null';
+    end if;
   end if;
 end $$;
 

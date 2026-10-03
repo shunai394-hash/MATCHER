@@ -44,7 +44,7 @@ select 'enum ' || t.typname || ' ' || string_agg(e.enumlabel, ',' order by e.enu
 union all
 select 'function ' || p.proname || ' ' || md5(pg_get_functiondef(p.oid)) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prokind = 'f' and p.proname not in (select proname from pg_proc pp join pg_depend d on d.objid = pp.oid and d.deptype = 'e')
 union all
-select 'data freshness_policy ' || metric || '=' || max_age_seconds from freshness_policy
+select 'data freshness_policy ' || coalesce(to_jsonb(f) ->> 'metric', to_jsonb(f) ->> 'data_type') || '=' || max_age_seconds from freshness_policy f
 order by 1;
 SQL
 }
