@@ -3,42 +3,10 @@
 import { useMemo, useRef, useState } from "react";
 
 const cases = [
-  {
-    key: "exact",
-    label: "EXACT IDENTIFIER",
-    title: "JAN / EAN / UPC",
-    source: "4901234567890",
-    master: "4901234567890",
-    decision: "AUTO LINK",
-    note: "同一GTIN。識別子が一致。",
-  },
-  {
-    key: "strong",
-    label: "STRONG EVIDENCE",
-    title: "Brand + MPN",
-    source: "ACME / AX-204",
-    master: "ACME / AX-204",
-    decision: "AUTO LINK",
-    note: "ブランドとメーカー型番が一致。",
-  },
-  {
-    key: "variant",
-    label: "VARIANT CRITICAL",
-    title: "Variant mismatch",
-    source: "BLACK / 256GB",
-    master: "WHITE / 128GB",
-    decision: "BLOCK",
-    note: "色・容量が異なるため自動結合しない。",
-  },
-  {
-    key: "review",
-    label: "INSUFFICIENT EVIDENCE",
-    title: "Needs review",
-    source: "Brand only",
-    master: "ACME",
-    decision: "REVIEW",
-    note: "証拠不足。推測で商品を結合しない。",
-  },
+  { key:"exact", label:"EXACT IDENTIFIER", title:"JAN / EAN / UPC", source:"4901234567890", master:"4901234567890", decision:"AUTO LINK", note:"同一GTIN。識別子が一致。" },
+  { key:"strong", label:"STRONG EVIDENCE", title:"Brand + MPN", source:"ACME / AX-204", master:"ACME / AX-204", decision:"AUTO LINK", note:"ブランドとメーカー型番が一致。" },
+  { key:"variant", label:"VARIANT CRITICAL", title:"Variant mismatch", source:"BLACK / 256GB", master:"WHITE / 128GB", decision:"BLOCK", note:"色・容量が異なるため自動結合しない。" },
+  { key:"review", label:"INSUFFICIENT EVIDENCE", title:"Needs review", source:"Brand only", master:"ACME", decision:"REVIEW", note:"証拠不足。推測で商品を結合しない。" },
 ] as const;
 
 export function IdentityProof() {
@@ -52,6 +20,7 @@ export function IdentityProof() {
         <div>
           <p className="proof-kicker">IDENTITY DECISION PROOF · ILLUSTRATIVE CASES</p>
           <h2 id="proof-title">一致を「推測」ではなく、証拠で見る。</h2>
+          <p className="proof-disclaimer">以下は判定ロジックの見せ方を体験するための例です。実データの判定結果ではありません。</p>
         </div>
         <span className={current.decision === "BLOCK" ? "decision block" : current.decision === "REVIEW" ? "decision review" : "decision"}>
           {current.decision}
@@ -60,32 +29,35 @@ export function IdentityProof() {
 
       <div className="proof-grid">
         <div className="proof-tabs" role="tablist" aria-label="識別判定の例">
-          {cases.map((item) => (
+          {cases.map((item, index) => (
             <button
               key={item.key}
               type="button"
               role="tab"
+              id={`proof-tab-${item.key}`}
+              aria-controls="proof-panel"
               aria-selected={active === item.key}
               tabIndex={active === item.key ? 0 : -1}
               className={active === item.key ? "proof-tab active" : "proof-tab"}
               onClick={() => setActive(item.key)}
               onKeyDown={(event) => {
-                const index = cases.findIndex((candidate) => candidate.key === active);
                 const nextIndex =
                   event.key === "ArrowRight" || event.key === "ArrowDown"
                     ? (index + 1) % cases.length
                     : event.key === "ArrowLeft" || event.key === "ArrowUp"
                       ? (index - 1 + cases.length) % cases.length
-                      : -1;
+                      : event.key === "Home"
+                        ? 0
+                        : event.key === "End"
+                          ? cases.length - 1
+                          : -1;
                 if (nextIndex < 0) return;
                 event.preventDefault();
                 const next = cases[nextIndex];
                 setActive(next.key);
                 tabRefs.current[nextIndex]?.focus();
               }}
-              ref={(node) => {
-                tabRefs.current[cases.findIndex((candidate) => candidate.key === item.key)] = node;
-              }}
+              ref={(node) => { tabRefs.current[index] = node; }}
             >
               <span>{item.label}</span>
               <strong>{item.title}</strong>
@@ -93,7 +65,7 @@ export function IdentityProof() {
           ))}
         </div>
 
-        <div className="proof-stage">
+        <div className="proof-stage" id="proof-panel" role="tabpanel" aria-labelledby={`proof-tab-${current.key}`}>
           <div className="proof-node">
             <span>SUPPLIER</span>
             <strong>{current.source}</strong>
