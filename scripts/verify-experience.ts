@@ -15,6 +15,8 @@ const files = {
   purchaseReviewPage: readFileSync("app/review/page.tsx", "utf8"),
   opportunities: readFileSync("app/opportunities/page.tsx", "utf8"),
   opportunityApi: readFileSync("app/api/opportunities/route.ts", "utf8"),
+  ingestApi: readFileSync("app/api/ingest/route.ts", "utf8"),
+  recomputeApi: readFileSync("app/api/opportunities/recompute/route.ts", "utf8"),
   stripeWebhook: readFileSync("app/api/stripe/webhook/route.ts", "utf8"),
   stripe: readFileSync("lib/server/stripe.ts", "utf8"),
 };
@@ -26,6 +28,9 @@ const required = [
   ["profit opportunity feed", files.opportunities, "VERIFIED OPPORTUNITIES"],
   ["opportunity server feed", files.opportunityApi, "profit_snapshot"],
   ["opportunity sellability gate", files.opportunityApi, "SELLABLE"],
+  ["authenticated ingestion", files.ingestApi, "MATCHER_INGEST_TOKEN"],
+  ["market price ingestion", files.ingestApi, "marketObservations"],
+  ["profit opportunity recompute", files.recomputeApi, "expectedProfit"],
   ["quality center", files.home, "/quality"],
   ["customer value proposition", files.home, "WHY MATCHER"],
   ["loss prevention promise", files.home, "仕入れて後悔しない"],
