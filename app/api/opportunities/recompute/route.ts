@@ -42,14 +42,17 @@ export async function POST(request: Request) {
 
     const { data: offers, error: offerError } = await supabase
       .from("supplier_offer")
-      .select("id,supplier_product_id,cost,shipping_cost,currency,inventory,orderability")
+      .select("id,supplier_product_id,currency,orderability")
       .in("supplier_product_id", productIds)
       .eq("orderability", "ORDERABLE");
     if (offerError) throw offerError;
 
     let generated = 0;
     for (const offer of offers ?? []) {
-      if (offer.cost == null || offer.shipping_cost == null || offer.inventory == null || offer.inventory <= 0) continue;
+      const { data: snapshots, error: snapshotError } = await supabase.from("supplier_offer_snapshot").select("supplier_cost,shipping_cost,inventory,observed_at").eq("supplier_offer_id", offer.id).order("observed_at", { ascending: false }).limit(1);
+      if (snapshotError) throw snapshotError;
+      const snapshot = snapshots?.[0];
+      if (snapshot?.supplier_cost == null || snapshot?.shipping_cost == null || snapshot?.inventory == null || snapshot.inventory <= 0) continue;
       const match = latestMatch.get(offer.supplier_product_id);
       if (!match?.master_product_id) continue;
       const market = latestMarket.get(match.master_product_id + ":");
@@ -58,8 +61,8 @@ export async function POST(request: Request) {
 
       const expectedProfit =
         Number(market.sale_price) -
-        Number(offer.cost) -
-        Number(offer.shipping_cost) -
+        Number(snapshot.supplier_cost) -
+        Number(snapshot.shipping_cost) -
         Number(market.payment_fee) -
         Number(market.marketplace_fee) -
         Number(market.tax) -
@@ -68,8 +71,8 @@ export async function POST(request: Request) {
       const snapshot = await supabase.from("profit_snapshot").insert({
         supplier_offer_id: offer.id,
         sale_price: market.sale_price,
-        supplier_cost: offer.cost,
-        shipping_cost: offer.shipping_cost,
+        supplier_cost: snapshot.supplier_cost,
+        shipping_cost: snapshot.shipping_cost,
         payment_fee: market.payment_fee,
         marketplace_fee: market.marketplace_fee,
         tax: market.tax,
