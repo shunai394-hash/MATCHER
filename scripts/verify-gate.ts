@@ -49,6 +49,17 @@ const contradictoryIdentity = matchIdentity(
 assert.equal(contradictoryIdentity.decision, "BLOCK");
 assert.ok(contradictoryIdentity.reasons.includes("IDENTITY_ATTRIBUTE_CONFLICT"));
 
+
+const compatibleBeatsConflict = matchIdentity(
+  { id: "supplier-7", brand: "ACME", modelNumber: "AX-204", identifiers: [{ type: "JAN", value: "4901234567894" }], variant: { color: "BLACK" } },
+  [
+    { id: "master-7-bad", brand: "ACME", modelNumber: "AX-204", identifiers: [{ type: "JAN", value: "4901234567894" }], variant: { color: "WHITE" } },
+    { id: "master-7-good", brand: "ACME", modelNumber: "AX-204", identifiers: [{ type: "JAN", value: "4901234567894" }], variant: { color: "BLACK" } },
+  ],
+);
+assert.equal(compatibleBeatsConflict.decision, "AUTO_LINK");
+assert.equal(compatibleBeatsConflict.masterProductId, "master-7-good");
+
 const incomplete = calculateExpectedProfit({
   salePrice: 10000,
   supplierCost: 4000,
