@@ -2,7 +2,7 @@ name: MATCHER CI
 
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main, "feature/**", "fix/**"]
   pull_request:
     branches: [main]
 
@@ -43,6 +43,7 @@ jobs:
         run: |
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/schema.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/002_domain_integrity.sql
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/003_identifier_scope_repair.sql
       - name: Verify database schema and domain hardening
         run: |
           set -euo pipefail
@@ -52,6 +53,9 @@ jobs:
           select 'identity_hard_block' as check_name, to_regclass('public.identity_hard_block') as relation_name;
           select 'supplier_offer_observation' as check_name, to_regclass('public.supplier_offer_observation') as relation_name;
           select 'supplier_offer_freshness' as check_name, to_regclass('public.supplier_offer_freshness') as relation_name;
+          select 'product_identifier_global_gtin_index' as check_name, exists (
+            select 1 from pg_indexes where schemaname = 'public' and indexname = 'idx_product_identifier_global_gtin'
+          ) as exists;
           select 'match_result.hard_block' as check_name, exists (
             select 1 from information_schema.columns
             where table_schema = 'public' and table_name = 'match_result' and column_name = 'hard_block'

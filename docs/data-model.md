@@ -48,3 +48,15 @@ Anything unknown remains BLOCKED.
 `DETECTED -> DIAGNOSED -> REPAIRED -> TESTED -> RETESTED -> RESOLVED`
 
 The `quality_run` table records the cause, repair, and retest result so failures are diagnosable rather than silently overwritten.
+
+
+## Identifier scope
+
+Identifiers are not all globally unique.
+
+- JAN / EAN / UPC are treated as global product identifiers and are unique across canonical products.
+- MPN is interpreted with brand/context and is not globally unique by itself.
+- SKU and supplier-specific identifiers are scoped to their owning context and must not collide merely because another system uses the same code.
+- Normalization removes presentation differences such as case, spaces, and hyphens before identity comparison.
+
+The identity matcher only returns AUTO_LINK for strong deterministic evidence (exact global identifier, brand + MPN, or brand + model number). Variant-critical mismatches are hard blocks. Missing or insufficient evidence remains REVIEW rather than being guessed.
