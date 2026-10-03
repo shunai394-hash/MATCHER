@@ -6,6 +6,7 @@ type Result = {
   decision?: { decision: string; confidence: number; reasons: string[]; masterProductId: string | null };
   profitability?: { expectedProfit: number | null; complete: boolean; missing: string[] } | null;
   sellability?: { status: string; reasons: string[] } | null;
+  purchase?: { masterProductId: string; supplierOfferId: string; amount: number; currency: string } | null;
   candidateCount?: number;
   error?: string;
 };
@@ -13,6 +14,8 @@ type Result = {
 export default function ConsolePage() {
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
+  const [purchaseBusy, setPurchaseBusy] = useState(false);
+  const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
