@@ -53,6 +53,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "PURCHASE_INVENTORY_UNAVAILABLE" }, { status: 409 });
     }
 
+    const { data: freshness, error: freshnessError } = await supabase
+      .from("supplier_offer_freshness")
+      .select("price_observed_at,inventory_observed_at,shipping_observed_at")
+      .eq("supplier_offer_id", offer.id)
+      .maybeSingle();
+    if (freshnessError || !freshness) {
+      return NextResponse.json({ error: "PURCHASE_FRESHNESS_DATA_MISSING" }, { status: 409 });
+    }
+    const { data: policies, error: policyError } = await supabase
+      .from("freshness_policy")
+      .select("data_type,max_age_seconds");
+    if (policyError) throw policyError;
+    const policyMap = new Map((policies ?? []).map((policy) => [policy.data_type, Number(policy.max_age_seconds)]));
+    const fresh = (timestamp: string | null | undefined, type: string) =>
+      !!timestamp && Number.isFinite(new Date(timestamp).getTime()) &&
+      (Date.now() - new Date(timestamp).getTime()) / 1000 <= (policyMap.get(type) ?? 0);
+    if (!fresh(freshness.price_observed_at, "PRICE") ||
+        !fresh(freshness.inventory_observed_at, "INVENTORY") ||
+        !fresh(freshness.shipping_observed_at, "SHIPPING")) {
+      return NextResponse.json({ error: "PURCHASE_OFFER_DATA_STALE" }, { status: 409 });
+    }
+
     const amount = Math.round(Number(snapshot.supplier_cost) + Number(snapshot.shipping_cost));
     if (!Number.isInteger(amount) || amount <= 0) {
       return NextResponse.json({ error: "INVALID_PURCHASE_AMOUNT" }, { status: 409 });
