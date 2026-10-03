@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/server/supabase";
-import { matchIdentity, type IdentityRecord } from "@/lib/matcher/identity";
+import { matchIdentity, type IdentityIdentifier, type IdentityRecord } from "@/lib/matcher/identity";
 import { calculateExpectedProfit, evaluateSellability } from "@/lib/matcher/gate";
 
 type Body = {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       ["UPC", clean(body.upc)],
     ]
       .filter(([, value]) => Boolean(value))
-      .map(([type, value]) => ({ type, value }));
+      .map(([type, value]) => ({ type: type as IdentityIdentifier["type"], value }));
 
     const { data: masters, error } = await supabase
       .from("master_product")
