@@ -12,6 +12,8 @@ const files = {
   purchaseAuthorize: readFileSync("app/api/purchase/authorize/route.ts", "utf8"),
   purchaseReview: readFileSync("app/api/purchase/review/route.ts", "utf8"),
   purchasePending: readFileSync("app/api/purchase/pending/route.ts", "utf8"),
+  purchaseReviewPage: readFileSync("app/review/page.tsx", "utf8"),
+  stripeWebhook: readFileSync("app/api/stripe/webhook/route.ts", "utf8"),
 };
 
 const required = [
@@ -31,6 +33,10 @@ const required = [
   ["server purchase amount", files.purchaseAuthorize, "supplier_cost"],
   ["review authorization", files.purchaseReview, "REVIEW_AUTH_REQUIRED"],
   ["review queue authorization", files.purchasePending, "REVIEW_AUTH_REQUIRED"],
+  ["human review UI", files.purchaseReviewPage, "承認して決済確定"],
+  ["purchase rejection UI", files.purchaseReviewPage, "却下してカード取消"],
+  ["stripe webhook verification", files.stripeWebhook, "STRIPE_SIGNATURE_INVALID"],
+  ["stripe webhook reconciliation", files.stripeWebhook, "payment_intent.succeeded"],
 ];
 for (const [name, source, needle] of required) assert.ok(source.includes(needle), `${name}: missing ${needle}`);
 for (const [name, source] of Object.entries(files)) assert.equal(source.includes("\\n"), false, `${name}: escaped newline artifact`);
