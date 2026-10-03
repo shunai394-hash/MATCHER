@@ -32,6 +32,8 @@ jobs:
           node-version: 24
       - run: npm install --no-audit --no-fund
       - run: npm run verify:gate
+      - run: npm run verify:experience
+      - run: npm run verify:marketplace
       - run: npm run lint
       - run: npm run build
       - name: Install PostgreSQL client
@@ -44,6 +46,7 @@ jobs:
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/schema.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/002_domain_integrity.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/003_identifier_scope_repair.sql
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/004_purchase_review_gate.sql
       - name: Verify database schema and domain hardening
         run: |
           set -euo pipefail
@@ -53,6 +56,11 @@ jobs:
           select 'identity_hard_block' as check_name, to_regclass('public.identity_hard_block') as relation_name;
           select 'supplier_offer_observation' as check_name, to_regclass('public.supplier_offer_observation') as relation_name;
           select 'supplier_offer_freshness' as check_name, to_regclass('public.supplier_offer_freshness') as relation_name;
+          select 'purchase_review' as check_name, to_regclass('public.purchase_review') as relation_name;
+          select 'purchase_review_rls' as check_name, exists (
+            select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace
+            where n.nspname='public' and c.relname='purchase_review' and c.relrowsecurity
+          ) as enabled;
           select 'match_result.hard_block' as check_name, exists (
             select 1 from information_schema.columns
             where table_schema = 'public' and table_name = 'match_result' and column_name = 'hard_block'
@@ -83,6 +91,21 @@ jobs:
             end if;
             if to_regclass('public.supplier_offer_freshness') is null then
               raise exception 'supplier_offer_freshness missing';
+            end if;
+            if to_regclass('public.purchase_review') is null then
+              raise exception 'purchase_review missing';
+            end if;
+            if not exists (
+              select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace
+              where n.nspname='public' and c.relname='purchase_review' and c.relrowsecurity
+            ) then
+              raise exception 'purchase_review RLS missing';
+            end if;
+            if not exists (
+              select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'purchase_review' and column_name = 'decision_snapshot'
+            ) then
+              raise exception 'purchase_review.decision_snapshot missing';
             end if;
             if not exists (
               select 1 from information_schema.columns
