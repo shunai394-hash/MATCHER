@@ -19,11 +19,13 @@ export async function POST(request: Request) {
     if (!review.stripe_payment_intent_id) return NextResponse.json({ error: "PAYMENT_INTENT_MISSING" }, { status: 409 });
     if (body.action === "approve") {
       const captured = await capturePaymentIntent(review.stripe_payment_intent_id);
-      await supabase.from("purchase_review").update({ status: "APPROVED", reviewed_at: new Date().toISOString(), captured_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", review.id);
+      const { error: updateError } = await supabase.from("purchase_review").update({ status: "APPROVED", reviewed_at: new Date().toISOString(), captured_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", review.id);
+      if (updateError) throw updateError;
       return NextResponse.json({ reviewId: review.id, status: "APPROVED", paymentStatus: captured.status });
     }
     await cancelPaymentIntent(review.stripe_payment_intent_id);
-    await supabase.from("purchase_review").update({ status: "REJECTED", rejection_reason: body.reason?.trim() || "HUMAN_REJECTED", reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", review.id);
+    const { error: updateError } = await supabase.from("purchase_review").update({ status: "REJECTED", rejection_reason: body.reason?.trim() || "HUMAN_REJECTED", reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", review.id);
+    if (updateError) throw updateError;
     return NextResponse.json({ reviewId: review.id, status: "REJECTED" });
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "PURCHASE_REVIEW_FAILED" }, { status: 500 }); }
 }
