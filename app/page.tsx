@@ -6,11 +6,17 @@ const pillars = [
   ["03", "Supplier Linking", "1商品 : 多サプライヤーで価格・在庫・注文可否を管理"],
   ["04", "Profit & Safety", "実コストと利益を計算し、危険条件は利益が出ても自動ブロック"],
 ];
-
 const journey = [
   ["01", "CHECK", "商品情報を入れる", "識別子・型番・ブランドなど、確認できる情報から照合を開始。"],
   ["02", "PROVE", "証拠を見る", "一致・要確認・ブロックを分け、推測で商品を結合しない。"],
   ["03", "DECIDE", "次の判断へ", "商品同一性、供給条件、利益、安全性を確認してから進む。"],
+];
+const qualityLoop = [
+  ["01", "CHECK", "入力と前提を確認", "抜け・矛盾・不明点を先に見つける"],
+  ["02", "MATCH", "候補を照合", "識別子と商品属性を証拠付きで比較する"],
+  ["03", "PROVE", "根拠を検証", "一致・要確認・ブロックを分離する"],
+  ["04", "GATE", "安全条件を通す", "精度を犠牲にして通過数を増やさない"],
+  ["05", "RECHECK", "弱点を再確認", "不確かな点を次のチェック対象として残す"],
 ];
 
 export default function Home() {
@@ -21,7 +27,7 @@ export default function Home() {
           <div className="brand">MATCHER</div>
           <div className="brand-sub">IDENTITY INTELLIGENCE</div>
         </div>
-        <div className="status"><span /> foundation online</div>
+        <div className="status"><span /> evidence-first mode</div>
       </header>
 
       <section className="hero">
@@ -30,7 +36,7 @@ export default function Home() {
         <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する基盤。</p>
         <div className="hero-actions" aria-label="MATCHERの使い方">
           <a className="primary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></a>
-          <a className="secondary-action" href="#customer-flow">3ステップで理解する</a>
+          <a className="secondary-action" href="#quality-loop">品質チェックを見る</a>
         </div>
       </section>
 
@@ -60,6 +66,34 @@ export default function Home() {
       <div id="identity-proof">
         <IdentityProof />
       </div>
+
+      <section className="quality-loop" id="quality-loop" aria-labelledby="quality-loop-title">
+        <div className="section-kicker">QUALITY LOOP · REPEATABLE CHECK</div>
+        <div className="section-heading">
+          <div>
+            <h2 id="quality-loop-title">一度で終わらせず、弱点を見つけて再確認する。</h2>
+            <p>判定を通すこと自体を目的にせず、チェック → 検証 → ゲート → 再確認を同じ流れで回す。</p>
+          </div>
+          <span className="flow-status">PRECISION FIRST</span>
+        </div>
+        <div className="quality-grid">
+          {qualityLoop.map(([num, label, title, text], index) => (
+            <article className="quality-card" key={num}>
+              <div className="quality-top">
+                <span>{num}</span>
+                {index < qualityLoop.length - 1 ? <span aria-hidden="true">→</span> : <span aria-hidden="true">↻</span>}
+              </div>
+              <span className="journey-label">{label}</span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
+        </div>
+        <div className="loop-note">
+          <span>AI / AUTOMATION PRINCIPLE</span>
+          <p>自動化を使う場合も、AIの推測だけで一致を確定しない。根拠・ゲート・再確認を同じ品質ループに残す。</p>
+        </div>
+      </section>
 
       <section className="grid" aria-label="MATCHERの主要機能">
         {pillars.map(([num, title, text]) => (
