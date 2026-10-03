@@ -65,25 +65,20 @@ export async function POST(request: Request) {
       const product = await supabase.from("supplier_product").upsert({
         supplier_id: supplier.data.id,
         supplier_product_id: item.supplierProductId,
-        title: item.title ?? null,
+        product_name: item.title ?? null,
         brand: item.brand ?? null,
         model_number: item.modelNumber ?? null,
         source_url: item.sourceUrl ?? null,
-        source_updated_at: new Date().toISOString(),
-        fetched_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
       }, { onConflict: "supplier_id,supplier_product_id" }).select("id").single();
       if (product.error) throw product.error;
 
-      const offer = await supabase.from("supplier_offer").insert({
-        supplier_product_id: product.data.id,
-        cost: item.cost ?? null,
-        shipping_cost: item.shippingCost ?? null,
-        currency: item.currency ?? "JPY",
-        inventory: item.inventory ?? null,
-        orderability: item.orderability ?? "UNKNOWN",
-        observed_at: new Date().toISOString(),
-        shipping_verified: item.shippingCost != null,
-      }).select("id").single();
+      const currency = (item.currency ?? "JPY").toUpperCase();
+      const existingOffer = await supabase.from("supplier_offer").select("id").eq("supplier_product_id", product.data.id).eq("currency", currency).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (existingOffer.error) throw existingOffer.error;
+      const offer = existingOffer.data
+        ? await supabase.from("supplier_offer").update({ orderability: item.orderability ?? "UNKNOWN" }).eq("id", existingOffer.data.id).select("id").single()
+        : await supabase.from("supplier_offer").insert({ supplier_product_id: product.data.id, currency, orderability: item.orderability ?? "UNKNOWN" }).select("id").single();
       if (offer.error) throw offer.error;
 
       for (const identifier of item.identifiers ?? []) {
@@ -97,6 +92,8 @@ export async function POST(request: Request) {
       }
 
       const now = new Date().toISOString();
+      const snapshot = await supabase.from("supplier_offer_snapshot").insert({ supplier_offer_id: offer.data.id, supplier_cost: item.cost ?? null, shipping_cost: item.shippingCost ?? null, inventory: item.inventory ?? null, shipping_confidence: item.shippingCost != null ? 1 : 0, observed_at: now });
+      if (snapshot.error) throw snapshot.error;
       await supabase.from("supplier_offer_freshness").upsert({
         supplier_offer_id: offer.data.id,
         price_observed_at: item.cost != null ? now : null,
