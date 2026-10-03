@@ -23,7 +23,8 @@ export default function ConsolePage() {
     setResult(null);
     const form = new FormData(event.currentTarget);
     const payload = Object.fromEntries(form.entries());
-    const response = await fetch("/api/decision", {
+    try {
+      const response = await fetch("/api/decision", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -36,9 +37,13 @@ export default function ConsolePage() {
         otherCost: payload.otherCost ? Number(payload.otherCost) : null,
       }),
     });
-    setResult(await response.json());
-    setPurchaseMessage(null);
-    setBusy(false);
+      setResult(await response.json());
+      setPurchaseMessage(null);
+    } catch {
+      setResult({ error: "判定サービスに接続できません。時間を置いて再試行してください。" });
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
