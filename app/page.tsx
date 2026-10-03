@@ -28,6 +28,7 @@ export default function Home() {
           <div className="brand-sub">IDENTITY INTELLIGENCE</div>
         </a>
         <nav className="header-nav" aria-label="ページ内ナビゲーション">
+          <a href="/console">仕入れ判断</a>
           <a href="#identity-proof">判定を見る</a>
           <a href="#quality-loop">品質ループ</a>
           <a href="#core-flow-title">全体像</a>
@@ -40,7 +41,7 @@ export default function Home() {
         <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する基盤。</p>
         <div className="hero-actions" aria-label="MATCHERを理解する">
           <a className="primary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></a>
-          <a className="secondary-action" href="#quality-loop">品質チェックを見る</a>
+          <a className="secondary-action" href="/console">仕入れ判断を試す</a>
         </div>
         <p className="hero-note"><span aria-hidden="true">01</span> まず「なぜ一致したか」を見る。そこから品質ループへ進む。</p>
       </section>
