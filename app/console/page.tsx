@@ -129,6 +129,7 @@ export default function ConsolePage() {
                           body: JSON.stringify({
                             masterProductId: result.purchase?.masterProductId,
                             supplierOfferId: result.purchase?.supplierOfferId,
+                            decisionSnapshot: result,
                           }),
                         });
                         const data = await response.json();
