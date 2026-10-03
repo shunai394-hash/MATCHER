@@ -91,11 +91,19 @@ function evidenceFor(source: IdentityRecord, master: IdentityRecord): MatchEvide
     }
   }
 
-  if (source.brand && master.brand && compact(source.brand) === compact(master.brand)) {
-    evidence.push({ field: "brand", kind: "EXACT_ATTRIBUTE", source: source.brand, master: master.brand, weight: 0.25 });
+  if (source.brand && master.brand) {
+    if (compact(source.brand) === compact(master.brand)) {
+      evidence.push({ field: "brand", kind: "EXACT_ATTRIBUTE", source: source.brand, master: master.brand, weight: 0.25 });
+    } else {
+      evidence.push({ field: "brand", kind: "ATTRIBUTE_CONFLICT", source: source.brand, master: master.brand, weight: -1 });
+    }
   }
-  if (source.modelNumber && master.modelNumber && compact(source.modelNumber) === compact(master.modelNumber)) {
-    evidence.push({ field: "modelNumber", kind: "EXACT_ATTRIBUTE", source: source.modelNumber, master: master.modelNumber, weight: 0.45 });
+  if (source.modelNumber && master.modelNumber) {
+    if (compact(source.modelNumber) === compact(master.modelNumber)) {
+      evidence.push({ field: "modelNumber", kind: "EXACT_ATTRIBUTE", source: source.modelNumber, master: master.modelNumber, weight: 0.45 });
+    } else {
+      evidence.push({ field: "modelNumber", kind: "ATTRIBUTE_CONFLICT", source: source.modelNumber, master: master.modelNumber, weight: -1 });
+    }
   }
 
   const conflicts = variantConflicts(source.variant, master.variant);
@@ -192,7 +200,9 @@ export function matchIdentity(source: IdentityRecord, candidates: IdentityRecord
     decision: "REVIEW",
     masterProductId: null,
     confidence: top.confidence,
-    reasons: top.hardBlock\n      ? [top.evidence.some((item) => item.kind === "ATTRIBUTE_CONFLICT") ? "IDENTITY_ATTRIBUTE_CONFLICT" : "VARIANT_CONFLICT"]\n      : ["INSUFFICIENT_IDENTITY_EVIDENCE"],
+    reasons: top.hardBlock
+      ? [top.evidence.some((item) => item.kind === "ATTRIBUTE_CONFLICT") ? "IDENTITY_ATTRIBUTE_CONFLICT" : "VARIANT_CONFLICT"]
+      : ["INSUFFICIENT_IDENTITY_EVIDENCE"],
     evidence: top.evidence,
   };
 }
