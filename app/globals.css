@@ -164,3 +164,8 @@ h2 { font-size:17px; margin:0 0 12px; }
 .value-promise em{font-style:normal}
 @media(max-width:900px){.value-grid{grid-template-columns:repeat(2,1fr)}.value-promise{align-items:flex-start;flex-direction:column}}
 @media(max-width:520px){.value-grid{grid-template-columns:1fr}.value-proposition{padding:64px 0}.value-promise{padding:18px}}
+
+
+.console-hero .decision-promises{display:flex;flex-wrap:wrap;gap:7px;margin-top:18px}
+.decision-promises span{font-size:10px;letter-spacing:.08em;border:1px solid #303640;padding:7px 10px;color:#c0c5cc;background:#101318}
+.decision-form h2 small{font-size:10px;font-weight:500;color:#777f89;margin-left:8px;letter-spacing:.04em}
