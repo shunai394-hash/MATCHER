@@ -1,6 +1,11 @@
 export type MatchDecision = "AUTO_LINK" | "REVIEW" | "BLOCK";
 
-export type IdentityIdentifier = {\n  type: "JAN" | "EAN" | "UPC" | "MPN" | "SKU" | "SUPPLIER_PRODUCT_NO";\n  value: string;\n};\n\nexport type IdentityRecord = {
+export type IdentityIdentifier = {
+  type: "JAN" | "EAN" | "UPC" | "MPN" | "SKU" | "SUPPLIER_PRODUCT_NO";
+  value: string;
+};
+
+export type IdentityRecord = {
   id: string;
   brand?: string | null;
   modelNumber?: string | null;
