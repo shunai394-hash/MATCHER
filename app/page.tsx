@@ -34,12 +34,16 @@ export default function Home() {
           <a href="#quality-loop">品質ループ</a>
           <a href="#core-flow-title">全体像</a>
         </nav>
+        <nav className="mobile-nav" aria-label="主要ページ">
+          <a href="/console">仕入れ判断</a>
+          <a href="/quality">品質</a>
+        </nav>
       </header>
 
       <section className="hero" aria-labelledby="hero-title">
         <p className="eyebrow">PRODUCT IDENTITY & SUPPLIER INTELLIGENCE</p>
         <h1 id="hero-title">同じ商品を、<br /><em>正しく見つける。</em></h1>
-        <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する基盤。</p>
+        <p className="lead">「これ、本当に同じ商品？」「仕入れて利益が残る？」を、証拠から一つずつ確認。迷ったまま買わないための仕入れ判断基盤。</p>
         <div className="hero-actions" aria-label="MATCHERを理解する">
           <a className="primary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></a>
           <a className="secondary-action" href="/console">仕入れ判断を試す</a>
