@@ -90,22 +90,34 @@ export async function POST(request: Request) {
     let sellability = null;
 
     if (identity.masterProductId && body.salePrice != null) {
-      const { data: offers, error: offerError } = await supabase
-        .from("supplier_offer")
-        .select("id,supplier_product_id,orderability,currency")
-        .limit(100);
+      const { data: links, error: linkError } = await supabase
+        .from("identity_match")
+        .select("supplier_product_id,confidence,decision")
+        .eq("master_product_id", identity.masterProductId)
+        .eq("decision", "AUTO_LINK")
+        .order("confidence", { ascending: false })
+        .limit(20);
+      if (linkError) throw linkError;
 
+      const supplierProductIds = (links ?? []).map((link) => link.supplier_product_id);
+      const { data: offers, error: offerError } = supplierProductIds.length
+        ? await supabase
+            .from("supplier_offer")
+            .select("id,supplier_product_id,orderability,currency")
+            .in("supplier_product_id", supplierProductIds)
+        : { data: [], error: null };
       if (offerError) throw offerError;
 
       const matchedOffers = (offers ?? []).filter((offer) => offer.orderability === "ORDERABLE");
       if (matchedOffers.length > 0) {
         const offer = matchedOffers[0];
-        const { data: snapshots } = await supabase
+        const { data: snapshots, error: snapshotError } = await supabase
           .from("supplier_offer_snapshot")
-          .select("supplier_cost,shipping_cost,observed_at")
+          .select("supplier_cost,shipping_cost,inventory,observed_at")
           .eq("supplier_offer_id", offer.id)
           .order("observed_at", { ascending: false })
           .limit(1);
+        if (snapshotError) throw snapshotError;
 
         const snapshot = snapshots?.[0];
         profitability = calculateExpectedProfit({
@@ -118,20 +130,33 @@ export async function POST(request: Request) {
           otherCost: null,
         });
 
+        const observedAt = snapshot?.observed_at ? new Date(snapshot.observed_at).getTime() : 0;
+        const ageSeconds = observedAt ? Math.max(0, (Date.now() - observedAt) / 1000) : Infinity;
+        const { data: policies } = await supabase
+          .from("freshness_policy")
+          .select("data_type,max_age_seconds");
+        const policyMap = new Map((policies ?? []).map((policy) => [policy.data_type, policy.max_age_seconds]));
+        const priceFresh = ageSeconds <= (policyMap.get("PRICE") ?? 0);
+        const inventoryFresh = ageSeconds <= (policyMap.get("INVENTORY") ?? 0);
+        const shippingFresh = ageSeconds <= (policyMap.get("SHIPPING") ?? 0);
+
         sellability = evaluateSellability({
           identityDecision: identity.decision,
           hardBlockReasons: identity.reasons.filter((r) => r.includes("CONFLICT") || r.includes("VARIANT")),
           orderability: offer.orderability,
-          inventoryKnown: snapshot?.observed_at != null,
-          inventoryFresh: snapshot?.observed_at != null,
+          inventoryKnown: snapshot?.inventory != null,
+          inventoryFresh,
           priceKnown: snapshot?.supplier_cost != null,
-          priceFresh: snapshot?.observed_at != null,
+          priceFresh,
           supplierCost: snapshot?.supplier_cost ?? null,
           shippingCost: snapshot?.shipping_cost ?? null,
           requiredFeesKnown: profitability.complete,
           expectedProfit: profitability.expectedProfit,
           profitCurrency: offer.currency ?? "JPY",
         });
+        if (!shippingFresh && sellability.status === "SELLABLE") {
+          sellability = { status: "BLOCKED", reasons: [...sellability.reasons, "SHIPPING_STALE"] };
+        }
       }
     }
 
