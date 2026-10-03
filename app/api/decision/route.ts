@@ -120,6 +120,7 @@ export async function POST(request: Request) {
     const identity = matchIdentity(source, candidates);
     let profitability = null;
     let sellability = null;
+    let purchase = null;
 
     if (identity.masterProductId && body.salePrice != null) {
       const { data: links, error: linkError } = await supabase
