@@ -33,7 +33,8 @@ export function evaluateSellability(input: SellabilityInput): SellabilityResult 
   if (input.supplierCost === null) reasons.push("SUPPLIER_COST_UNKNOWN");
   if (input.shippingCost === null) reasons.push("SHIPPING_COST_UNKNOWN");
   if (!input.requiredFeesKnown) reasons.push("REQUIRED_FEES_UNKNOWN");
-  if (input.expectedProfit === null || input.profitCurrency === null) reasons.push("PROFIT_NOT_CALCULABLE");\n  else if (!Number.isFinite(input.expectedProfit) || input.expectedProfit <= 0) reasons.push("PROFIT_NOT_POSITIVE");
+  if (input.expectedProfit === null || input.profitCurrency === null) reasons.push("PROFIT_NOT_CALCULABLE");
+  else if (!Number.isFinite(input.expectedProfit) || input.expectedProfit <= 0) reasons.push("PROFIT_NOT_POSITIVE");
 
   return {
     status: reasons.length === 0 ? "SELLABLE" : "BLOCKED",
