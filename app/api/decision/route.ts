@@ -157,10 +157,10 @@ export async function POST(request: Request) {
           salePrice: body.salePrice,
           supplierCost: snapshot?.supplier_cost ?? null,
           shippingCost: snapshot?.shipping_cost ?? null,
-          paymentFee: null,
-          marketplaceFee: null,
-          tax: null,
-          otherCost: null,
+          paymentFee: body.paymentFee ?? null,
+          marketplaceFee: body.marketplaceFee ?? null,
+          tax: body.tax ?? null,
+          otherCost: body.otherCost ?? null,
         });
 
         const { data: freshness, error: freshnessError } = await supabase
@@ -200,6 +200,14 @@ export async function POST(request: Request) {
         if (!shippingFresh && sellability.status === "SELLABLE") {
           sellability = { status: "BLOCKED", reasons: [...sellability.reasons, "SHIPPING_STALE"] };
         }
+        if (sellability.status === "SELLABLE" && snapshot?.supplier_cost != null && snapshot?.shipping_cost != null) {
+          purchase = {
+            masterProductId: identity.masterProductId,
+            supplierOfferId: offer.id,
+            amount: Math.round(Number(snapshot.supplier_cost) + Number(snapshot.shipping_cost)),
+            currency: (offer.currency ?? "jpy").toLowerCase(),
+          };
+        }
       }
     }
 
@@ -207,7 +215,8 @@ export async function POST(request: Request) {
       decision: identity,
       profitability,
       sellability,
-      candidateCount: byMaster.size,
+      candidateCount: candidates.length,
+      purchase,
       source,
     });
   } catch (error) {
