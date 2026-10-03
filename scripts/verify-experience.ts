@@ -13,6 +13,8 @@ const files = {
   purchaseReview: readFileSync("app/api/purchase/review/route.ts", "utf8"),
   purchasePending: readFileSync("app/api/purchase/pending/route.ts", "utf8"),
   purchaseReviewPage: readFileSync("app/review/page.tsx", "utf8"),
+  opportunities: readFileSync("app/opportunities/page.tsx", "utf8"),
+  opportunityApi: readFileSync("app/api/opportunities/route.ts", "utf8"),
   stripeWebhook: readFileSync("app/api/stripe/webhook/route.ts", "utf8"),
   stripe: readFileSync("lib/server/stripe.ts", "utf8"),
 };
@@ -20,6 +22,10 @@ const files = {
 const required = [
   ["home customer journey", files.home, "CHECK"],
   ["home decision CTA", files.home, "/console"],
+  ["profit opportunity CTA", files.home, "/opportunities"],
+  ["profit opportunity feed", files.opportunities, "VERIFIED OPPORTUNITIES"],
+  ["opportunity server feed", files.opportunityApi, "profit_snapshot"],
+  ["opportunity sellability gate", files.opportunityApi, "SELLABLE"],
   ["quality center", files.home, "/quality"],
   ["customer value proposition", files.home, "WHY MATCHER"],
   ["loss prevention promise", files.home, "仕入れて後悔しない"],
