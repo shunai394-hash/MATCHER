@@ -151,3 +151,16 @@ h2 { font-size:17px; margin:0 0 12px; }
 .review-actions .review-reject{background:#241313;color:#e4aaaa;border:1px solid #6b4545}
 .review-error{margin-top:14px;color:#e4aaaa;font-size:12px}
 @media(max-width:700px){.review-meta{grid-template-columns:1fr}.review-hero{padding-top:50px}}
+
+
+.value-proposition{padding:92px 0;border-top:1px solid #262a30}
+.value-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:28px}
+.value-grid article{border:1px solid #292d34;background:#0d1014;padding:22px;min-height:210px}
+.value-grid b{font-size:10px;letter-spacing:.12em;color:#8d96a3}
+.value-grid h3{font-size:20px;line-height:1.2;margin:28px 0 12px}
+.value-grid p{font-size:13px;line-height:1.75;color:#9da4ae}
+.value-promise{margin-top:12px;padding:24px;display:flex;align-items:center;justify-content:space-between;gap:20px;border:1px solid #353b44;background:linear-gradient(90deg,#11151b,#0b0d10)}
+.value-promise strong{font-size:clamp(18px,2.2vw,28px);line-height:1.3;max-width:760px}
+.value-promise em{font-style:normal}
+@media(max-width:900px){.value-grid{grid-template-columns:repeat(2,1fr)}.value-promise{align-items:flex-start;flex-direction:column}}
+@media(max-width:520px){.value-grid{grid-template-columns:1fr}.value-proposition{padding:64px 0}.value-promise{padding:18px}}
