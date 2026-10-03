@@ -11,7 +11,19 @@ type Review = {
   currency: string;
   status: string;
   decision_snapshot: Record<string, unknown>;
+  verified_terms?: Record<string, unknown>;
+  requested_by_email?: string | null;
   created_at: string;
+};
+
+type MasterCandidate = {
+  id: string;
+  brand: string | null;
+  product_name: string;
+  model_number: string | null;
+  created_at: string;
+  identifiers: Array<{ identifier_type: string; identifier_value: string }>;
+  origin_supplier_product: { supplier_product_id: string; product_name: string | null; source_url: string | null } | null;
 };
 
 export default function ReviewPage() {
@@ -19,6 +31,7 @@ export default function ReviewPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [candidates, setCandidates] = useState<MasterCandidate[]>([]);
 
   async function load() {
     setLoading(true);
@@ -27,7 +40,23 @@ export default function ReviewPage() {
     const data = await response.json();
     if (!response.ok) setMessage(data.error ?? "レビュー待ち一覧を取得できません。");
     else setReviews(data.reviews ?? []);
+    const masters = await fetch("/api/master-products?approvalStatus=CANDIDATE", { headers: { "x-matcher-review-token": token } });
+    const masterData = await masters.json();
+    if (masters.ok) setCandidates(masterData.masters ?? []);
     setLoading(false);
+  }
+
+  async function decideMaster(masterProductId: string, action: "approve" | "reject") {
+    if (action === "approve" && !window.confirm("この商品マスタ候補を承認します。識別子が正しいことを確認しましたか？")) return;
+    setMessage(null);
+    const response = await fetch("/api/master-products/review", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-matcher-review-token": token },
+      body: JSON.stringify({ masterProductId, action }),
+    });
+    const data = await response.json();
+    if (!response.ok) setMessage(data.error ?? "商品マスタの判定に失敗しました。");
+    else setCandidates((current) => current.filter((item) => item.id !== masterProductId));
   }
 
   async function decide(reviewId: string, action: "approve" | "reject") {
@@ -69,7 +98,8 @@ export default function ReviewPage() {
                 <div><small>商品</small><strong>{review.master_product_id ?? "不明"}</strong></div>
                 <div><small>仕入先オファー</small><strong>{review.supplier_offer_id ?? "不明"}</strong></div>
               </div>
-              <div className="review-snapshot">{JSON.stringify(snapshot, null, 2)}</div>
+              <p>申請者: {review.requested_by_email ?? "不明"}</p>
+              <div className="review-snapshot">{JSON.stringify({ verified: review.verified_terms ?? {}, note: snapshot }, null, 2)}</div>
               <div className="review-actions">
                 <button type="button" onClick={() => decide(review.id, "approve")}>承認して決済確定</button>
                 <button type="button" className="review-reject" onClick={() => decide(review.id, "reject")}>却下してカード取消</button>
@@ -77,6 +107,25 @@ export default function ReviewPage() {
             </article>
           );
         })}
+      </section>
+      <section className="master-candidates" aria-live="polite">
+        <p className="section-kicker">PRODUCT MASTER CANDIDATES</p>
+        <h2>商品マスタ候補（承認されるまで販売候補になりません）</h2>
+        {candidates.length === 0 ? <p className="review-error">承認待ちの商品マスタ候補はありません。</p> : candidates.map((candidate) => (
+          <article key={candidate.id}>
+            <h3>{candidate.product_name}</h3>
+            <p>{[candidate.brand, candidate.model_number].filter(Boolean).join(" · ") || "ブランド・型番なし"}</p>
+            <p><small>{candidate.identifiers.map((id) => `${id.identifier_type} ${id.identifier_value}`).join(" / ") || "識別子なし"}</small></p>
+            {candidate.origin_supplier_product && (
+              <p><small>提案元: {candidate.origin_supplier_product.product_name ?? candidate.origin_supplier_product.supplier_product_id}
+                {candidate.origin_supplier_product.source_url && <> · <a href={candidate.origin_supplier_product.source_url} target="_blank" rel="noreferrer">仕入先ページ ↗</a></>}</small></p>
+            )}
+            <div className="review-actions">
+              <button type="button" onClick={() => decideMaster(candidate.id, "approve")}>商品マスタとして承認</button>
+              <button type="button" className="review-reject" onClick={() => decideMaster(candidate.id, "reject")}>却下</button>
+            </div>
+          </article>
+        ))}
       </section>
     </main>
   );

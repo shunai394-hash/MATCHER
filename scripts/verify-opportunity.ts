@@ -15,7 +15,7 @@ function base(): OfferEvaluationInput {
   return {
     now,
     policy,
-    match: { decision: "AUTO_LINK", hardBlock: false, masterProductId: "m1", confidence: 1 },
+    match: { decision: "AUTO_LINK", hardBlock: false, masterProductId: "m1", masterSellable: true, confidence: 1 },
     offer: { orderability: "ORDERABLE", currency: "JPY" },
     snapshot: { supplierCost: 4000, shippingCost: 600, inventory: 5, shippingConfidence: 1, observedAt: minutesAgo(10) },
     freshness: { priceObservedAt: minutesAgo(10), inventoryObservedAt: minutesAgo(10), shippingObservedAt: minutesAgo(10) },
@@ -43,6 +43,7 @@ blockedWith((i) => { i.match = null; }, "IDENTITY_NOT_MATCHED");
 blockedWith((i) => { i.match!.decision = "REVIEW"; }, "IDENTITY_NOT_AUTO_LINKED");
 blockedWith((i) => { i.match!.hardBlock = true; }, "IDENTITY_HARD_BLOCK");
 blockedWith((i) => { i.match!.masterProductId = null; }, "IDENTITY_MASTER_MISSING");
+blockedWith((i) => { i.match!.masterSellable = false; }, "MASTER_NOT_APPROVED");
 // Orderability / inventory
 blockedWith((i) => { i.offer.orderability = "OUT_OF_STOCK"; }, "SUPPLIER_NOT_ORDERABLE");
 blockedWith((i) => { i.snapshot!.inventory = 0; }, "OUT_OF_STOCK");

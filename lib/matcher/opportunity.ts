@@ -20,6 +20,8 @@ export type MatchInput = {
   decision: IdentityDecision;
   hardBlock: boolean;
   masterProductId: string | null;
+  /** The linked master is ACTIVE and APPROVED (candidate / rejected / inactive masters are never sold). */
+  masterSellable: boolean;
   confidence: number;
 };
 
@@ -117,6 +119,7 @@ export function evaluateOffer(input: OfferEvaluationInput): OfferEvaluation {
   if (!match) extra.push("IDENTITY_NOT_MATCHED");
   else if (match.hardBlock) extra.push("IDENTITY_HARD_BLOCK");
   if (match && !match.masterProductId) extra.push("IDENTITY_MASTER_MISSING");
+  else if (match && !match.masterSellable) extra.push("MASTER_NOT_APPROVED");
 
   for (const type of ["PRICE", "INVENTORY", "SHIPPING"] as const) {
     if (!policy.has(type)) extra.push(`FRESHNESS_POLICY_${type}_MISSING`);

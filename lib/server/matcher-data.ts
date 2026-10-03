@@ -1,6 +1,6 @@
 import type { getSupabaseAdmin } from "@/lib/server/supabase";
 import { matchIdentity, type IdentityIdentifier, type IdentityRecord } from "@/lib/matcher/identity";
-import { planIdentityWrite, toIdentityMatchRow, type StoredIdentityMatch } from "@/lib/matcher/identity-sync";
+import { planIdentityWrite, resolveIdentity, toIdentityMatchRow, type CandidateProposal, type MasterInfo, type StoredIdentityMatch } from "@/lib/matcher/identity-sync";
 import {
   buildFreshnessPolicy,
   evaluateOffer,
@@ -41,7 +41,7 @@ export type IdentityMatchDbRow = { id: string; supplier_product_id: string; mast
 export type MarketRow = Record<string, unknown> & { id: string; master_product_id: string; product_variant_id: string | null; source: string; sale_price: number; payment_fee: number | null; marketplace_fee: number | null; tax: number | null; other_cost: number | null; source_url: string | null; observed_at: string };
 export type GateRow = { id: string; supplier_offer_id: string; status: "SELLABLE" | "BLOCKED"; checks: Record<string, unknown>; blocking_reasons: string[]; evaluated_at: string };
 export type ProfitRow = { id: string; supplier_offer_id: string; sale_price: number; supplier_cost: number | null; shipping_cost: number | null; payment_fee: number | null; marketplace_fee: number | null; tax: number | null; other_cost: number | null; expected_profit: number | null; cost_complete: boolean; calculated_at: string };
-export type MasterRow = { id: string; brand: string | null; product_name: string; manufacturer: string | null; model_number: string | null };
+export type MasterRow = { id: string; brand: string | null; product_name: string; manufacturer: string | null; model_number: string | null; status: string; approval_status: string };
 
 const SUPPLIER_PRODUCT_COLUMNS = "id,supplier_id,supplier_product_id,supplier_sku,brand,product_name,manufacturer,model_number,color,size,capacity,generation,set_count,condition,source_url,first_seen_at,last_seen_at";
 const CHUNK = 100;
@@ -99,11 +99,17 @@ export async function fetchLatestMatches(db: Db, supplierProductIds?: string[]):
 
 const IDENTIFIER_TYPES = new Set(["JAN", "EAN", "UPC", "MPN", "SKU", "SUPPLIER_PRODUCT_NO"]);
 
-export async function loadMasterCandidates(db: Db, limit = 2000): Promise<IdentityRecord[]> {
+export type MasterCatalog = { records: IdentityRecord[]; info: Map<string, MasterInfo> };
+
+/**
+ * All masters (any status / approval) as identity candidates. Non-approved masters are
+ * included so a supplier product is matched to an existing candidate instead of proposing
+ * a duplicate; resolveIdentity() never AUTO_LINKs to them.
+ */
+export async function loadMasterCandidates(db: Db, limit = 5000): Promise<MasterCatalog> {
   const { data: masters, error } = await db
     .from("master_product")
-    .select("id,brand,model_number")
-    .eq("status", "ACTIVE")
+    .select("id,brand,model_number,status,approval_status,origin_supplier_product_id")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(`master_product: ${error.message}`);
@@ -116,8 +122,14 @@ export async function loadMasterCandidates(db: Db, limit = 2000): Promise<Identi
   );
 
   const byMaster = new Map<string, IdentityRecord>();
+  const info = new Map<string, MasterInfo>();
   for (const row of masters ?? []) {
     byMaster.set(row.id as string, { id: row.id as string, brand: row.brand as string | null, modelNumber: row.model_number as string | null, identifiers: [] });
+    info.set(row.id as string, {
+      status: row.status as MasterInfo["status"],
+      approvalStatus: (row.approval_status ?? "APPROVED") as MasterInfo["approvalStatus"],
+      originSupplierProductId: (row.origin_supplier_product_id as string | null) ?? null,
+    });
   }
   for (const row of identifiers) {
     const master = byMaster.get(row.master_product_id);
@@ -131,10 +143,79 @@ export async function loadMasterCandidates(db: Db, limit = 2000): Promise<Identi
     list.push({ color: row.color, size: row.size, capacity: row.capacity, generation: row.generation, setCount: row.set_count, condition: row.condition });
     variantsByMaster.set(row.master_product_id, list);
   }
-  return [...byMaster.values()].flatMap((master) => {
+  const records = [...byMaster.values()].flatMap((master) => {
     const list = variantsByMaster.get(master.id);
     return list?.length ? list.map((variant) => ({ ...master, variant })) : [master];
   });
+  return { records, info };
+}
+
+function variantKey(variant: CandidateProposal["variant"]) {
+  if (!variant) return null;
+  const parts = [variant.color, variant.size, variant.capacity, variant.generation, variant.setCount != null ? `x${variant.setCount}` : null, variant.condition]
+    .filter((v) => v !== null && v !== undefined && v !== "")
+    .map((v) => String(v).trim().toUpperCase());
+  return parts.length ? parts.join("/") : null;
+}
+
+/**
+ * Pattern B: insert a CANDIDATE master (status INACTIVE, approval CANDIDATE) from a supplier
+ * product's strong identifiers. Returns null when the database refuses it (e.g. the GTIN already
+ * belongs to another master): the caller then records a plain REVIEW.
+ */
+async function createMasterCandidate(db: Db, supplierProductId: string, proposal: CandidateProposal): Promise<string | null> {
+  const master = await db.from("master_product").insert({
+    product_name: proposal.productName,
+    brand: proposal.brand,
+    manufacturer: proposal.manufacturer,
+    model_number: proposal.modelNumber,
+    status: "INACTIVE",
+    approval_status: "CANDIDATE",
+    origin: "SUPPLIER_CANDIDATE",
+    origin_supplier_product_id: supplierProductId,
+  }).select("id").single();
+  if (master.error) {
+    if (master.error.code === "23505") return null;
+    throw new Error(`master_product candidate insert: ${master.error.message}`);
+  }
+  const id = master.data.id as string;
+  const rollback = async () => {
+    const { error } = await db.from("master_product").delete().eq("id", id);
+    if (error) throw new Error(`master_product candidate rollback: ${error.message}`);
+  };
+  if (proposal.gtins.length) {
+    const ids = await db.from("product_identifier").insert(proposal.gtins.map((gtin, index) => ({
+      master_product_id: id,
+      identifier_type: gtin.type,
+      identifier_value: gtin.value,
+      normalized_value: gtin.normalized,
+      source: "SUPPLIER_CANDIDATE",
+      is_primary: index === 0,
+    })));
+    if (ids.error) {
+      await rollback();
+      if (ids.error.code === "23505") return null;
+      throw new Error(`product_identifier candidate insert: ${ids.error.message}`);
+    }
+  }
+  const key = variantKey(proposal.variant);
+  if (key && proposal.variant) {
+    const variant = await db.from("product_variant").insert({
+      master_product_id: id,
+      variant_key: key,
+      color: proposal.variant.color ?? null,
+      size: proposal.variant.size ?? null,
+      capacity: proposal.variant.capacity ?? null,
+      generation: proposal.variant.generation ?? null,
+      set_count: proposal.variant.setCount ?? null,
+      condition: proposal.variant.condition ?? null,
+    });
+    if (variant.error) {
+      await rollback();
+      throw new Error(`product_variant candidate insert: ${variant.error.message}`);
+    }
+  }
+  return id;
 }
 
 export function supplierProductToIdentity(product: SupplierProductRow, identifiers: Array<{ identifier_type: string; identifier_value: string }>): IdentityRecord {
@@ -168,10 +249,17 @@ export async function syncIdentityMatches(db: Db, options: { limit?: number } = 
     .limit(limit);
   if (error) throw new Error(`supplier_product: ${error.message}`);
   const products = (productRows ?? []) as unknown as SupplierProductRow[];
-  const summary = { evaluated: 0, written: 0, unchanged: 0, decisions: { AUTO_LINK: 0, REVIEW: 0, BLOCK: 0 } as Record<string, number> };
+  const summary = {
+    evaluated: 0,
+    written: 0,
+    unchanged: 0,
+    candidatesCreated: 0,
+    decisions: { AUTO_LINK: 0, REVIEW: 0, BLOCK: 0 } as Record<string, number>,
+    patterns: {} as Record<string, number>,
+  };
   if (!products.length) return summary;
 
-  const candidates = await loadMasterCandidates(db);
+  const catalog = await loadMasterCandidates(db);
   const productIds = products.map((row) => row.id);
   const identifierRows = await selectIn<{ supplier_product_id: string; identifier_type: string; identifier_value: string }>(
     db, "supplier_product_identifier", "supplier_product_id,identifier_type,identifier_value", "supplier_product_id", productIds,
@@ -187,14 +275,36 @@ export async function syncIdentityMatches(db: Db, options: { limit?: number } = 
   const inserts: Array<Record<string, unknown>> = [];
   for (const product of products) {
     summary.evaluated += 1;
-    const result = matchIdentity(supplierProductToIdentity(product, identifiersByProduct.get(product.id) ?? []), candidates);
-    const computed = toIdentityMatchRow(result);
-    summary.decisions[computed.decision] = (summary.decisions[computed.decision] ?? 0) + 1;
+    const source = { ...supplierProductToIdentity(product, identifiersByProduct.get(product.id) ?? []), productName: product.product_name, manufacturer: product.manufacturer };
+    const resolution = resolveIdentity(source, catalog.records, catalog.info);
+    let row = resolution.row;
+
+    if (resolution.pattern === "B_NEW_CANDIDATE" && resolution.proposal) {
+      const candidateId = await createMasterCandidate(db, product.id, resolution.proposal);
+      if (candidateId) {
+        summary.candidatesCreated += 1;
+        // Later products in this run must see the new candidate (no duplicate proposals).
+        const record: IdentityRecord = {
+          id: candidateId,
+          brand: resolution.proposal.brand,
+          modelNumber: resolution.proposal.modelNumber,
+          identifiers: resolution.proposal.gtins.map((gtin) => ({ type: gtin.type, value: gtin.value })),
+          variant: resolution.proposal.variant,
+        };
+        catalog.records.push(record);
+        catalog.info.set(candidateId, { status: "INACTIVE", approvalStatus: "CANDIDATE", originSupplierProductId: product.id });
+        const evidence = matchIdentity(source, [record]);
+        row = { master_product_id: candidateId, confidence: toIdentityMatchRow(evidence).confidence, decision: "REVIEW", hard_block: false };
+      }
+    }
+
+    summary.patterns[resolution.pattern] = (summary.patterns[resolution.pattern] ?? 0) + 1;
+    summary.decisions[row.decision] = (summary.decisions[row.decision] ?? 0) + 1;
     const prev = latest.get(product.id);
     const previous: StoredIdentityMatch | null = prev
       ? { decision: prev.decision, masterProductId: prev.master_product_id, hardBlock: prev.hard_block }
       : null;
-    const write = planIdentityWrite(previous, computed);
+    const write = planIdentityWrite(previous, row, { force: resolution.forceWrite });
     if (!write) {
       summary.unchanged += 1;
       continue;
@@ -291,7 +401,7 @@ export async function loadOfferContexts(db: Db, offers: SupplierOfferRow[], opti
   const matches = options.matches ?? await fetchLatestMatches(db, supplierProductIds);
 
   const masterIds = [...matches.values()].map((row) => row.master_product_id).filter((id): id is string => !!id);
-  const masters = await selectIn<MasterRow>(db, "master_product", "id,brand,product_name,manufacturer,model_number", "id", masterIds);
+  const masters = await selectIn<MasterRow>(db, "master_product", "id,brand,product_name,manufacturer,model_number,status,approval_status", "id", masterIds);
   const masterMap = new Map(masters.map((row) => [row.id, row]));
 
   const marketRows = await selectIn<MarketRow>(db, "market_price_observation", "*", "master_product_id", masterIds, { column: "observed_at", ascending: false });
@@ -316,7 +426,7 @@ export async function loadOfferContexts(db: Db, offers: SupplierOfferRow[], opti
     const evaluation = evaluateOffer({
       now,
       policy,
-      match: match ? { decision: match.decision, hardBlock: !!match.hard_block, masterProductId: master ? match.master_product_id : null, confidence: toNumber(match.confidence) ?? 0 } : null,
+      match: match ? { decision: match.decision, hardBlock: !!match.hard_block, masterProductId: master ? match.master_product_id : null, masterSellable: !!master && master.status === "ACTIVE" && master.approval_status === "APPROVED", confidence: toNumber(match.confidence) ?? 0 } : null,
       offer: { orderability: offer.orderability, currency: offer.currency },
       snapshot: snapshot ? {
         supplierCost: toNumber(snapshot.supplier_cost),

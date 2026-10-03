@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # End-to-end test against a real database stack:
-#   Postgres (db/schema.sql + supabase/migrations/006) → PostgREST → /rest/v1 proxy → `next start` → HTTP scenario.
+#   Postgres (db/schema.sql = result of db/migrations) → PostgREST → /rest/v1 proxy → `next start` → HTTP scenario.
 # The live Supabase project is never touched. Requires PostgreSQL 16 server binaries.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -8,8 +8,7 @@ cd "$ROOT"
 WORK="$ROOT/.e2e"
 mkdir -p "$WORK"
 
-PG_BIN="${PG_BIN:-$(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V | tail -1)}"
-[ -x "$PG_BIN/initdb" ] || { echo "PostgreSQL server binaries not found (set PG_BIN)"; exit 1; }
+source scripts/db/pg.sh
 PGPORT="${E2E_PG_PORT:-54329}"; PGRST_PORT="${E2E_PGRST_PORT:-54330}"; PROXY_PORT="${E2E_PROXY_PORT:-54331}"; APP_PORT="${E2E_APP_PORT:-3107}"
 
 POSTGREST="${POSTGREST_BIN:-$WORK/postgrest}"
@@ -18,26 +17,19 @@ if [ ! -x "$POSTGREST" ]; then
   tar -xJf "$WORK/postgrest.tar.xz" -C "$WORK"
 fi
 
-AS_PG=()
-if [ "$(id -u)" = "0" ]; then AS_PG=(runuser -u postgres --); fi
 DATA="$WORK/pgdata"
-rm -rf "$DATA"; mkdir -p "$DATA"
-[ "$(id -u)" = "0" ] && chown -R postgres "$WORK"
 
 PIDS=()
 cleanup() {
   for pid in "${PIDS[@]:-}"; do [ -n "$pid" ] && kill "$pid" 2>/dev/null || true; done
-  "${AS_PG[@]}" "$PG_BIN/pg_ctl" -D "$DATA" -m fast stop >/dev/null 2>&1 || true
+  pg_stop "$DATA"
 }
 trap cleanup EXIT
 
-"${AS_PG[@]}" "$PG_BIN/initdb" -D "$DATA" -U postgres --auth=trust >/dev/null
-"${AS_PG[@]}" "$PG_BIN/pg_ctl" -D "$DATA" -o "-p $PGPORT -k /tmp -c listen_addresses=127.0.0.1" -l "$WORK/postgres.log" -w start >/dev/null
-PSQL=(psql -h 127.0.0.1 -p "$PGPORT" -U postgres -v ON_ERROR_STOP=1 -q)
-"${PSQL[@]}" -d postgres -c "create database matcher"
-"${PSQL[@]}" -d matcher -f db/schema.sql
-for f in supabase/migrations/006_*.sql; do "${PSQL[@]}" -d matcher -f "$f"; done
-"${PSQL[@]}" -d matcher <<'SQL'
+pg_start "$DATA" "$PGPORT"
+psql_db "$PGPORT" postgres -c "create database matcher"
+psql_db "$PGPORT" matcher -f db/schema.sql -o /dev/null
+psql_db "$PGPORT" matcher <<'SQL'
 create role anon nologin;
 create role service_role nologin bypassrls;
 create role authenticator login password 'e2e' noinherit;
@@ -62,6 +54,11 @@ export NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:$PROXY_PORT"
 export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_KEY"
 export MATCHER_INGEST_TOKEN="e2e-ingest-token"
 export CRON_SECRET="e2e-cron-secret"
+export MATCHER_REVIEW_TOKEN="e2e-review-token"
+export MATCHER_PURCHASER_EMAILS="buyer@e2e.test"
+export MATCHER_ADMIN_EMAILS="admin@e2e.test"
+# No Stripe / eBay / 価格.com credentials: those paths must fail explicitly, never fake success.
+unset STRIPE_SECRET_KEY EBAY_CLIENT_ID EBAY_CLIENT_SECRET KAKAKU_API_BASE_URL KAKAKU_API_TOKEN
 if [ "${E2E_SKIP_BUILD:-0}" != "1" ]; then npm run build >"$WORK/build.log" 2>&1 || { tail -50 "$WORK/build.log"; exit 1; }; fi
 if curl -s -o /dev/null "http://127.0.0.1:$APP_PORT/"; then echo "port $APP_PORT already in use"; exit 1; fi
 # Run the Next binary directly (not via npx) so the recorded PID is the server itself and cleanup stops it.

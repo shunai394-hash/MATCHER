@@ -8,17 +8,19 @@ import { join } from "node:path";
  * `.from("match_result")` or `supplier_offer.cost` before they reach production.
  */
 
-const schema = readFileSync("db/schema.sql", "utf8");
+const schemaFile = process.env.SCHEMA_FILE ?? "db/schema.sql";
+const schema = readFileSync(schemaFile, "utf8");
 const tables = new Map<string, Set<string>>();
-for (const match of schema.matchAll(/create table (\w+) \(([\s\S]*?)\n\);/g)) {
+// Accepts both hand-written DDL and pg_dump output ("CREATE TABLE public.x (").
+for (const match of schema.matchAll(/create table (?:if not exists )?(?:public\.)?(\w+) \(([\s\S]*?)\n\);/gi)) {
   const columns = new Set<string>();
   for (const line of match[2].split("\n")) {
-    const col = line.trim().match(/^([a-z_][a-z0-9_]*)\s+/);
+    const col = line.trim().match(/^"?([a-z_][a-z0-9_]*)"?\s+/);
     if (col && !["unique", "primary", "constraint", "check", "foreign"].includes(col[1])) columns.add(col[1]);
   }
   tables.set(match[1], columns);
 }
-assert.ok(tables.size > 10, "schema parse failed");
+assert.ok(tables.size > 10, `schema parse failed (${schemaFile})`);
 assert.ok(!tables.has("match_result"), "match_result must not exist (live DB uses identity_match)");
 
 function walk(dir: string, out: string[] = []) {
@@ -67,4 +69,4 @@ for (const file of [...walk("app"), ...walk("lib")]) {
 }
 
 assert.deepEqual(problems, [], "\n" + problems.join("\n"));
-console.log(`MATCHER schema usage audit: PASS (${references} table references checked against db/schema.sql)`);
+console.log(`MATCHER schema usage audit: PASS (${references} table references checked against ${schemaFile})`);

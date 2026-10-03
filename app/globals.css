@@ -189,3 +189,9 @@ h2 { font-size:17px; margin:0 0 12px; }
 .opportunity-evidence{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:4px}.opportunity-evidence li{font-size:11px;color:#9fd3a8}
 .opportunity-profit p{color:#888;font-size:11px;margin:8px 0 0}
 .opportunity-footer a+a{margin-left:0}
+.purchase-auth{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:16px 0}.purchase-auth label{display:grid;gap:6px;font-size:11px;color:#999}.purchase-auth input{background:#141414;border:1px solid #333;color:#f5f5f2;padding:10px}.purchase-auth button,.purchase-auth-note button{background:#f4f4ef;color:#090909;border:0;padding:10px 14px;font-weight:800;cursor:pointer}
+.purchase-auth-note{font-size:12px;color:#999;margin:16px 0}
+.opportunity-buy{background:#9fd3a8;color:#06130a;border:0;padding:9px 14px;font-weight:800;cursor:pointer}
+.opportunity-purchase-state{grid-column:1/-1;margin:0;color:#e8c37a;font-size:12px}
+.quality-token{display:grid;gap:6px;font-size:11px;color:#999}.quality-token input{background:#141414;border:1px solid #333;color:#f5f5f2;padding:10px}
+.master-candidates{max-width:1100px;margin-top:40px}.master-candidates article{border:1px solid #292929;padding:16px;margin-top:12px}.master-candidates small{color:#888}

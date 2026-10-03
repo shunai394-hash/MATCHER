@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { PurchaserSignIn, usePurchaserSession } from "../purchaser-session";
 
 type Freshness = { observedAt: string | null; ageSeconds: number | null; maxAgeSeconds: number | null; fresh: boolean };
 
@@ -50,7 +51,20 @@ type FeedResponse = {
   error?: string;
 };
 
+const PURCHASE_ERRORS: Record<string, string> = {
+  AUTH_REQUIRED: "購入担当としてログインしてください。",
+  PURCHASER_ROLE_REQUIRED: "このアカウントには購入権限がありません。",
+  PURCHASE_TERMS_CHANGED: "価格または利益が変わりました。最新の内容を確認して、もう一度承認してください。",
+  PURCHASE_NOT_SELLABLE: "購入直前の再確認で条件を満たさなくなりました（在庫・価格・鮮度など）。",
+  IDENTITY_LINK_NOT_CONFIRMED: "同一商品の判定が変わりました。",
+  QUALITY_GATE_OUTDATED: "新しいデータで再計算待ちです。少し待ってから更新してください。",
+  QUALITY_GATE_NOT_SELLABLE: "品質ゲートを通過していません。",
+  PROFIT_SNAPSHOT_OUTDATED: "利益計算が最新データに追いついていません。",
+  STRIPE_SERVER_CONFIG_MISSING: "決済設定がありません。購入は実行されていません。",
+};
+
 const REASON_LABELS: Record<string, string> = {
+  MASTER_NOT_APPROVED: "商品マスタが承認待ち",
   IDENTITY_REVIEW: "同一商品か要確認",
   IDENTITY_BLOCK: "仕様の不一致でブロック",
   IDENTITY_REJECT: "人が不一致と判断",
@@ -113,6 +127,38 @@ export default function OpportunitiesPage() {
   const [minProfit, setMinProfit] = useState("1000");
   const [feed, setFeed] = useState<FeedResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const session = usePurchaserSession();
+  const [purchaseState, setPurchaseState] = useState<Record<string, string>>({});
+
+  async function requestPurchase(item: Opportunity) {
+    const amount = (item.profit.supplierCost ?? 0) + (item.profit.shippingCost ?? 0);
+    const ok = window.confirm(`${item.productName}
+仕入れ ${money(item.profit.supplierCost, item.currency)} + 送料 ${money(item.profit.shippingCost, item.currency)} = ${money(amount, item.currency)}
+想定利益 ${money(item.profit.expectedProfit, item.currency)}
+
+この条件でカードを仮押さえします。購入直前にサーバーが在庫・価格・利益を再確認します。`);
+    if (!ok) return;
+    setPurchaseState((s) => ({ ...s, [item.supplierOfferId]: "再確認中…" }));
+    try {
+      const response = await fetch("/api/purchase/authorize", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({
+          masterProductId: item.masterProductId,
+          supplierOfferId: item.supplierOfferId,
+          approved: { amount, expectedProfit: item.profit.expectedProfit },
+        }),
+      });
+      const data = await response.json();
+      if (data.checkoutUrl) {
+        window.location.assign(data.checkoutUrl);
+        return;
+      }
+      setPurchaseState((s) => ({ ...s, [item.supplierOfferId]: PURCHASE_ERRORS[data.error] ?? data.error ?? "購入の準備に失敗しました。" }));
+    } catch {
+      setPurchaseState((s) => ({ ...s, [item.supplierOfferId]: "購入サービスに接続できません。" }));
+    }
+  }
 
   const reload = useCallback(async (value: string) => {
     setLoading(true);
@@ -189,6 +235,7 @@ export default function OpportunitiesPage() {
             <div><span>VERIFIED OPPORTUNITIES</span><strong>{feed?.total ?? items.length}件</strong></div>
             <p>想定利益が高い順。仕入れ前に、仕入先ページで価格と在庫をもう一度確認してください。</p>
           </div>
+          <PurchaserSignIn session={session} />
           {items.map((item) => (
             <article className="opportunity-card" key={item.supplierOfferId}>
               <div className="opportunity-main">
@@ -219,7 +266,13 @@ export default function OpportunitiesPage() {
                 <span>品質ゲート: {item.gate.status} ({new Date(item.gate.evaluatedAt).toLocaleString("ja-JP")})</span>
                 {item.market.sourceUrl && <a href={item.market.sourceUrl} target="_blank" rel="noreferrer">販売相場を見る ↗</a>}
                 {item.supplierUrl && <a href={item.supplierUrl} target="_blank" rel="noreferrer">仕入先で確認 ↗</a>}
+                {session.token && (
+                  <button type="button" className="opportunity-buy" onClick={() => void requestPurchase(item)}>
+                    この条件で仕入れ申請 →
+                  </button>
+                )}
               </div>
+              {purchaseState[item.supplierOfferId] && <p className="opportunity-purchase-state" role="status">{purchaseState[item.supplierOfferId]}</p>}
             </article>
           ))}
         </section>

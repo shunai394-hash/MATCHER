@@ -127,3 +127,27 @@ assert.equal(outOfStock.status, "BLOCKED");
 assert.ok(outOfStock.reasons.includes("OUT_OF_STOCK"));
 
 console.log("MATCHER gate verification: PASS");
+
+// JAN on one side and EAN/UPC on the other are the same GTIN.
+const crossLabel = matchIdentity(
+  { id: "supplier-8", identifiers: [{ type: "EAN", value: "4901234567894" }] },
+  [{ id: "master-8", identifiers: [{ type: "JAN", value: "4901234567894" }] }],
+);
+assert.equal(crossLabel.decision, "AUTO_LINK");
+const upcVsEan = matchIdentity(
+  { id: "supplier-9", identifiers: [{ type: "UPC", value: "012345678905" }] },
+  [{ id: "master-9", identifiers: [{ type: "EAN", value: "0012345678905" }] }],
+);
+assert.equal(upcVsEan.decision, "AUTO_LINK");
+
+// inventory 0 and inventory unknown are never SELLABLE.
+for (const [inventoryKnown, inventoryAvailable, reason] of [[true, false, "OUT_OF_STOCK"], [false, false, "INVENTORY_UNKNOWN"]] as const) {
+  const r = evaluateSellability({
+    identityDecision: "AUTO_LINK", hardBlockReasons: [], orderability: "ORDERABLE",
+    inventoryKnown, inventoryAvailable, inventoryFresh: true, priceKnown: true, priceFresh: true,
+    supplierCost: 4000, shippingCost: 500, requiredFeesKnown: true, expectedProfit: 3000, profitCurrency: "JPY",
+  });
+  assert.equal(r.status, "BLOCKED");
+  assert.ok(r.reasons.includes(reason));
+}
+console.log("MATCHER gate verification (GTIN cross-label, inventory 0/null): PASS");

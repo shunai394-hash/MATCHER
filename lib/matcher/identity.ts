@@ -42,16 +42,16 @@ export type IdentityMatch = {
 const GTIN_TYPES = new Set(["JAN", "EAN", "UPC"]);
 const VARIANT_FIELDS = ["color", "size", "capacity", "generation", "setCount", "condition"] as const;
 
-function compact(value: string | null | undefined): string {
+export function compact(value: string | null | undefined): string {
   return (value ?? "").normalize("NFKC").trim().toUpperCase().replace(/[\s\-_/.,()[\]{}:]+/g, "");
 }
 
-function normalizeIdentifier(type: IdentityIdentifier["type"], value: string): string {
+export function normalizeIdentifier(type: IdentityIdentifier["type"], value: string): string {
   const normalized = compact(value);
   return GTIN_TYPES.has(type) ? normalized.replace(/\D/g, "") : normalized;
 }
 
-function validGtin(value: string): boolean {
+export function validGtin(value: string): boolean {
   if (!/^\d+$/.test(value) || ![12, 13, 14].includes(value.length)) return false;
   let sum = 0;
   for (let i = value.length - 2, position = 0; i >= 0; i--, position++) {
@@ -59,6 +59,14 @@ function validGtin(value: string): boolean {
   }
   const check = (10 - (sum % 10)) % 10;
   return check === Number(value[value.length - 1]);
+}
+
+function gtinList(record: IdentityRecord) {
+  return (record.identifiers ?? [])
+    .filter((item) => GTIN_TYPES.has(item.type))
+    .map((item) => ({ type: item.type, value: normalizeIdentifier(item.type, item.value) }))
+    .filter((item) => validGtin(item.value))
+    .map((item) => ({ ...item, gtin14: item.value.padStart(14, "0") }));
 }
 
 function identifierMap(record: IdentityRecord): Map<string, string> {
@@ -83,11 +91,15 @@ function evidenceFor(source: IdentityRecord, master: IdentityRecord): MatchEvide
   const sourceIds = identifierMap(source);
   const masterIds = identifierMap(master);
 
-  for (const type of GTIN_TYPES) {
-    const a = sourceIds.get(type);
-    const b = masterIds.get(type);
-    if (a && b && a === b && validGtin(a)) {
-      evidence.push({ field: type, kind: "EXACT_IDENTIFIER", source: a, master: b, weight: 1 });
+  // JAN, EAN and UPC are all GTINs: compare them as GTIN-14 regardless of the label each side used
+  // (a 13-digit code is "JAN" in a Japanese feed and "EAN" on eBay).
+  const masterGtins = new Map(gtinList(master).map((g) => [g.gtin14, g]));
+  const seen = new Set<string>();
+  for (const a of gtinList(source)) {
+    const b = masterGtins.get(a.gtin14);
+    if (b && !seen.has(a.gtin14)) {
+      seen.add(a.gtin14);
+      evidence.push({ field: a.type, kind: "EXACT_IDENTIFIER", source: a.value, master: b.value, weight: 1 });
     }
   }
 
@@ -126,8 +138,9 @@ function evidenceFor(source: IdentityRecord, master: IdentityRecord): MatchEvide
 
 function score(source: IdentityRecord, master: IdentityRecord, evidence: MatchEvidence[]): number {
   const gtin = evidence.some((item) => item.kind === "EXACT_IDENTIFIER");
-  const brand = evidence.some((item) => item.field === "brand");
-  const model = evidence.some((item) => item.field === "modelNumber");
+  // Only agreeing attributes add confidence; a conflicting brand/model is evidence AGAINST the match.
+  const brand = evidence.some((item) => item.field === "brand" && item.kind === "EXACT_ATTRIBUTE");
+  const model = evidence.some((item) => item.field === "modelNumber" && item.kind === "EXACT_ATTRIBUTE");
   if (gtin) return 1;
   let value = 0.2;
   if (brand) value += 0.25;

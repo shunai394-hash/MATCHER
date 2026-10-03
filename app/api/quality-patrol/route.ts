@@ -1,20 +1,26 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/server/supabase";
 import { buildFreshnessPolicy } from "@/lib/matcher/opportunity";
+import { hasOpsToken, requireUserRole } from "@/lib/server/auth";
 
 export const dynamic = "force-dynamic";
 
 const tables = [
   "master_product", "product_identifier", "product_variant", "suppliers",
   "supplier_product", "supplier_product_identifier", "supplier_offer", "supplier_offer_snapshot", "supplier_offer_freshness",
-  "identity_match", "market_price_observation", "profit_snapshot", "quality_gate_result", "freshness_policy", "ingestion_run",
+  "identity_match", "market_price_observation", "purchase_review", "quality_patrol_run", "quality_diagnosis", "profit_snapshot", "quality_gate_result", "freshness_policy", "ingestion_run",
 ];
 
 type Check = { code: string; severity: "INFO" | "WARN" | "ERROR"; details: Record<string, unknown> };
 
 const HOUR = 60 * 60 * 1000;
 
-export async function POST() {
+export async function POST(request: Request) {
+  // Patrol writes diagnosis rows: only operators (ops token / cron) or admin users may run it.
+  if (!hasOpsToken(request)) {
+    const auth = await requireUserRole(request, "admin");
+    if (!auth.ok) return NextResponse.json({ error: auth.status === 401 ? "QUALITY_PATROL_AUTH_REQUIRED" : auth.error }, { status: auth.status });
+  }
   try {
     const db = getSupabaseAdmin();
     const { data: run, error: runError } = await db.from("quality_patrol_run").insert({ status: "RUNNING", summary: {} }).select("id").single();
@@ -53,6 +59,9 @@ export async function POST() {
     checks.push(gateAt
       ? { code: "PIPELINE_LAST_RECOMPUTE", severity: Date.now() - new Date(gateAt).getTime() <= 24 * HOUR ? "INFO" : "WARN", details: { evaluatedAt: gateAt } }
       : { code: "PIPELINE_NEVER_RECOMPUTED", severity: "WARN", details: { message: "quality gate has never been evaluated" } });
+    const { count: candidateCount, error: candidateError } = await db.from("master_product").select("id", { count: "exact", head: true }).eq("approval_status", "CANDIDATE");
+    if (candidateError) throw candidateError;
+    if ((candidateCount ?? 0) > 0) checks.push({ code: "MASTER_CANDIDATES_AWAITING_REVIEW", severity: "WARN", details: { count: candidateCount } });
     if ((counts.supplier_product ?? 0) > 0 && (counts.identity_match ?? 0) === 0) {
       checks.push({ code: "PIPELINE_NO_IDENTITY_MATCH", severity: "WARN", details: { message: "supplier products exist but none were matched; run /api/opportunities/recompute" } });
     }

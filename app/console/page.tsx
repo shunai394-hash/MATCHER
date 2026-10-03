@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { PurchaserSignIn, usePurchaserSession } from "../purchaser-session";
 
 type Result = {
   decision?: { decision: string; confidence: number; reasons: string[]; masterProductId: string | null };
@@ -17,6 +18,7 @@ export default function ConsolePage() {
   const [busy, setBusy] = useState(false);
   const [purchaseBusy, setPurchaseBusy] = useState(false);
   const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
+  const session = usePurchaserSession();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,20 +127,21 @@ export default function ConsolePage() {
                 {result.purchase && (
                   <div className="purchase-gate">
                     <b>購入前に人間確認</b>
-                    <p>カード情報はMATCHERに保存せず、決済は承認されるまで確定しません。</p>
+                    <p>カード情報はMATCHERに保存せず、決済は承認されるまで確定しません。購入直前にサーバーが在庫・価格・利益を再確認します。</p>
+                    <PurchaserSignIn session={session} />
                     <button
                       type="button"
-                      disabled={purchaseBusy}
+                      disabled={purchaseBusy || !session.token}
                       onClick={async () => {
                         setPurchaseBusy(true);
                         setPurchaseMessage(null);
                         const response = await fetch("/api/purchase/authorize", {
                           method: "POST",
-                          headers: { "content-type": "application/json" },
+                          headers: { "content-type": "application/json", authorization: `Bearer ${session.token}` },
                           body: JSON.stringify({
                             masterProductId: result.purchase?.masterProductId,
                             supplierOfferId: result.purchase?.supplierOfferId,
-                            decisionSnapshot: result,
+                            approved: { amount: result.purchase?.amount },
                           }),
                         });
                         const data = await response.json();

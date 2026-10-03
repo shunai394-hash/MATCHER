@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/server/supabase";
-import { matchIdentity, type IdentityIdentifier, type IdentityRecord } from "@/lib/matcher/identity";
+import { type IdentityIdentifier, type IdentityRecord } from "@/lib/matcher/identity";
+import { resolveIdentity } from "@/lib/matcher/identity-sync";
 import { calculateExpectedProfit, evaluateSellability } from "@/lib/matcher/gate";
 import { checkFreshness, toNumber } from "@/lib/matcher/opportunity";
 import { fetchFreshnessPolicy, fetchLatestMatches, loadMasterCandidates } from "@/lib/server/matcher-data";
@@ -56,8 +57,9 @@ export async function POST(request: Request) {
       },
     };
 
-    const candidates = await loadMasterCandidates(supabase);
-    const identity = matchIdentity(source, candidates);
+    const catalog = await loadMasterCandidates(supabase);
+    // Same rules as the automatic sync: never AUTO_LINK to a candidate / rejected / inactive master.
+    const identity = resolveIdentity(source, catalog.records, catalog.info).result;
     let profitability = null;
     let sellability = null;
     let purchase = null;
@@ -156,7 +158,7 @@ export async function POST(request: Request) {
       decision: identity,
       profitability,
       sellability,
-      candidateCount: candidates.length,
+      candidateCount: catalog.records.length,
       purchase,
       source,
     });
