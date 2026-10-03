@@ -37,6 +37,7 @@ export default function ConsolePage() {
       }),
     });
     setResult(await response.json());
+    setPurchaseMessage(null);
     setBusy(false);
   }
 
@@ -112,6 +113,35 @@ export default function ConsolePage() {
                 <span>SELLABILITY</span>
                 <strong>{result.sellability?.status ?? "判定待ち"}</strong>
                 <ul>{result.sellability?.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+                {result.purchase && (
+                  <div className="purchase-gate">
+                    <b>購入前に人間確認</b>
+                    <p>カード情報はMATCHERに保存せず、決済は承認されるまで確定しません。</p>
+                    <button
+                      type="button"
+                      disabled={purchaseBusy}
+                      onClick={async () => {
+                        setPurchaseBusy(true);
+                        setPurchaseMessage(null);
+                        const response = await fetch("/api/purchase/authorize", {
+                          method: "POST",
+                          headers: { "content-type": "application/json" },
+                          body: JSON.stringify({
+                            masterProductId: result.purchase?.masterProductId,
+                            supplierOfferId: result.purchase?.supplierOfferId,
+                          }),
+                        });
+                        const data = await response.json();
+                        if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+                        else setPurchaseMessage(data.error ?? "購入承認の準備に失敗しました。");
+                        setPurchaseBusy(false);
+                      }}
+                    >
+                      {purchaseBusy ? "決済準備中…" : "カードを仮押さえして人間確認へ →"}
+                    </button>
+                    {purchaseMessage && <p role="alert">{purchaseMessage}</p>}
+                  </div>
+                )}
               </div>
             </>
           )}
