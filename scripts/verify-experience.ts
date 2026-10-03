@@ -14,6 +14,7 @@ const files = {
   purchasePending: readFileSync("app/api/purchase/pending/route.ts", "utf8"),
   purchaseReviewPage: readFileSync("app/review/page.tsx", "utf8"),
   stripeWebhook: readFileSync("app/api/stripe/webhook/route.ts", "utf8"),
+  stripe: readFileSync("lib/server/stripe.ts", "utf8"),
 };
 
 const required = [
@@ -29,7 +30,7 @@ const required = [
   ["identity hard conflict", files.identity, "ATTRIBUTE_CONFLICT"],
   ["profit gate", files.gate, "expectedProfit"],
   ["human purchase gate", files.console, "カードを仮押さえして人間確認へ"],
-  ["manual capture", files.purchaseAuthorize, "capture_method"],
+  ["manual capture", files.stripe, "payment_intent_data[capture_method]"],
   ["server purchase amount", files.purchaseAuthorize, "supplier_cost"],
   ["review authorization", files.purchaseReview, "REVIEW_AUTH_REQUIRED"],
   ["review queue authorization", files.purchasePending, "REVIEW_AUTH_REQUIRED"],
