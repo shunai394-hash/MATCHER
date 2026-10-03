@@ -74,6 +74,28 @@ export async function POST(request: Request) {
       }
     }
 
+    const { data: variants, error: variantError } = masterIds.length
+      ? await supabase
+          .from("product_variant")
+          .select("master_product_id,color,size,capacity,generation,set_count,condition")
+          .in("master_product_id", masterIds)
+      : { data: [], error: null };
+    if (variantError) throw variantError;
+
+    const variantsByMaster = new Map<string, Array<IdentityRecord["variant"]>>();
+    for (const row of variants ?? []) {
+      const list = variantsByMaster.get(row.master_product_id) ?? [];
+      list.push({
+        color: row.color,
+        size: row.size,
+        capacity: row.capacity,
+        generation: row.generation,
+        setCount: row.set_count,
+        condition: row.condition,
+      });
+      variantsByMaster.set(row.master_product_id, list);
+    }
+
     const source: IdentityRecord = {
       id: "customer-input",
       brand: clean(body.brand) || null,
@@ -89,7 +111,13 @@ export async function POST(request: Request) {
       },
     };
 
-    const identity = matchIdentity(source, [...byMaster.values()]);
+    const candidates = [...byMaster.values()].flatMap((master) => {
+      const variants = variantsByMaster.get(master.id);
+      if (!variants?.length) return [master];
+      return variants.map((variant) => ({ ...master, id: master.id, variant }));
+    });
+
+    const identity = matchIdentity(source, candidates);
     let profitability = null;
     let sellability = null;
 
