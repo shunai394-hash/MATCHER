@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 const cases = [
   {
@@ -43,6 +43,7 @@ const cases = [
 
 export function IdentityProof() {
   const [active, setActive] = useState("exact");
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const current = useMemo(() => cases.find((item) => item.key === active) ?? cases[0], [active]);
 
   return (
@@ -68,6 +69,23 @@ export function IdentityProof() {
               tabIndex={active === item.key ? 0 : -1}
               className={active === item.key ? "proof-tab active" : "proof-tab"}
               onClick={() => setActive(item.key)}
+              onKeyDown={(event) => {
+                const index = cases.findIndex((candidate) => candidate.key === active);
+                const nextIndex =
+                  event.key === "ArrowRight" || event.key === "ArrowDown"
+                    ? (index + 1) % cases.length
+                    : event.key === "ArrowLeft" || event.key === "ArrowUp"
+                      ? (index - 1 + cases.length) % cases.length
+                      : -1;
+                if (nextIndex < 0) return;
+                event.preventDefault();
+                const next = cases[nextIndex];
+                setActive(next.key);
+                tabRefs.current[nextIndex]?.focus();
+              }}
+              ref={(node) => {
+                tabRefs.current[cases.findIndex((candidate) => candidate.key === item.key)] = node;
+              }}
             >
               <span>{item.label}</span>
               <strong>{item.title}</strong>
