@@ -42,6 +42,13 @@ assert.equal(invalidGtin.decision, "REVIEW");
 assert.ok(invalidGtin.reasons.includes("INVALID_GTIN"));
 
 
+const contradictoryIdentity = matchIdentity(
+  { id: "supplier-6", brand: "ACME", modelNumber: "AX-204", identifiers: [{ type: "JAN", value: "4901234567894" }] },
+  [{ id: "master-6", brand: "OTHER", modelNumber: "ZZ-999", identifiers: [{ type: "JAN", value: "4901234567894" }] }],
+);
+assert.equal(contradictoryIdentity.decision, "BLOCK");
+assert.ok(contradictoryIdentity.reasons.includes("IDENTITY_ATTRIBUTE_CONFLICT"));
+
 const incomplete = calculateExpectedProfit({
   salePrice: 10000,
   supplierCost: 4000,
