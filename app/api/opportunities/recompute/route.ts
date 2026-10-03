@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     }
 
     const { data: matches, error: matchError } = await supabase
-      .from("match_result")
+      .from("identity_match")
       .select("supplier_product_id,master_product_id,confidence,decision,created_at")
       .eq("decision", "AUTO_LINK")
       .eq("hard_block", false)
