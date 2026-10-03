@@ -1,5 +1,46 @@
 import { strict as assert } from "node:assert";
 import { calculateExpectedProfit, evaluateSellability } from "../lib/matcher/gate.ts";
+import { matchIdentity } from "../lib/matcher/identity.ts";
+
+const exact = matchIdentity(
+  { id: "supplier-1", brand: "ACME", modelNumber: "AX-204", identifiers: [{ type: "JAN", value: "4901234567894" }], variant: { color: "BLACK", capacity: "256GB" } },
+  [{ id: "master-1", brand: "ACME", modelNumber: "AX-204", identifiers: [{ type: "JAN", value: "4901234567894" }], variant: { color: "BLACK", capacity: "256GB" } }],
+);
+assert.equal(exact.decision, "AUTO_LINK");
+assert.equal(exact.masterProductId, "master-1");
+assert.equal(exact.confidence, 1);
+
+const variantConflict = matchIdentity(
+  { id: "supplier-2", brand: "ACME", modelNumber: "AX-204", variant: { color: "BLACK", capacity: "256GB" } },
+  [{ id: "master-2", brand: "ACME", modelNumber: "AX-204", variant: { color: "WHITE", capacity: "128GB" } }],
+);
+assert.equal(variantConflict.decision, "BLOCK");
+assert.ok(variantConflict.reasons.includes("VARIANT_CONFLICT"));
+
+const insufficient = matchIdentity(
+  { id: "supplier-3", brand: "ACME" },
+  [{ id: "master-3", brand: "ACME", modelNumber: "AX-204" }],
+);
+assert.equal(insufficient.decision, "REVIEW");
+assert.equal(insufficient.masterProductId, null);
+
+const ambiguous = matchIdentity(
+  { id: "supplier-4", brand: "ACME", modelNumber: "AX-204" },
+  [
+    { id: "master-4a", brand: "ACME", modelNumber: "AX-204" },
+    { id: "master-4b", brand: "ACME", modelNumber: "AX-204" },
+  ],
+);
+assert.equal(ambiguous.decision, "REVIEW");
+assert.ok(ambiguous.reasons.includes("AMBIGUOUS_CANDIDATES"));
+
+const invalidGtin = matchIdentity(
+  { id: "supplier-5", identifiers: [{ type: "JAN", value: "4901234567890" }] },
+  [{ id: "master-5", identifiers: [{ type: "JAN", value: "4901234567894" }] }],
+);
+assert.equal(invalidGtin.decision, "REVIEW");
+assert.ok(invalidGtin.reasons.includes("INVALID_GTIN"));
+
 
 const incomplete = calculateExpectedProfit({
   salePrice: 10000,
