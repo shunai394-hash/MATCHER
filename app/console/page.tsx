@@ -56,12 +56,15 @@ export default function ConsolePage() {
       <section className="console-hero">
         <p className="section-kicker">LIVE DECISION CONSOLE</p>
         <h1>商品を入れて、<em>仕入れ判断まで確認する。</em></h1>
-        <p>DBの商品マスタと照合し、証拠不足・variant矛盾・利益条件をゲートします。</p>
+        <p>まず商品を特定。次に「なぜ同じと言えるか」「利益が残るか」「買ってよいか」を順番に確認します。</p>
+        <div className="decision-promises" aria-label="この画面で得られるもの">
+          <span>同一商品か</span><span>利益が残るか</span><span>買ってよいか</span>
+        </div>
       </section>
 
       <form className="decision-form" onSubmit={submit}>
         <div className="form-section">
-          <h2>1. 商品識別</h2>
+          <h2>1. 商品識別 <small>まずは1つでもOK</small></h2>
           <div className="form-grid">
             <label>ブランド<input name="brand" placeholder="例: ACME" /></label>
             <label>型番<input name="modelNumber" placeholder="例: AX-204" /></label>
@@ -72,7 +75,7 @@ export default function ConsolePage() {
         </div>
 
         <div className="form-section">
-          <h2>2. バリアント</h2>
+          <h2>2. バリアント <small>分かる範囲で入力</small></h2>
           <div className="form-grid">
             <label>色<input name="color" /></label>
             <label>サイズ<input name="size" /></label>
@@ -84,7 +87,7 @@ export default function ConsolePage() {
         </div>
 
         <div className="form-section">
-          <h2>3. 販売価格</h2>
+          <h2>3. 利益を見る <small>販売価格が分かれば精度アップ</small></h2>
           <div className="form-grid">
             <label>想定販売価格<input name="salePrice" type="number" min="0" step="1" placeholder="円" /></label>
             <label>決済手数料<input name="paymentFee" type="number" min="0" step="1" placeholder="円" /></label>
