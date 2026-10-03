@@ -132,7 +132,7 @@ export function matchProductIdentity(
   if (hardBlockReasons.length > 0) {
     return {
       decision: "BLOCK",
-      confidence: 1,
+      confidence: 0,
       hardBlockReasons: [...new Set(hardBlockReasons)],
       evidence,
     };
