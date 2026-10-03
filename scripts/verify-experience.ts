@@ -21,6 +21,9 @@ const required = [
   ["home customer journey", files.home, "CHECK"],
   ["home decision CTA", files.home, "/console"],
   ["quality center", files.home, "/quality"],
+  ["customer value proposition", files.home, "WHY MATCHER"],
+  ["loss prevention promise", files.home, "仕入れて後悔しない"],
+  ["decision outcome clarity", files.console, "同一商品か"],
   ["decision API", files.decision, "matchIdentity"],
   ["supplier offer binding", files.decision, "supplier_offer"],
   ["freshness gate", files.decision, "supplier_offer_freshness"],
@@ -38,6 +41,7 @@ const required = [
   ["purchase rejection UI", files.purchaseReviewPage, "却下してカード取消"],
   ["stripe webhook verification", files.stripeWebhook, "STRIPE_SIGNATURE_INVALID"],
   ["stripe webhook reconciliation", files.stripeWebhook, "payment_intent.succeeded"],
+  ["AI integrity disclosure", files.home, "推測だけで一致を確定しない"],
 ];
 for (const [name, source, needle] of required) assert.ok(source.includes(needle), `${name}: missing ${needle}`);
 for (const [name, source] of Object.entries(files)) assert.equal(source.includes("\\n"), false, `${name}: escaped newline artifact`);
