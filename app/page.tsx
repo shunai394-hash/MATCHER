@@ -1,3 +1,5 @@
+import { IdentityProof } from "./identity-proof";
+
 const pillars = [
   ["01", "Product Master", "内部商品IDを中心に、識別子・仕様・バリアントを統合"],
   ["02", "Identity Matching", "JAN / EAN / UPC / MPN / SKU / ブランド・型番・仕様を証拠付きで照合"],
@@ -18,6 +20,8 @@ export default function Home() {
         <h1>同じ商品を、<br /><em>正しく見つける。</em></h1>
         <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する基盤。</p>
       </section>
+
+      <IdentityProof />
 
       <section className="grid">
         {pillars.map(([num, title, text]) => (
