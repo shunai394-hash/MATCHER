@@ -164,34 +164,35 @@ export function matchIdentity(source: IdentityRecord, candidates: IdentityRecord
     return { decision: "REVIEW", masterProductId: null, confidence: 0, reasons: ["NO_CANDIDATE"], evidence: [] };
   }
 
+  const eligibleCandidates = evaluated.filter((item) => item.eligible);
+  if (eligibleCandidates.length > 0) {
+    const topEligible = eligibleCandidates[0];
+    const tiedEligible = eligibleCandidates.filter((item) => item.confidence === topEligible.confidence);
+    if (tiedEligible.length > 1) {
+      return {
+        decision: "REVIEW",
+        masterProductId: null,
+        confidence: topEligible.confidence,
+        reasons: ["AMBIGUOUS_CANDIDATES"],
+        evidence: topEligible.evidence,
+      };
+    }
+    return {
+      decision: "AUTO_LINK",
+      masterProductId: topEligible.master.id,
+      confidence: topEligible.confidence,
+      reasons: ["SUFFICIENT_IDENTITY_EVIDENCE"],
+      evidence: topEligible.evidence,
+    };
+  }
+
   const top = evaluated[0];
-  const tied = evaluated.filter((item) => item.confidence === top.confidence);
   if (top.hardBlock && top.confidence >= 0.9) {
     return {
       decision: "BLOCK",
       masterProductId: top.master.id,
       confidence: top.confidence,
       reasons: [top.evidence.some((item) => item.kind === "ATTRIBUTE_CONFLICT") ? "IDENTITY_ATTRIBUTE_CONFLICT" : "VARIANT_CONFLICT"],
-      evidence: top.evidence,
-    };
-  }
-
-  if (tied.length > 1 && top.confidence > 0) {
-    return {
-      decision: "REVIEW",
-      masterProductId: null,
-      confidence: top.confidence,
-      reasons: ["AMBIGUOUS_CANDIDATES"],
-      evidence: top.evidence,
-    };
-  }
-
-  if (top.eligible) {
-    return {
-      decision: "AUTO_LINK",
-      masterProductId: top.master.id,
-      confidence: top.confidence,
-      reasons: ["SUFFICIENT_IDENTITY_EVIDENCE"],
       evidence: top.evidence,
     };
   }
