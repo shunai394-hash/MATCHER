@@ -12,18 +12,58 @@ export async function POST(request: Request) {
       decisionSnapshot?: Record<string, unknown>;
     };
 
-    if (!Number.isInteger(body.amount) || (body.amount ?? 0) <= 0) {
-      return NextResponse.json({ error: "INVALID_PURCHASE_AMOUNT" }, { status: 400 });
+    if (!body.masterProductId || !body.supplierOfferId) {
+      return NextResponse.json({ error: "PURCHASE_TARGET_REQUIRED" }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
+
+    const { data: offer, error: offerError } = await supabase
+      .from("supplier_offer")
+      .select("id,supplier_product_id,orderability,currency")
+      .eq("id", body.supplierOfferId)
+      .single();
+    if (offerError || !offer || offer.orderability !== "ORDERABLE") {
+      return NextResponse.json({ error: "OFFER_NOT_ORDERABLE" }, { status: 409 });
+    }
+
+    const { data: link, error: linkError } = await supabase
+      .from("identity_match")
+      .select("master_product_id,decision")
+      .eq("master_product_id", body.masterProductId)
+      .eq("supplier_product_id", offer.supplier_product_id)
+      .eq("decision", "AUTO_LINK")
+      .limit(1)
+      .maybeSingle();
+    if (linkError || !link) {
+      return NextResponse.json({ error: "IDENTITY_LINK_NOT_CONFIRMED" }, { status: 409 });
+    }
+
+    const { data: snapshot, error: snapshotError } = await supabase
+      .from("supplier_offer_snapshot")
+      .select("supplier_cost,shipping_cost,inventory")
+      .eq("supplier_offer_id", offer.id)
+      .order("observed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (snapshotError || !snapshot || snapshot.supplier_cost == null || snapshot.shipping_cost == null) {
+      return NextResponse.json({ error: "PURCHASE_COST_DATA_MISSING" }, { status: 409 });
+    }
+    if (snapshot.inventory == null || snapshot.inventory <= 0) {
+      return NextResponse.json({ error: "PURCHASE_INVENTORY_UNAVAILABLE" }, { status: 409 });
+    }
+
+    const amount = Math.round(Number(snapshot.supplier_cost) + Number(snapshot.shipping_cost));
+    if (!Number.isInteger(amount) || amount <= 0) {
+      return NextResponse.json({ error: "INVALID_PURCHASE_AMOUNT" }, { status: 409 });
+    }
     const { data: review, error } = await supabase
       .from("purchase_review")
       .insert({
         master_product_id: body.masterProductId ?? null,
         supplier_offer_id: body.supplierOfferId ?? null,
-        amount: body.amount,
-        currency: (body.currency ?? "jpy").toLowerCase(),
+        amount,
+        currency: (offer.currency ?? body.currency ?? "jpy").toLowerCase(),
         status: "AUTHORIZING",
         decision_snapshot: body.decisionSnapshot ?? {},
       })
@@ -33,8 +73,8 @@ export async function POST(request: Request) {
 
     const origin = new URL(request.url).origin;
     const session = await createManualCaptureCheckout({
-      amount: body.amount,
-      currency: body.currency ?? "jpy",
+      amount,
+      currency: offer.currency ?? body.currency ?? "jpy",
       purchaseReviewId: review.id,
       successUrl: `${origin}/console?purchase_review=${review.id}&payment=authorized`,
       cancelUrl: `${origin}/console?purchase_review=${review.id}&payment=cancelled`,
