@@ -1,5 +1,5 @@
 {
   "crons": [
-    { "path": "/api/opportunities/recompute", "schedule": "50 20 * * *" }
+    { "path": "/api/opportunities/discover", "schedule": "50 20 * * *" }
   ]
 }
