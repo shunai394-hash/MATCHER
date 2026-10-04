@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/server/supabase";
+import { requireUserRole } from "@/lib/server/auth";
 import { fetchFreshnessPolicy, fetchLatestMatches, identityEvidence, isAtOrAfter, loadOfferContexts, type SupplierOfferRow } from "@/lib/server/matcher-data";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,8 @@ export const dynamic = "force-dynamic";
  * Nothing is synthesized: with no qualifying data the list is empty and `excluded` says why.
  */
 export async function GET(request: Request) {
+  const auth = await requireUserRole(request, "purchaser");
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   try {
     const supabase = getSupabaseAdmin();
     const url = new URL(request.url);
