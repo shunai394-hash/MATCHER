@@ -58,6 +58,15 @@ const required = [
   ["stripe webhook verification", files.stripeWebhook, "STRIPE_SIGNATURE_INVALID"],
   ["stripe webhook reconciliation", files.stripeWebhook, "payment_intent.succeeded"],
   ["AI integrity disclosure", files.home, "推測だけで一致を確定しない"],
+  ["keyboard skip navigation", files.home, "skip-link"],
+  ["semantic main target", files.home, 'id="main-content"'],
+  ["visible focus treatment", readFileSync("app/globals.css", "utf8"), ":focus-visible"],
+  ["reduced motion support", readFileSync("app/globals.css", "utf8"), "prefers-reduced-motion:reduce"],
+  ["44px interaction target", readFileSync("app/globals.css", "utf8"), "min-height: 44px"],
+  ["Japanese system typography", readFileSync("app/globals.css", "utf8"), "Hiragino Kaku Gothic ProN"],
+  ["live opportunity status", files.opportunities, 'aria-live="polite"'],
+  ["honest evidence hierarchy", files.opportunities, "成約根拠 ＞ 出品価格のみ"],
+  ["human final decision", files.home, "最後の判断は人間"],
 ];
 for (const [name, source, needle] of required) assert.ok(source.includes(needle), `${name}: missing ${needle}`);
 for (const [name, source] of Object.entries(files)) assert.equal(source.includes("\\n"), false, `${name}: escaped newline artifact`);
