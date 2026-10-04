@@ -314,3 +314,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kak
     transform: none !important;
   }
 }
+
+
+/* Purchase confirmation: deliberate human decision, not a browser-native prompt */
+.purchase-modal-backdrop{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:24px;background:#050608cc;backdrop-filter:blur(10px)}
+.purchase-modal{width:min(560px,100%);border:1px solid #3a424c;background:#0c1015;padding:30px;box-shadow:0 30px 100px #00000080}
+.purchase-modal-kicker{color:#9fd3a8;font-size:9px;font-weight:800;letter-spacing:.18em}
+.purchase-modal h2{font-size:clamp(25px,4vw,36px);line-height:1.1;letter-spacing:-.04em;margin:14px 0 10px}
+.purchase-modal-product{color:#c5cbd2;font-size:14px;line-height:1.6;margin:0 0 22px}
+.purchase-modal-facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0}
+.purchase-modal-facts div{border:1px solid #252c35;background:#090c10;padding:13px}
+.purchase-modal-facts dt{color:#737d89;font-size:9px;letter-spacing:.1em}
+.purchase-modal-facts dd{margin:7px 0 0;color:#f1f3f5;font-size:15px;font-weight:700}
+.purchase-modal-note{color:#8f99a5;font-size:11px;line-height:1.75;margin:18px 0 0}
+.purchase-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:24px}
+.purchase-modal-actions button{min-height:46px;padding:0 16px;border:1px solid #39414b;font-weight:800;cursor:pointer}
+.purchase-modal-cancel{background:#11151a;color:#c7cdd4}
+.purchase-modal-confirm{background:#e9edf1;color:#080a0c}
+.purchase-modal-actions button:hover{transform:translateY(-2px)}
+@media(max-width:560px){.purchase-modal-backdrop{padding:14px}.purchase-modal{padding:22px}.purchase-modal-facts{grid-template-columns:1fr}.purchase-modal-actions{display:grid;grid-template-columns:1fr 1.5fr}.purchase-modal-actions button{width:100%}}
+@media(prefers-reduced-motion:reduce){.purchase-modal-actions button{transition:none!important}.purchase-modal-actions button:hover{transform:none}}
