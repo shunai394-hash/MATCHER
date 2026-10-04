@@ -170,11 +170,7 @@ export default function OpportunitiesPage() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!session.token) {
-      setFeed({ error: "AUTH_REQUIRED" });
-      setLoading(false);
-      return () => { cancelled = true; };
-    }
+    if (!session.token) return () => { cancelled = true; };
     fetchFeed("1000", session.token).then((data) => {
       if (cancelled) return;
       setFeed(data);
