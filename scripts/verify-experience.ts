@@ -72,6 +72,7 @@ const required = [
   ["purchase decision modal", files.opportunities, "purchase-modal"],
   ["purchase modal dialog semantics", files.opportunities, 'role="dialog"'],
   ["purchase modal escape close", files.opportunities, 'event.key === "Escape"'],
+  ["purchase modal initial focus", files.opportunities, "autoFocus"],
 
 ];
 for (const [name, source, needle] of required) assert.ok(source.includes(needle), `${name}: missing ${needle}`);
