@@ -21,8 +21,8 @@ const qualityLoop = [
 
 export default function Home() {
   return (
-    <main className="shell">
-      <header className="header">
+    <main id="main-content" className="shell">
+      <a className="skip-link" href="#main-content">本文へスキップ</a>\n      <header className="header">
         <a className="brand-lockup" href="#" aria-label="MATCHER トップ">
           <div className="brand">MATCHER</div>
           <div className="brand-sub">IDENTITY INTELLIGENCE</div>
