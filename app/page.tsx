@@ -23,7 +23,7 @@ const qualityLoop = [
 export default function Home() {
   return (
     <main className="shell">
-      <a className="skip-link" href="#main-content">本文へスキップ</Link>
+      <a className="skip-link" href="#main-content">本文へスキップ</a>
       <header className="header">
         <Link className="brand-lockup" href="/" aria-label="MATCHER トップ">
           <div className="brand">MATCHER</div>
@@ -33,9 +33,9 @@ export default function Home() {
           <Link href="/opportunities">今日の仕入れ候補</Link>
           <Link href="/console">仕入れ判断</Link>
           <Link href="/quality">品質センター</Link>
-          <a href="#identity-proof">判定を見る</Link>
-          <a href="#quality-loop">品質ループ</Link>
-          <a href="#core-flow-title">全体像</Link>
+          <a href="#identity-proof">判定を見る</a>
+          <a href="#quality-loop">品質ループ</a>
+          <a href="#core-flow-title">全体像</a>
         </nav>
         <nav className="mobile-nav" aria-label="主要ページ">
           <Link href="/opportunities">候補</Link>
@@ -50,7 +50,7 @@ export default function Home() {
         <p className="lead">「これ、本当に同じ商品？」「仕入れて利益が残る？」を、証拠から一つずつ確認。迷ったまま買わないための仕入れ判断基盤。</p>
         <div className="hero-actions" aria-label="MATCHERを理解する">
           <Link className="primary-action" href="/opportunities">今日の仕入れ候補を見る →</Link>
-          <a className="secondary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></Link>
+          <a className="secondary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></a>
           <Link className="secondary-action" href="/console">仕入れ判断を試す</Link>
         </div>
         <p className="hero-note"><span aria-hidden="true">01</span> 毎朝ここから。同一商品・利益・在庫・鮮度を通過した候補だけが並ぶ。</p>
