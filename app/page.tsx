@@ -23,24 +23,24 @@ const qualityLoop = [
 export default function Home() {
   return (
     <main className="shell">
-      <a className="skip-link" href="#main-content">本文へスキップ</a>
+      <a className="skip-link" href="#main-content">本文へスキップ</Link>
       <header className="header">
         <Link className="brand-lockup" href="/" aria-label="MATCHER トップ">
           <div className="brand">MATCHER</div>
           <div className="brand-sub">IDENTITY INTELLIGENCE</div>
         </Link>
         <nav className="header-nav" aria-label="ページ内ナビゲーション">
-          <a href="/opportunities">今日の仕入れ候補</a>
-          <a href="/console">仕入れ判断</a>
-          <a href="/quality">品質センター</a>
-          <a href="#identity-proof">判定を見る</a>
-          <a href="#quality-loop">品質ループ</a>
-          <a href="#core-flow-title">全体像</a>
+          <Link href="/opportunities">今日の仕入れ候補</Link>
+          <Link href="/console">仕入れ判断</Link>
+          <Link href="/quality">品質センター</Link>
+          <a href="#identity-proof">判定を見る</Link>
+          <a href="#quality-loop">品質ループ</Link>
+          <a href="#core-flow-title">全体像</Link>
         </nav>
         <nav className="mobile-nav" aria-label="主要ページ">
-          <a href="/opportunities">候補</a>
-          <a href="/console">仕入れ判断</a>
-          <a href="/quality">品質</a>
+          <Link href="/opportunities">候補</Link>
+          <Link href="/console">仕入れ判断</Link>
+          <Link href="/quality">品質</Link>
         </nav>
       </header>
 
@@ -49,15 +49,15 @@ export default function Home() {
         <h1 id="hero-title">同じ商品を、<br /><em>正しく見つける。</em></h1>
         <p className="lead">「これ、本当に同じ商品？」「仕入れて利益が残る？」を、証拠から一つずつ確認。迷ったまま買わないための仕入れ判断基盤。</p>
         <div className="hero-actions" aria-label="MATCHERを理解する">
-          <a className="primary-action" href="/opportunities">今日の仕入れ候補を見る →</a>
-          <a className="secondary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></a>
-          <a className="secondary-action" href="/console">仕入れ判断を試す</a>
+          <Link className="primary-action" href="/opportunities">今日の仕入れ候補を見る →</Link>
+          <a className="secondary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></Link>
+          <Link className="secondary-action" href="/console">仕入れ判断を試す</Link>
         </div>
         <p className="hero-note"><span aria-hidden="true">01</span> 毎朝ここから。同一商品・利益・在庫・鮮度を通過した候補だけが並ぶ。</p>
       </section>
 
       <section className="opportunity-callout" aria-labelledby="opportunity-callout-title">
-        <div><span className="section-kicker">THE CUSTOMER OUTCOME</span><h2 id="opportunity-callout-title">「何を仕入れればいい？」を、サイト側から先に出す。</h2><p>仕入れ先と販売相場のデータが入るたびに、同一商品の照合・利益計算・品質ゲートを自動で再計算し、通過した候補を並べる。人間はゼロから商品を探すのではなく、候補を確認して仕入れ判断に集中する。最後の判断は人間が行う。</p></div><a className="primary-action" href="/opportunities">仕入れ候補を見る →</a>
+        <div><span className="section-kicker">THE CUSTOMER OUTCOME</span><h2 id="opportunity-callout-title">「何を仕入れればいい？」を、サイト側から先に出す。</h2><p>仕入れ先と販売相場のデータが入るたびに、同一商品の照合・利益計算・品質ゲートを自動で再計算し、通過した候補を並べる。人間はゼロから商品を探すのではなく、候補を確認して仕入れ判断に集中する。最後の判断は人間が行う。</p></div><Link className="primary-action" href="/opportunities">仕入れ候補を見る →</Link>
       </section>
 
       <section className="customer-flow" id="customer-flow" aria-labelledby="customer-flow-title">
@@ -106,7 +106,7 @@ export default function Home() {
         </div>
         <div className="value-promise">
           <strong>あなたが欲しいのは商品情報ではなく、<em>「この仕入れで進んでいい」という判断材料。</em></strong>
-          <a className="primary-action" href="/console">実際に仕入れ判断を試す →</a>
+          <Link className="primary-action" href="/console">実際に仕入れ判断を試す →</Link>
         </div>
       </section>
 
