@@ -54,7 +54,7 @@ export default function Home() {
           <a className="secondary-action" href="#identity-proof">判定の仕組みを見る <span aria-hidden="true">↓</span></a>
           <Link className="secondary-action" href="/console">仕入れ判断を試す</Link>
         </div>
-        <p className="hero-note"><span aria-hidden="true">01</span> ここから始める。同一商品・利益・在庫・鮮度を通過した候補を確認する。</p>
+        <p className="hero-note"><span aria-hidden="true">01</span> START WITH THE OUTCOME · 同一商品・利益・在庫・鮮度を通過した候補を確認する。</p>
       </section>
 
       <div className="hero-proofline" aria-label="MATCHERの判断基準"><span>01 IDENTITY</span><span>02 COST</span><span>03 DEMAND</span><span>04 GATE</span><span>05 HUMAN DECISION</span></div>
