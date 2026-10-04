@@ -221,6 +221,8 @@ export default function OpportunitiesPage() {
 
       <PurchaserSignIn session={session} />
 
+      {loading && <div className="opportunity-loading" role="status" aria-live="polite">候補を更新しています…</div>}
+
       {feed?.error && <div className="opportunity-empty"><strong>{feed.error === "AUTH_REQUIRED" ? "ログインすると今日の仕入れ候補が出ます" : "候補を取得できません"}</strong><p>{feed.error === "AUTH_REQUIRED" ? "MATCHERは仕入価格・利益・仕入先情報を保護しています。購入担当としてログインしてください。" : feed.error}</p></div>}
 
       {!feed?.error && !loading && items.length === 0 && (
@@ -243,7 +245,7 @@ export default function OpportunitiesPage() {
       )}
 
       {!feed?.error && items.length > 0 && (
-        <section className="opportunity-list" aria-live="polite">
+        <section className="opportunity-list" aria-live="polite" aria-busy={loading}>
           <div className="opportunity-list-head"><div className="list-intro"><span>VERIFIED OPPORTUNITIES</span><strong>{feed?.total ?? items.length}件</strong></div>
             
             <p>高スコアほど「今、確認して買う価値」が高い候補。<br/>成約根拠 ＞ 出品価格のみ。スコアは保証利益ではありません。</p>
