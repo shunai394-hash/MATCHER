@@ -17,7 +17,8 @@ export default function ConsolePage() {
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [purchaseBusy, setPurchaseBusy] = useState(false);
-  const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);\n  const [selectedPurchase, setSelectedPurchase] = useState<Result["purchase"]>(null);
+  const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
+  const [selectedPurchase, setSelectedPurchase] = useState<Result["purchase"]>(null);
   const session = usePurchaserSession();
 
   useEffect(() => {
