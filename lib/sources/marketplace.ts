@@ -98,6 +98,10 @@ export function normalizeEbayItem(item: Record<string, unknown>, observedAt: str
     const cost = (fixed.shippingCost ?? {}) as Record<string, unknown>;
     if (currencyCode(cost.currency) === currency) shippingCost = num(cost.value);
   }
+  const availability = Array.isArray(item.estimatedAvailabilities) ? item.estimatedAvailabilities as Array<Record<string, unknown>> : [];
+  const availableQuantity = availability
+    .map((entry) => num(entry.estimatedAvailableQuantity))
+    .find((value): value is number => value !== null && value >= 0) ?? null;
   const seller = (item.seller ?? {}) as Record<string, unknown>;
   const username = text(seller.username);
   const buying = Array.isArray(item.buyingOptions) ? item.buyingOptions as string[] : [];
@@ -113,7 +117,7 @@ export function normalizeEbayItem(item: Record<string, unknown>, observedAt: str
     price,
     currency,
     shippingCost,
-    inventory: null,
+    inventory: availableQuantity,
     // Auctions cannot be ordered at a known price.
     orderable: buying.includes("FIXED_PRICE"),
     condition: text(item.condition),
