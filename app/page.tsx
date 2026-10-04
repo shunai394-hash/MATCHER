@@ -56,7 +56,7 @@ export default function Home() {
       </section>
 
       <section className="opportunity-callout" aria-labelledby="opportunity-callout-title">
-        <div><span className="section-kicker">THE CUSTOMER OUTCOME</span><h2 id="opportunity-callout-title">「何を仕入れればいい？」を、サイト側から先に出す。</h2><p>仕入れ先と販売相場のデータが入るたびに、同一商品の照合・利益計算・品質ゲートを自動で再計算し、通過した候補を並べる。人間はゼロから商品を探すのではなく、候補を確認して仕入れ判断に集中する。</p></div><a className="primary-action" href="/opportunities">仕入れ候補を見る →</a>
+        <div><span className="section-kicker">THE CUSTOMER OUTCOME</span><h2 id="opportunity-callout-title">「何を仕入れればいい？」を、サイト側から先に出す。</h2><p>仕入れ先と販売相場のデータが入るたびに、同一商品の照合・利益計算・品質ゲートを自動で再計算し、通過した候補を並べる。人間はゼロから商品を探すのではなく、候補を確認して仕入れ判断に集中する。最後の判断は人間が行う。</p></div><a className="primary-action" href="/opportunities">仕入れ候補を見る →</a>
       </section>
 
       <section className="customer-flow" id="customer-flow" aria-labelledby="customer-flow-title">
