@@ -250,3 +250,24 @@ h2 { font-size:17px; margin:0 0 12px; }
 .opportunity-empty{max-width:1180px;margin:0 auto;background:#0a0d11;border-color:#29313a}
 @media(max-width:900px){.opportunity-hero{padding-top:75px}.opportunity-card{grid-template-columns:1fr 1fr}.opportunity-main{grid-column:1/-1}.opportunity-profit{border-left:0;padding-left:0}.opportunity-metrics{grid-column:1/-1}.opportunity-footer{grid-column:1/-1}}
 @media(max-width:560px){.opportunity-shell{padding-left:20px;padding-right:20px}.opportunity-header{padding-top:20px}.opportunity-hero{padding-top:62px}.opportunity-hero h1{font-size:clamp(48px,16vw,76px)}.opportunity-hero>p:not(.opportunity-meta){font-size:16px}.opportunity-eyebrow{flex-wrap:wrap;line-height:1.6}.opportunity-trust{display:grid;grid-template-columns:1fr 1fr}.opportunity-card{grid-template-columns:1fr;padding:26px 0}.opportunity-main,.opportunity-profit,.opportunity-metrics,.opportunity-footer{grid-column:auto}.opportunity-profit{border-top:1px solid #2a313a;padding-top:18px}.opportunity-footer{align-items:flex-start}.opportunity-buy{margin-left:0!important;width:100%}.list-intro strong{font-size:28px}}
+
+
+/* Award-level landing pass: restrained art direction, rhythm, and interaction */
+.shell{position:relative;overflow:hidden}
+.shell:before{content:"";position:absolute;top:0;right:-12vw;width:42vw;height:42vw;border-radius:50%;background:radial-gradient(circle,#1b222b 0,transparent 68%);opacity:.55;pointer-events:none}
+.hero{position:relative;min-height:650px;display:flex;flex-direction:column;justify-content:center;padding-top:120px}
+.hero:after{content:"";position:absolute;right:0;bottom:62px;width:min(34vw,390px);height:1px;background:linear-gradient(90deg,transparent,#3a424d)}
+.hero h1{max-width:950px;text-wrap:balance}
+.hero .lead{max-width:650px}
+.hero-note{display:flex;align-items:center;gap:8px}
+.hero-note span{border:1px solid #343b45;padding:5px 7px;margin:0}
+.primary-action,.secondary-action{position:relative;overflow:hidden}
+.primary-action:after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 20%,#ffffff55 50%,transparent 80%);transform:translateX(-130%);transition:transform .55s ease}
+.primary-action:hover:after{transform:translateX(130%)}
+.customer-flow,.quality-loop,.proof,.value-proposition{position:relative}
+.customer-flow:before,.quality-loop:before{content:"";position:absolute;top:-1px;left:0;width:80px;height:1px;background:#8f99a6}
+.journey-card,.quality-card,.card,.value-grid article{transition:transform .35s cubic-bezier(.2,.8,.2,1),border-color .35s,background .35s}
+.journey-card:hover,.quality-card:hover,.card:hover,.value-grid article:hover{transform:translateY(-5px);border-color:#454e59;background:#11151a}
+.section-heading h2{max-width:760px}
+.proof{box-shadow:0 30px 80px #00000026}
+@media(max-width:800px){.hero{min-height:auto}.hero:after{display:none}}
