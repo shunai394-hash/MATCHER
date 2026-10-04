@@ -3,10 +3,10 @@ import { IdentityProof } from "./identity-proof";
 import { DecisionPreview } from "./decision-preview";
 
 const pillars = [
-  ["01", "Product Master", "内部商品IDを中心に、識別子・仕様・バリアントを統合"],
-  ["02", "Identity Matching", "JAN / EAN / UPC / MPN / SKU / ブランド・型番・仕様を証拠付きで照合"],
-  ["03", "Supplier Linking", "1商品 : 多サプライヤーで価格・在庫・注文可否を管理"],
-  ["04", "Profit & Safety", "実コストと利益を計算し、危険条件は利益が出ても自動ブロック"],
+  ["01", "同一商品", "JAN / EAN / UPC / MPN / SKUとバリアントを照合し、違えば止める。"],
+  ["02", "実利益", "仕入れ・送料・販売手数料などを反映し、見かけの安さを利益と取り違えない。"],
+  ["03", "鮮度", "価格・在庫・配送条件を別々に確認し、古い情報だけで「買える」と判断しない。"],
+  ["04", "安全性", "証拠不足や矛盾をレビューへ残し、最後のカード決済は人間が承認する。"],
 ];
 const journey = [
   ["01", "CHECK", "商品情報を入れる", "識別子・型番・ブランドなど、確認できる情報から照合を開始。"],
@@ -141,7 +141,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="grid" aria-label="MATCHERの主要機能">
+      <section className="grid" aria-label="MATCHERが仕入れ前に確認すること">
         {pillars.map(([num, title, text]) => (
           <article className="card" key={num}>
             <div className="num">{num}</div>
@@ -152,9 +152,9 @@ export default function Home() {
       </section>
 
       <section className="flow" aria-labelledby="core-flow-title">
-        <div className="flow-title" id="core-flow-title">CORE FLOW</div>
+        <div className="flow-title" id="core-flow-title">FROM SIGNAL TO DECISION</div>
         <div className="flow-row">
-          {["Supplier Data", "Identity Match", "Product Master", "Cost / Profit", "Safety Gate", "Sellability"].map((item, i) => (
+          {["Supplier Data", "Identity Match", "Product Master", "Cost / Profit", "Safety Gate", "Human Decision"].map((item, i) => (
             <div className="flow-item" key={item}><b>{String(i + 1).padStart(2, "0")}</b>{item}</div>
           ))}
         </div>
