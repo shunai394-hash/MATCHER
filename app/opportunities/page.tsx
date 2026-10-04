@@ -193,7 +193,7 @@ export default function OpportunitiesPage() {
       </header>
 
       <section className="opportunity-hero">
-        <p className="section-kicker">TODAY&apos;S PURCHASE CANDIDATES</p>
+        <div className="opportunity-eyebrow"><span className="live-dot" /> LIVE SOURCING INTELLIGENCE <span>·</span> TODAY&apos;S PURCHASE CANDIDATES</div>
         <h1>今日の<em>仕入れ候補。</em></h1>
         <p>
           同一商品であること・仕入れ価格と送料・在庫・データの鮮度・販売相場・利益・品質ゲートを
@@ -203,7 +203,7 @@ export default function OpportunitiesPage() {
           最終評価: {feed?.lastEvaluatedAt ? new Date(feed.lastEvaluatedAt).toLocaleString("ja-JP") : "まだ評価されていません"}
           {feed?.checkedOffers !== undefined && ` · 同一商品として確定した仕入れ先 ${feed.linkedProducts ?? 0}件 / 確認したオファー ${feed.checkedOffers}件`}
         </p>
-        <div className="opportunity-controls">
+        <div className="opportunity-trust"><span>01 同一性</span><span>02 コスト</span><span>03 在庫</span><span>04 相場</span><span>05 利益</span><span>06 品質ゲート</span></div>\n        <div className="opportunity-controls">
           <label>最低想定利益（円）
             <input value={minProfit} onChange={(e) => setMinProfit(e.target.value)} inputMode="numeric" />
           </label>
@@ -236,14 +236,14 @@ export default function OpportunitiesPage() {
 
       {!feed?.error && items.length > 0 && (
         <section className="opportunity-list" aria-live="polite">
-          <div className="opportunity-list-head">
-            <div><span>VERIFIED OPPORTUNITIES</span><strong>{feed?.total ?? items.length}件</strong></div>
-            <p>買い優先度順。成約根拠がある相場を優先し、出品価格しかない相場は弱い根拠として扱います。</p>
+          <div className="opportunity-list-head"><div className="list-intro"><span>VERIFIED OPPORTUNITIES</span><strong>{feed?.total ?? items.length}件</strong></div>
+            
+            <p>高スコアほど「今、確認して買う価値」が高い候補。<br/>成約根拠 ＞ 出品価格のみ。スコアは保証利益ではありません。</p>
           </div>
           {items.map((item) => (
             <article className="opportunity-card" key={item.supplierOfferId}>
               <div className="opportunity-main">
-                <span className="opportunity-rank">買い優先度 {item.opportunityScore.toFixed(1)}/100 · 同一商品 · {item.identity.decision} · 信頼度 {Math.round(item.identity.confidence * 100)}%</span>
+                <span className="opportunity-rank">BUY PRIORITY</span><div className="priority-line"><strong>{item.opportunityScore.toFixed(1)}</strong><span>/100</span><i style={{ width: `${Math.min(100, Math.max(0, item.opportunityScore))}%` }} /></div><div className="opportunity-status">同一商品 · {item.identity.decision} · 信頼度 {Math.round(item.identity.confidence * 100)}%</div>
                 <h2>{item.productName}</h2>
                 <p>{[item.brand, item.modelNumber].filter(Boolean).join(" · ") || "ブランド・型番情報なし"}</p>
                 <p>仕入先: {item.supplierName ?? "不明"}{item.supplierSku ? ` (SKU ${item.supplierSku})` : ""}{item.supplierProductName ? ` — ${item.supplierProductName}` : ""}</p>
@@ -252,7 +252,7 @@ export default function OpportunitiesPage() {
                 </ul>
               </div>
               <div className="opportunity-profit">
-                <small>想定利益</small>
+                <small>EXPECTED PROFIT</small>
                 <strong>{money(item.profit.expectedProfit, item.currency)}</strong>
                 {item.profit.marginRate !== null && <p>利益率 {item.profit.marginRate}%</p>}
               </div>
@@ -266,8 +266,8 @@ export default function OpportunitiesPage() {
                 <div><small>在庫の鮮度</small><b>{age(item.freshness.inventory.ageSeconds)}</b></div>
                 <div><small>相場の観測</small><b>{age(item.freshness.market.ageSeconds)}{item.market.source ? ` · ${item.market.source}` : ""}</b><span>{item.market.evidence === "TRANSACTION_SIGNAL" ? "成約根拠あり" : "出品価格のみ"}</span></div>
               </div>
-              <div className="opportunity-footer">
-                <span>品質ゲート: {item.gate.status} ({new Date(item.gate.evaluatedAt).toLocaleString("ja-JP")})</span>
+              <div className="opportunity-footer"><span className="gate-pill">● {item.gate.status}</span>
+                <span className="gate-detail">評価 {new Date(item.gate.evaluatedAt).toLocaleString("ja-JP")}</span>
                 {item.market.sourceUrl && <a href={item.market.sourceUrl} target="_blank" rel="noreferrer">販売相場を見る ↗</a>}
                 {item.supplierUrl && <a href={item.supplierUrl} target="_blank" rel="noreferrer">仕入先で確認 ↗</a>}
                 {session.token && (
