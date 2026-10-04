@@ -205,10 +205,10 @@ export default function OpportunitiesPage() {
         </p>
         <div className="opportunity-trust"><span>01 同一性</span><span>02 コスト</span><span>03 在庫</span><span>04 相場</span><span>05 利益</span><span>06 品質ゲート</span></div>
         <div className="opportunity-controls">
-          <label>最低想定利益（円）
-            <input value={minProfit} onChange={(e) => setMinProfit(e.target.value)} inputMode="numeric" />
+          <label htmlFor="min-profit">最低想定利益（円）
+            <input id="min-profit" value={minProfit} onChange={(e) => setMinProfit(e.target.value)} inputMode="numeric" />
           </label>
-          <button onClick={() => void reload(minProfit)} disabled={loading}>{loading ? "更新中…" : "候補を更新 →"}</button>
+          <button type="button" onClick={() => void reload(minProfit)} disabled={loading}>{loading ? "更新中…" : "候補を更新 →"}</button>
         </div>
       </section>
 
