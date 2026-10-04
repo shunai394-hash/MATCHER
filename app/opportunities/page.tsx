@@ -39,6 +39,7 @@ type Opportunity = {
   inventory: number | null;
   freshness: Record<"price" | "inventory" | "shipping" | "market", Freshness>;
   gate: { status: string; evaluatedAt: string };
+  opportunityScore: number;
 };
 
 type FeedResponse = {
@@ -246,7 +247,7 @@ export default function OpportunitiesPage() {
           {items.map((item) => (
             <article className="opportunity-card" key={item.supplierOfferId}>
               <div className="opportunity-main">
-                <span className="opportunity-rank">同一商品 · {item.identity.decision} · 信頼度 {Math.round(item.identity.confidence * 100)}%</span>
+                <span className="opportunity-rank">買い優先度 {item.opportunityScore.toFixed(1)}/100 · 同一商品 · {item.identity.decision} · 信頼度 {Math.round(item.identity.confidence * 100)}%</span>
                 <h2>{item.productName}</h2>
                 <p>{[item.brand, item.modelNumber].filter(Boolean).join(" · ") || "ブランド・型番情報なし"}</p>
                 <p>仕入先: {item.supplierName ?? "不明"}{item.supplierSku ? ` (SKU ${item.supplierSku})` : ""}{item.supplierProductName ? ` — ${item.supplierProductName}` : ""}</p>
