@@ -65,6 +65,8 @@ const required = [
   ["44px interaction target", readFileSync("app/globals.css", "utf8"), "min-height: 44px"],
   ["Japanese system typography", readFileSync("app/globals.css", "utf8"), "Hiragino Kaku Gothic ProN"],
   ["live opportunity status", files.opportunities, 'aria-live="polite"'],
+  ["opportunity loading status", files.opportunities, "opportunity-loading"],
+  ["opportunity busy state", files.opportunities, "aria-busy={loading}"],
   ["honest evidence hierarchy", files.opportunities, "成約根拠 ＞ 出品価格のみ"],
   ["human final decision", files.home, "最後の判断は人間"],
   ["purchase decision modal", files.opportunities, "purchase-modal"],
