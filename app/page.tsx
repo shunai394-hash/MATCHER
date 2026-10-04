@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { IdentityProof } from "./identity-proof";
+import { DecisionPreview } from "./decision-preview";
 
 const pillars = [
   ["01", "Product Master", "内部商品IDを中心に、識別子・仕様・バリアントを統合"],
@@ -88,6 +89,8 @@ export default function Home() {
       <div id="identity-proof">
         <IdentityProof />
       </div>
+
+      <DecisionPreview />
 
       <section className="value-proposition" aria-labelledby="value-title">
         <div className="section-kicker">WHY MATCHER</div>
