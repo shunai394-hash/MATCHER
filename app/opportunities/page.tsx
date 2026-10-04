@@ -112,9 +112,9 @@ function evidenceLabel(item: Opportunity["identity"]["evidence"][number]) {
   return `${item.field} 一致`;
 }
 
-async function fetchFeed(minProfit: string): Promise<FeedResponse> {
+async function fetchFeed(minProfit: string, token: string | null): Promise<FeedResponse> {
   try {
-    const response = await fetch("/api/opportunities?minProfit=" + encodeURIComponent(minProfit) + "&limit=50", { cache: "no-store" });
+    const response = await fetch("/api/opportunities?minProfit=" + encodeURIComponent(minProfit) + "&limit=50", { cache: "no-store", headers: token ? { authorization: `Bearer ${token}` } : undefined });
     const data = (await response.json()) as FeedResponse;
     if (!response.ok) return { error: data.error ?? "候補の取得に失敗しました。" };
     return data;
@@ -162,19 +162,25 @@ export default function OpportunitiesPage() {
 
   const reload = useCallback(async (value: string) => {
     setLoading(true);
-    setFeed(await fetchFeed(value));
+    if (!session.token) { setFeed({ error: "AUTH_REQUIRED" }); setLoading(false); return; }
+    setFeed(await fetchFeed(value, session.token));
     setLoading(false);
-  }, []);
+  }, [session.token]);
 
   useEffect(() => {
     let cancelled = false;
-    fetchFeed("1000").then((data) => {
+    if (!session.token) {
+      setFeed({ error: "AUTH_REQUIRED" });
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+    fetchFeed("1000", session.token).then((data) => {
       if (cancelled) return;
       setFeed(data);
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [session.token]);
 
   const items = feed?.opportunities ?? [];
   const excluded = Object.entries(feed?.excluded ?? {}).sort((a, b) => b[1] - a[1]);
@@ -208,7 +214,9 @@ export default function OpportunitiesPage() {
         </div>
       </section>
 
-      {feed?.error && <div className="opportunity-empty"><strong>候補を取得できません</strong><p>{feed.error}</p></div>}
+      <PurchaserSignIn session={session} />
+
+      {feed?.error && <div className="opportunity-empty"><strong>{feed.error === "AUTH_REQUIRED" ? "ログインすると今日の仕入れ候補が出ます" : "候補を取得できません"}</strong><p>{feed.error === "AUTH_REQUIRED" ? "MATCHERは仕入価格・利益・仕入先情報を保護しています。購入担当としてログインしてください。" : feed.error}</p></div>}
 
       {!feed?.error && !loading && items.length === 0 && (
         <section className="opportunity-empty">
@@ -235,7 +243,6 @@ export default function OpportunitiesPage() {
             <div><span>VERIFIED OPPORTUNITIES</span><strong>{feed?.total ?? items.length}件</strong></div>
             <p>想定利益が高い順。仕入れ前に、仕入先ページで価格と在庫をもう一度確認してください。</p>
           </div>
-          <PurchaserSignIn session={session} />
           {items.map((item) => (
             <article className="opportunity-card" key={item.supplierOfferId}>
               <div className="opportunity-main">
