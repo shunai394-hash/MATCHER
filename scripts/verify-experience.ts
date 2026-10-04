@@ -73,6 +73,10 @@ const required = [
   ["purchase modal dialog semantics", files.opportunities, 'role="dialog"'],
   ["purchase modal escape close", files.opportunities, 'event.key === "Escape"'],
   ["purchase modal initial focus", files.opportunities, "autoFocus"],
+  ["purchase modal server recheck disclosure", files.opportunities, "サーバーが価格・在庫・同一商品判定・利益条件を再確認"],
+  ["primary opportunity action", files.opportunities, "この条件で仕入れ申請 →"],
+  ["reduced motion modal", readFileSync("app/globals.css", "utf8"), ".purchase-modal-actions button"],
+  ["editorial display type scale", readFileSync("app/globals.css", "utf8"), "text-wrap:balance"],
 
 ];
 for (const [name, source, needle] of required) assert.ok(source.includes(needle), `${name}: missing ${needle}`);
