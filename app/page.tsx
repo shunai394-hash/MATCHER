@@ -21,10 +21,10 @@ const qualityLoop = [
 
 export default function Home() {
   return (
-    <main id="main-content" className="shell">
+    <main className="shell">
       <a className="skip-link" href="#main-content">本文へスキップ</a>
       <header className="header">
-        <a className="brand-lockup" href="#" aria-label="MATCHER トップ">
+        <a className="brand-lockup" href="/" aria-label="MATCHER トップ">
           <div className="brand">MATCHER</div>
           <div className="brand-sub">IDENTITY INTELLIGENCE</div>
         </a>
@@ -43,7 +43,7 @@ export default function Home() {
         </nav>
       </header>
 
-      <section className="hero" aria-labelledby="hero-title">
+      <section id="main-content" className="hero" aria-labelledby="hero-title">
         <p className="eyebrow">PRODUCT IDENTITY & SUPPLIER INTELLIGENCE</p>
         <h1 id="hero-title">同じ商品を、<br /><em>正しく見つける。</em></h1>
         <p className="lead">「これ、本当に同じ商品？」「仕入れて利益が残る？」を、証拠から一つずつ確認。迷ったまま買わないための仕入れ判断基盤。</p>
