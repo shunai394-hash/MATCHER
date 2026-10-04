@@ -196,14 +196,15 @@ export default function OpportunitiesPage() {
         <div className="opportunity-eyebrow"><span className="live-dot" /> LIVE SOURCING INTELLIGENCE <span>·</span> TODAY&apos;S PURCHASE CANDIDATES</div>
         <h1>今日の<em>仕入れ候補。</em></h1>
         <p>
-          同一商品であること・仕入れ価格と送料・在庫・データの鮮度・販売相場・利益・品質ゲートを
-          すべて実データで確認できた商品だけを並べています。最後に買うかどうかは、あなたが決めます。
+          MATCHERは「安そう」ではなく、<strong>同じ商品・実コスト・在庫・鮮度・販売根拠・利益</strong>を
+          確認できた候補だけを、買う順番に整えます。最後の判断は人間が行います。
         </p>
         <p className="opportunity-meta">
           最終評価: {feed?.lastEvaluatedAt ? new Date(feed.lastEvaluatedAt).toLocaleString("ja-JP") : "まだ評価されていません"}
           {feed?.checkedOffers !== undefined && ` · 同一商品として確定した仕入れ先 ${feed.linkedProducts ?? 0}件 / 確認したオファー ${feed.checkedOffers}件`}
         </p>
-        <div className="opportunity-trust"><span>01 同一性</span><span>02 コスト</span><span>03 在庫</span><span>04 相場</span><span>05 利益</span><span>06 品質ゲート</span></div>\n        <div className="opportunity-controls">
+        <div className="opportunity-trust"><span>01 同一性</span><span>02 コスト</span><span>03 在庫</span><span>04 相場</span><span>05 利益</span><span>06 品質ゲート</span></div>
+        <div className="opportunity-controls">
           <label>最低想定利益（円）
             <input value={minProfit} onChange={(e) => setMinProfit(e.target.value)} inputMode="numeric" />
           </label>
