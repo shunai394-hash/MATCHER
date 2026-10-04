@@ -56,6 +56,8 @@ export default function Home() {
         <p className="hero-note"><span aria-hidden="true">01</span> 毎朝ここから。同一商品・利益・在庫・鮮度を通過した候補だけが並ぶ。</p>
       </section>
 
+      <div className="hero-proofline" aria-label="MATCHERの判断基準"><span>01 IDENTITY</span><span>02 COST</span><span>03 DEMAND</span><span>04 GATE</span><span>05 HUMAN DECISION</span></div>
+
       <section className="opportunity-callout" aria-labelledby="opportunity-callout-title">
         <div><span className="section-kicker">THE CUSTOMER OUTCOME</span><h2 id="opportunity-callout-title">「何を仕入れればいい？」を、サイト側から先に出す。</h2><p>仕入れ先と販売相場のデータが入るたびに、同一商品の照合・利益計算・品質ゲートを自動で再計算し、通過した候補を並べる。人間はゼロから商品を探すのではなく、候補を確認して仕入れ判断に集中する。最後の判断は人間が行う。</p></div><Link className="primary-action" href="/opportunities">仕入れ候補を見る →</Link>
       </section>
