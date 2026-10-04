@@ -131,7 +131,7 @@ export default function OpportunitiesPage() {
   const session = usePurchaserSession();
   const [purchaseState, setPurchaseState] = useState<Record<string, string>>({});
 
-  async function requestPurchase(item: Opportunity) {
+  function requestPurchase(item: Opportunity) {
     const amount = (item.profit.supplierCost ?? 0) + (item.profit.shippingCost ?? 0);
     const ok = window.confirm(`${item.productName}
 仕入れ ${money(item.profit.supplierCost, item.currency)} + 送料 ${money(item.profit.shippingCost, item.currency)} = ${money(amount, item.currency)}
