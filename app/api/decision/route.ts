@@ -5,6 +5,7 @@ import { resolveIdentity } from "@/lib/matcher/identity-sync";
 import { calculateExpectedProfit, evaluateSellability } from "@/lib/matcher/gate";
 import { checkFreshness, toNumber } from "@/lib/matcher/opportunity";
 import { fetchFreshnessPolicy, fetchLatestMatches, loadMasterCandidates } from "@/lib/server/matcher-data";
+import { requireUserRole } from "@/lib/server/auth";
 
 type Body = {
   brand?: string;
@@ -30,6 +31,8 @@ function clean(v: unknown) {
 }
 
 export async function POST(request: Request) {
+  const auth = await requireUserRole(request, "purchaser");
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   try {
     const body = (await request.json()) as Body;
     const supabase = getSupabaseAdmin();
