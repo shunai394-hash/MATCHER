@@ -334,3 +334,5 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kak
 .purchase-modal-actions button:hover{transform:translateY(-2px)}
 @media(max-width:560px){.purchase-modal-backdrop{padding:14px}.purchase-modal{padding:22px}.purchase-modal-facts{grid-template-columns:1fr}.purchase-modal-actions{display:grid;grid-template-columns:1fr 1.5fr}.purchase-modal-actions button{width:100%}}
 @media(prefers-reduced-motion:reduce){.purchase-modal-actions button{transition:none!important}.purchase-modal-actions button:hover{transform:none}}
+
+.opportunity-loading{max-width:1180px;margin:0 auto 18px;padding:13px 0;border-top:1px solid #242a32;border-bottom:1px solid #242a32;color:#8f99a5;font-size:11px;letter-spacing:.05em}
