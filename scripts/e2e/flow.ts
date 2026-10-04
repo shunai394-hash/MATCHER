@@ -57,7 +57,7 @@ async function recompute() {
   return result.body;
 }
 async function opportunities(query = "") {
-  const result = await api("/api/opportunities" + query, { token: null });
+  const result = await api("/api/opportunities" + query, { token: null, headers: { authorization: `Bearer ${BUYER}` } });
   assert.equal(result.status, 200, JSON.stringify(result.body));
   return result.body;
 }
@@ -466,10 +466,10 @@ async function main() {
   log("GET /api/opportunities/recompute with CRON_SECRET → 200");
 
   // 18. Decision console and quality patrol run on the same live schema.
-  const decision = await api("/api/decision", { method: "POST", json: { jan: JAN_EARBUDS, brand: "ACME", modelNumber: "AX-204", color: "BLACK" }, token: null });
+  const decision = await api("/api/decision", { method: "POST", json: { jan: JAN_SPEAKER, brand: "SONORA", modelNumber: "SP-1" }, token: null, headers: { authorization: `Bearer ${BUYER}` } });
   assert.equal(decision.status, 200, JSON.stringify(decision.body));
   assert.equal(decision.body.decision.decision, "AUTO_LINK");
-  assert.equal(decision.body.decision.masterProductId, earbuds.id);
+  assert.equal(decision.body.decision.masterProductId, speaker.id);
   assert.equal((await api("/api/quality-patrol", { method: "POST", token: null })).status, 401);
   assert.equal((await api("/api/quality-patrol", { method: "POST", token: null, headers: { authorization: `Bearer ${BUYER}` } })).status, 403);
   const patrol = await api("/api/quality-patrol", { method: "POST" });
