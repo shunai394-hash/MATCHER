@@ -7,7 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "verify:gate": "node --experimental-strip-types scripts/verify-gate.ts"
+    "typecheck": "tsc --noEmit",
+    "verify:gate": "node --experimental-strip-types scripts/verify-gate.ts",
+    "verify:opportunity": "node --experimental-strip-types scripts/verify-opportunity.ts",
+    "verify:identity": "node --experimental-strip-types scripts/verify-identity.ts",
+    "verify:experience": "node --experimental-strip-types scripts/verify-experience.ts",
+    "verify:marketplace": "node --experimental-strip-types scripts/verify-marketplace-sourcing.ts",
+    "verify:schema": "node --experimental-strip-types scripts/verify-schema-usage.ts",
+    "test:e2e": "bash scripts/e2e/run.sh",
+    "verify:migrations": "bash scripts/db/verify-migrations.sh"
   },
   "dependencies": {
     "next": "16.3.5",
