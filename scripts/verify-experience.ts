@@ -67,6 +67,10 @@ const required = [
   ["live opportunity status", files.opportunities, 'aria-live="polite"'],
   ["honest evidence hierarchy", files.opportunities, "成約根拠 ＞ 出品価格のみ"],
   ["human final decision", files.home, "最後の判断は人間"],
+  ["purchase decision modal", files.opportunities, "purchase-modal"],
+  ["purchase modal dialog semantics", files.opportunities, 'role="dialog"'],
+  ["purchase modal escape close", files.opportunities, 'event.key === "Escape"'],
+  ["purchase modal no native confirm", files.opportunities, "window.confirm"],
 ];
 for (const [name, source, needle] of required) assert.ok(source.includes(needle), `${name}: missing ${needle}`);
 for (const [name, source] of Object.entries(files)) assert.equal(source.includes("\\n"), false, `${name}: escaped newline artifact`);
