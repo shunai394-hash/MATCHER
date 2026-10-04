@@ -77,7 +77,7 @@ export async function GET(request: Request) {
       const freshness = ["price", "inventory", "shipping", "market"].reduce((sum, key) => sum + (ctx.evaluation.freshness[key as keyof typeof ctx.evaluation.freshness].fresh ? 1 : 0), 0) / 4;
       const identity = Math.max(0, Math.min(1, Number(ctx.match?.confidence ?? 0)));
       const stock = ctx.snapshot?.inventory == null ? 0 : ctx.snapshot.inventory >= 2 ? 1 : ctx.snapshot.inventory > 0 ? 0.7 : 0;
-      const demand = ctx.market?.sold === true ? 1 : 0.5;
+      const demand = ctx.market?.sold === true ? 1 : 0;
       const profitComponent = Math.min(35, Math.max(0, profit / Math.max(minProfit, 1000) * 35));
       const marginComponent = Math.min(20, margin * 100);
       return profitComponent + marginComponent + identity * 20 + freshness * 15 + stock * 5 + demand * 5;
