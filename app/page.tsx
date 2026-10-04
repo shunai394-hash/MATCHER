@@ -5,25 +5,46 @@ const pillars = [
   ["02", "Identity Matching", "JAN / EAN / UPC / MPN / SKU / ブランド・型番・仕様を証拠付きで照合"],
   ["03", "Supplier Linking", "1商品 : 多サプライヤーで価格・在庫・注文可否を管理"],
   ["04", "Profit & Safety", "実コストと利益を計算し、危険条件は利益が出ても自動ブロック"],
-];
+] as const;
+
+const flow = ["Supplier Data", "Identity Match", "Product Master", "Cost / Profit", "Safety Gate", "Sellability"];
 
 export default function Home() {
   return (
     <main className="shell">
       <header className="header">
-        <div className="brand">MATCHER</div>
-        <div className="status"><span /> foundation online</div>
+        <a className="brand" href="#" aria-label="MATCHER home">MATCHER</a>
+        <nav className="nav" aria-label="Primary">
+          <a href="#proof">Identity proof</a>
+          <a href="#architecture">Architecture</a>
+        </nav>
+        <div className="status" aria-label="System status"><span aria-hidden="true" /> foundation online</div>
       </header>
 
-      <section className="hero">
-        <p className="eyebrow">PRODUCT IDENTITY & SUPPLIER INTELLIGENCE</p>
-        <h1>同じ商品を、<br /><em>正しく見つける。</em></h1>
+      <section className="hero" aria-labelledby="hero-title">
+        <p className="eyebrow">PRODUCT IDENTITY &amp; SUPPLIER INTELLIGENCE</p>
+        <h1 id="hero-title">同じ商品を、<br /><em>正しく見つける。</em></h1>
         <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する基盤。</p>
+        <div className="hero-actions">
+          <a className="button primary" href="#proof">See the decision proof <span aria-hidden="true">↘</span></a>
+          <a className="button secondary" href="#architecture">View the core flow <span aria-hidden="true">↓</span></a>
+        </div>
+        <div className="hero-meta" aria-label="MATCHER principles">
+          <span>IDENTITY FIRST</span><span>·</span><span>EVIDENCE LED</span><span>·</span><span>SAFETY GATED</span>
+        </div>
       </section>
 
-      <IdentityProof />
+      <section id="proof"><IdentityProof /></section>
 
-      <section className="grid">
+      <section className="section-intro" aria-labelledby="pillars-title">
+        <div>
+          <p className="section-index">01 / FOUNDATION</p>
+          <h2 id="pillars-title">Matching is only the beginning.</h2>
+        </div>
+        <p>識別したあとに、つなぐ・計算する・止める。MATCHERは商品同定を、販売判断まで続く一つの系として扱う。</p>
+      </section>
+
+      <section className="grid" aria-label="MATCHER capabilities">
         {pillars.map(([num, title, text]) => (
           <article className="card" key={num}>
             <div className="num">{num}</div>
@@ -33,14 +54,30 @@ export default function Home() {
         ))}
       </section>
 
-      <section className="flow">
-        <div className="flow-title">CORE FLOW</div>
+      <section className="flow" id="architecture" aria-labelledby="flow-title">
+        <div className="flow-head">
+          <div>
+            <p className="section-index">02 / DECISION PIPELINE</p>
+            <h2 id="flow-title">From raw supplier data to a safe sell decision.</h2>
+          </div>
+          <span className="flow-state">6 STAGES · CONTINUOUS CHECK</span>
+        </div>
         <div className="flow-row">
-          {['Supplier Data', 'Identity Match', 'Product Master', 'Cost / Profit', 'Safety Gate', 'Sellability'].map((item, i) => (
-            <div className="flow-item" key={item}><b>{String(i + 1).padStart(2, '0')}</b>{item}</div>
+          {flow.map((item, i) => (
+            <div className="flow-item" key={item}>
+              <b>{String(i + 1).padStart(2, "0")}</b>
+              <span>{item}</span>
+              {i < flow.length - 1 && <i aria-hidden="true">→</i>}
+            </div>
           ))}
         </div>
       </section>
+
+      <footer className="footer">
+        <span>MATCHER</span>
+        <span>PRODUCT IDENTITY / SUPPLIER INTELLIGENCE</span>
+        <span>FOUNDATION BUILD · 2026</span>
+      </footer>
     </main>
   );
 }
