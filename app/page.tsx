@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { IdentityProof } from "./identity-proof";
 
 const pillars = [
@@ -24,10 +25,10 @@ export default function Home() {
     <main className="shell">
       <a className="skip-link" href="#main-content">本文へスキップ</a>
       <header className="header">
-        <a className="brand-lockup" href="/" aria-label="MATCHER トップ">
+        <Link className="brand-lockup" href="/" aria-label="MATCHER トップ">
           <div className="brand">MATCHER</div>
           <div className="brand-sub">IDENTITY INTELLIGENCE</div>
-        </a>
+        </Link>
         <nav className="header-nav" aria-label="ページ内ナビゲーション">
           <a href="/opportunities">今日の仕入れ候補</a>
           <a href="/console">仕入れ判断</a>
