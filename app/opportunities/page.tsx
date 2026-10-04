@@ -35,7 +35,7 @@ type Opportunity = {
     expectedProfit: number | null;
     marginRate: number | null;
   };
-  market: { source: string | null; sourceUrl: string | null; sold: boolean | null; observedAt: string | null };
+  market: { source: string | null; sourceUrl: string | null; sold: boolean | null; evidence: "TRANSACTION_SIGNAL" | "ASKING_PRICE_ONLY"; observedAt: string | null };
   inventory: number | null;
   freshness: Record<"price" | "inventory" | "shipping" | "market", Freshness>;
   gate: { status: string; evaluatedAt: string };
@@ -238,7 +238,7 @@ export default function OpportunitiesPage() {
         <section className="opportunity-list" aria-live="polite">
           <div className="opportunity-list-head">
             <div><span>VERIFIED OPPORTUNITIES</span><strong>{feed?.total ?? items.length}件</strong></div>
-            <p>想定利益が高い順。仕入れ前に、仕入先ページで価格と在庫をもう一度確認してください。</p>
+            <p>買い優先度順。成約根拠がある相場を優先し、出品価格しかない相場は弱い根拠として扱います。</p>
           </div>
           {items.map((item) => (
             <article className="opportunity-card" key={item.supplierOfferId}>
@@ -264,7 +264,7 @@ export default function OpportunitiesPage() {
                 <div><small>在庫</small><b>{item.inventory ?? "—"}</b></div>
                 <div><small>価格の鮮度</small><b>{age(item.freshness.price.ageSeconds)}</b></div>
                 <div><small>在庫の鮮度</small><b>{age(item.freshness.inventory.ageSeconds)}</b></div>
-                <div><small>相場の観測</small><b>{age(item.freshness.market.ageSeconds)}{item.market.source ? ` · ${item.market.source}` : ""}</b></div>
+                <div><small>相場の観測</small><b>{age(item.freshness.market.ageSeconds)}{item.market.source ? ` · ${item.market.source}` : ""}</b><span>{item.market.evidence === "TRANSACTION_SIGNAL" ? "成約根拠あり" : "出品価格のみ"}</span></div>
               </div>
               <div className="opportunity-footer">
                 <span>品質ゲート: {item.gate.status} ({new Date(item.gate.evaluatedAt).toLocaleString("ja-JP")})</span>
