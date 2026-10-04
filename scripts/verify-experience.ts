@@ -46,7 +46,7 @@ const required = [
   ["quality stages", files.quality, "RETEST"],
   ["identity hard conflict", files.identity, "ATTRIBUTE_CONFLICT"],
   ["profit gate", files.gate, "expectedProfit"],
-  ["human purchase gate", files.console, "カードを仮押さえして人間確認へ"],
+  ["human purchase gate", files.console, "購入条件を確認して申請 →"],\n  ["console purchase modal", files.console, "HUMAN PURCHASE REVIEW"],\n  ["console purchase dialog semantics", files.console, 'role="dialog"'],\n  ["console purchase escape close", files.console, 'event.key === "Escape"'],\n  ["console purchase initial focus", files.console, "autoFocus"],\n  ["console purchase server recheck disclosure", files.console, "サーバー側でも価格・在庫・利益条件を再確認"],
   ["manual capture", files.stripe, "payment_intent_data[capture_method]"],
   ["server purchase amount", files.purchaseVerify, "supplierCost + shippingCost"],
   ["purchase requires authenticated purchaser", files.purchaseAuthorize, "requireUserRole"],
