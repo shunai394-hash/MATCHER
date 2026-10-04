@@ -179,6 +179,13 @@ export default function OpportunitiesPage() {
     return () => { cancelled = true; };
   }, [session.token]);
 
+  useEffect(() => {
+    if (!selectedPurchase) return;
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setSelectedPurchase(null); };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [selectedPurchase]);
+
   const items = feed?.opportunities ?? [];
   const excluded = Object.entries(feed?.excluded ?? {}).sort((a, b) => b[1] - a[1]);
 
