@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const files = {
   home: readFileSync("app/page.tsx", "utf8"),
+  decisionPreview: readFileSync("app/decision-preview.tsx", "utf8"),
   console: readFileSync("app/console/page.tsx", "utf8"),
   quality: readFileSync("app/quality/page.tsx", "utf8"),
   decision: readFileSync("app/api/decision/route.ts", "utf8"),
@@ -25,6 +26,12 @@ const files = {
 const required = [
   ["home customer journey", files.home, "CHECK"],
   ["home decision CTA", files.home, "/console"],
+  ["interactive decision preview", files.home, "DecisionPreview"],
+  ["decision scenario tabs", files.decisionPreview, 'role="tablist"'],
+  ["decision live outcome", files.decisionPreview, 'aria-live="polite"'],
+  ["decision outcome states", files.decisionPreview, "SELLABLE"],
+  ["decision hard block state", files.decisionPreview, "BLOCKED"],
+  ["decision review state", files.decisionPreview, "REVIEW"],
   ["profit opportunity CTA", files.home, "/opportunities"],
   ["profit opportunity feed", files.opportunities, "VERIFIED OPPORTUNITIES"],
   ["opportunity server feed", files.opportunityApi, "quality_gate_result"],
