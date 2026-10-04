@@ -271,3 +271,46 @@ h2 { font-size:17px; margin:0 0 12px; }
 .section-heading h2{max-width:760px}
 .proof{box-shadow:0 30px 80px #00000026}
 @media(max-width:800px){.hero{min-height:auto}.hero:after{display:none}}
+
+
+/* Accessibility + type refinement: quality must survive real use, not only screenshots. */
+html { text-rendering: optimizeLegibility; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif; }
+.skip-link {
+  position: fixed;
+  left: 18px;
+  top: 14px;
+  z-index: 100;
+  transform: translateY(-180%);
+  padding: 11px 14px;
+  background: #f4f5f6;
+  color: #080a0c;
+  border: 1px solid #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform .2s ease;
+}
+.skip-link:focus { transform: translateY(0); }
+.header-nav a, .mobile-nav a, .primary-action, .secondary-action, button {
+  min-height: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skip-link,
+  .opportunity-card,
+  .opportunity-controls button,
+  .opportunity-buy,
+  .opportunity-metrics div,
+  .primary-action:after,
+  .shell:before,
+  .hero:after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .opportunity-card:hover,
+  .opportunity-controls button:hover:not(:disabled),
+  .opportunity-buy:hover,
+  .primary-action:hover:after {
+    transform: none !important;
+  }
+}
