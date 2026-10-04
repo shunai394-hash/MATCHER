@@ -70,7 +70,19 @@ export async function GET(request: Request) {
       if (expectedProfit === null || expectedProfit < minProfit) return exclude("BELOW_MIN_PROFIT"), false;
       return true;
     });
-    passing.sort((a, b) => (b.evaluation.profit?.expectedProfit ?? 0) - (a.evaluation.profit?.expectedProfit ?? 0));
+    const score = (ctx: typeof passing[number]) => {
+      const profit = ctx.evaluation.profit?.expectedProfit ?? 0;
+      const sale = ctx.evaluation.profit?.salePrice ?? 0;
+      const margin = sale > 0 ? Math.max(0, profit / sale) : 0;
+      const freshness = ["price", "inventory", "shipping", "market"].reduce((sum, key) => sum + (ctx.evaluation.freshness[key as keyof typeof ctx.evaluation.freshness].fresh ? 1 : 0), 0) / 4;
+      const identity = Math.max(0, Math.min(1, Number(ctx.match?.confidence ?? 0)));
+      const stock = ctx.snapshot?.inventory == null ? 0 : ctx.snapshot.inventory >= 2 ? 1 : ctx.snapshot.inventory > 0 ? 0.7 : 0;
+      const demand = ctx.market?.sold === true ? 1 : 0.5;
+      const profitComponent = Math.min(35, Math.max(0, profit / Math.max(minProfit, 1000) * 35));
+      const marginComponent = Math.min(20, margin * 100);
+      return profitComponent + marginComponent + identity * 20 + freshness * 15 + stock * 5 + demand * 5;
+    };
+    passing.sort((a, b) => score(b) - score(a));
     const shown = passing.slice(0, limit);
     const evidence = await identityEvidence(supabase, shown);
 
@@ -115,6 +127,7 @@ export async function GET(request: Request) {
         inventory: ctx.snapshot?.inventory ?? null,
         freshness: ctx.evaluation.freshness,
         gate: { status: ctx.latestGate!.status, evaluatedAt: ctx.latestGate!.evaluated_at },
+        opportunityScore: Math.round(score(ctx) * 10) / 10,
       };
     });
 
