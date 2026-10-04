@@ -347,3 +347,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kak
 .opportunity-callout:after{content:"";position:absolute;right:-90px;bottom:-110px;width:280px;height:280px;border:1px solid #343b45;border-radius:50%;opacity:.32;pointer-events:none}
 @media(max-width:560px){.hero-proofline{margin:-12px 0 52px;display:grid;grid-template-columns:1fr 1fr}.hero-proofline span{border-bottom:1px solid #252a31}.hero-proofline span:first-child{padding-left:16px}.hero-proofline span:nth-child(2n){border-right:0}.hero-proofline span:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.hero-proofline,.opportunity-callout:after{transition:none!important;animation:none!important}}
+
+
+/* Interactive identity proof: make evidence legible at a glance. */
+.proof-stage{min-height:370px;grid-template-rows:auto auto auto;align-content:center;overflow:hidden}
+.proof-stage:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,#ffffff07,transparent 52%);pointer-events:none}
+.proof-node,.proof-connector,.proof-confidence,.proof-evidence,.proof-note{position:relative;z-index:1}
+.proof-confidence{grid-column:1/-1;align-self:end}
+.proof-confidence>div:first-child{display:flex;justify-content:space-between;align-items:baseline;color:#697381;font-size:9px;letter-spacing:.14em}
+.proof-confidence strong{color:#f2f3f5;font-size:18px;letter-spacing:0}
+.confidence-track{height:3px;background:#252a31;margin-top:8px;overflow:hidden}
+.confidence-track span{display:block;height:100%;background:#aeb8c4;transition:width .35s ease}
+.proof-evidence{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:7px}
+.proof-evidence span{border:1px solid #252a31;background:#101318;padding:7px 9px;color:#8993a0;font-size:9px;letter-spacing:.04em}
+.proof-evidence b{color:#697381;margin-right:6px}
+.proof-note{grid-column:1/-1;position:relative;left:auto;right:auto;bottom:auto;margin:0;color:#737e8b;font-size:11px;line-height:1.6}
+.proof-note span{color:#4f5965;margin-left:8px}
+@media(max-width:520px){.proof-stage{min-height:470px;grid-template-rows:auto auto auto auto}.proof-confidence,.proof-evidence,.proof-note{grid-column:1}.proof-confidence{margin-top:8px}.proof-evidence{align-self:start}.proof-note{align-self:start}}
+@media(prefers-reduced-motion:reduce){.confidence-track span{transition:none!important}}
