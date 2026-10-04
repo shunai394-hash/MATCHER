@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { PurchaserSignIn, usePurchaserSession } from "../purchaser-session";
 
 type Result = {
@@ -17,8 +17,17 @@ export default function ConsolePage() {
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [purchaseBusy, setPurchaseBusy] = useState(false);
-  const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);
+  const [purchaseMessage, setPurchaseMessage] = useState<string | null>(null);\n  const [selectedPurchase, setSelectedPurchase] = useState<Result["purchase"]>(null);
   const session = usePurchaserSession();
+
+  useEffect(() => {
+    if (!selectedPurchase) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedPurchase(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedPurchase]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -132,25 +141,9 @@ export default function ConsolePage() {
                     <button
                       type="button"
                       disabled={purchaseBusy || !session.token}
-                      onClick={async () => {
-                        setPurchaseBusy(true);
-                        setPurchaseMessage(null);
-                        const response = await fetch("/api/purchase/authorize", {
-                          method: "POST",
-                          headers: { "content-type": "application/json", authorization: `Bearer ${session.token}` },
-                          body: JSON.stringify({
-                            masterProductId: result.purchase?.masterProductId,
-                            supplierOfferId: result.purchase?.supplierOfferId,
-                            approved: { amount: result.purchase?.amount },
-                          }),
-                        });
-                        const data = await response.json();
-                        if (data.checkoutUrl) window.location.href = data.checkoutUrl;
-                        else setPurchaseMessage(data.error ?? "購入承認の準備に失敗しました。");
-                        setPurchaseBusy(false);
-                      }}
+                      onClick={() => setSelectedPurchase(result.purchase ?? null)}
                     >
-                      {purchaseBusy ? "決済準備中…" : "カードを仮押さえして人間確認へ →"}
+                      購入条件を確認して申請 →
                     </button>
                     {purchaseMessage && <p role="alert">{purchaseMessage}</p>}
                   </div>
@@ -160,6 +153,50 @@ export default function ConsolePage() {
           )}
         </section>
       )}
+
+      {selectedPurchase && (
+        <div className="purchase-modal-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setSelectedPurchase(null);
+        }}>
+          <section className="purchase-modal" role="dialog" aria-modal="true" aria-labelledby="console-purchase-title" aria-describedby="console-purchase-note">
+            <span className="purchase-modal-kicker">HUMAN PURCHASE REVIEW</span>
+            <h2 id="console-purchase-title">この条件で購入申請しますか？</h2>
+            <p className="purchase-modal-product">購入前に条件を確認し、サーバー側でも価格・在庫・利益条件を再確認します。</p>
+            <dl className="purchase-modal-facts">
+              <div><dt>SUPPLIER COST</dt><dd>{selectedPurchase.amount.toLocaleString()} {selectedPurchase.currency}</dd></div>
+              <div><dt>OFFER</dt><dd>{selectedPurchase.supplierOfferId}</dd></div>
+            </dl>
+            <p id="console-purchase-note" className="purchase-modal-note">カード情報はMATCHERに保存しません。申請後も条件が変わった場合は購入を止めます。最終判断は人間が行います。</p>
+            <div className="purchase-modal-actions">
+              <button type="button" className="purchase-modal-cancel" autoFocus onClick={() => setSelectedPurchase(null)}>戻る</button>
+              <button type="button" className="purchase-modal-confirm" disabled={purchaseBusy || !session.token} onClick={async () => {
+                setPurchaseBusy(true);
+                setPurchaseMessage(null);
+                try {
+                  const response = await fetch("/api/purchase/authorize", {
+                    method: "POST",
+                    headers: { "content-type": "application/json", authorization: `Bearer ${session.token}` },
+                    body: JSON.stringify({
+                      masterProductId: selectedPurchase.masterProductId,
+                      supplierOfferId: selectedPurchase.supplierOfferId,
+                      approved: { amount: selectedPurchase.amount },
+                    }),
+                  });
+                  const data = await response.json();
+                  if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+                  else setPurchaseMessage(data.error ?? "購入承認の準備に失敗しました。");
+                } catch {
+                  setPurchaseMessage("購入サービスに接続できません。");
+                } finally {
+                  setPurchaseBusy(false);
+                }
+              }}>{purchaseBusy ? "再確認中…" : "再確認して申請 →"}</button>
+            </div>
+            {purchaseMessage && <p role="alert" className="purchase-modal-note">{purchaseMessage}</p>}
+          </section>
+        </div>
+      )}
+
     </main>
   );
 }
