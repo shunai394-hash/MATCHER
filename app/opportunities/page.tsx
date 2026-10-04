@@ -130,15 +130,15 @@ export default function OpportunitiesPage() {
   const [loading, setLoading] = useState(true);
   const session = usePurchaserSession();
   const [purchaseState, setPurchaseState] = useState<Record<string, string>>({});
+  const [selectedPurchase, setSelectedPurchase] = useState<Opportunity | null>(null);
 
   function requestPurchase(item: Opportunity) {
-    const amount = (item.profit.supplierCost ?? 0) + (item.profit.shippingCost ?? 0);
-    const ok = window.confirm(`${item.productName}
-仕入れ ${money(item.profit.supplierCost, item.currency)} + 送料 ${money(item.profit.shippingCost, item.currency)} = ${money(amount, item.currency)}
-想定利益 ${money(item.profit.expectedProfit, item.currency)}
+    setSelectedPurchase(item);
+  }
 
-この条件でカードを仮押さえします。購入直前にサーバーが在庫・価格・利益を再確認します。`);
-    if (!ok) return;
+  async function confirmPurchase(item: Opportunity) {
+    const amount = (item.profit.supplierCost ?? 0) + (item.profit.shippingCost ?? 0);
+    setSelectedPurchase(null);
     setPurchaseState((s) => ({ ...s, [item.supplierOfferId]: "再確認中…" }));
     try {
       const response = await fetch("/api/purchase/authorize", {
@@ -290,6 +290,26 @@ export default function OpportunitiesPage() {
             </article>
           ))}
         </section>
+      )}
+      {selectedPurchase && (
+        <div className="purchase-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedPurchase(null); }}>
+          <section className="purchase-modal" role="dialog" aria-modal="true" aria-labelledby="purchase-modal-title" aria-describedby="purchase-modal-note">
+            <span className="purchase-modal-kicker">HUMAN PURCHASE CHECK</span>
+            <h2 id="purchase-modal-title">この条件で仕入れを申請しますか？</h2>
+            <p className="purchase-modal-product">{selectedPurchase.productName}</p>
+            <dl className="purchase-modal-facts">
+              <div><dt>仕入れ + 送料</dt><dd>{money((selectedPurchase.profit.supplierCost ?? 0) + (selectedPurchase.profit.shippingCost ?? 0), selectedPurchase.currency)}</dd></div>
+              <div><dt>想定利益</dt><dd>{money(selectedPurchase.profit.expectedProfit, selectedPurchase.currency)}</dd></div>
+              <div><dt>在庫</dt><dd>{selectedPurchase.inventory ?? "不明"}</dd></div>
+              <div><dt>品質ゲート</dt><dd>{selectedPurchase.gate.status}</dd></div>
+            </dl>
+            <p id="purchase-modal-note" className="purchase-modal-note">申請前にサーバーが価格・在庫・同一商品判定・利益条件を再確認します。条件が変わっていれば購入は実行されません。</p>
+            <div className="purchase-modal-actions">
+              <button type="button" className="purchase-modal-cancel" autoFocus onClick={() => setSelectedPurchase(null)}>戻る</button>
+              <button type="button" className="purchase-modal-confirm" onClick={() => void confirmPurchase(selectedPurchase)}>再確認して申請 →</button>
+            </div>
+          </section>
+        </div>
       )}
     </main>
   );
