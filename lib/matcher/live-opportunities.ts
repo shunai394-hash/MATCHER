@@ -51,7 +51,7 @@ function numberOrNull(value: number | string | null): number | null {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
-function freshnessScore(freshness: Freshness | undefined, policies: Map<FreshnessPolicy["data_type"], number>): number {
+function parseTimestamp(value: string | null | undefined): number | null {\n  if (!value) return null;\n  const parsed = Date.parse(value);\n  return Number.isFinite(parsed) ? parsed : null;\n}\n\nfunction freshnessScore(freshness: Freshness | undefined, policies: Map<FreshnessPolicy["data_type"], number>): number {
   if (!freshness) return 0;
   const now = Date.now();
   const ages = [
@@ -63,7 +63,7 @@ function freshnessScore(freshness: Freshness | undefined, policies: Map<Freshnes
     if (!observedAt) return 0;
     const maxAge = policies.get(type);
     if (!maxAge) return 0;
-    const age = Math.max(0, (now - Date.parse(observedAt)) / 1000);
+    const age = Math.max(0, (now - observedMs) / 1000);
     return Math.max(0, Math.min(100, 100 * (1 - age / maxAge)));
   });
   return Math.round(Math.min(...scores));
