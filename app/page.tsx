@@ -1,5 +1,6 @@
 import { DecisionConsole } from "./decision-console";
 import { IdentityProof } from "./identity-proof";
+import { scoreOpportunity } from "../lib/matcher/opportunity";
 
 const pillars = [
   ["01", "Product Master", "内部商品IDを中心に、識別子・仕様・バリアントを統合"],
