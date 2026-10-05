@@ -66,4 +66,21 @@ const zeroMarket = scoreOpportunity({
 });
 assert(zeroMarket.tier !== "PRIORITY", "missing market signals must not become PRIORITY");
 
+const malformedMarket = marketScores({
+  master_product_id: "m", source: "test", window_start: "not-a-date", window_end: "also-not-a-date",
+  sales_count: -10, active_listing_count: -5, median_sale_price: 10000, price_stddev: 500,
+  observed_at: "not-a-date", evidence_url: null,
+});
+assert.deepEqual(malformedMarket, { demandVelocity: 0, competition: 0, priceStability: 95 });
+
+const nonFiniteInputs = scoreOpportunity({
+  expectedProfit: Number.NaN, roiPercent: Number.POSITIVE_INFINITY, salesVelocity: Number.NaN,
+  competition: Number.NaN, priceStability: Number.NaN, freshness: Number.NaN,
+  identityStrength: Number.NaN, risk: Number.NaN,
+});
+assert.equal(nonFiniteInputs.score, 0);
+assert.equal(nonFiniteInputs.tier, "REJECT");
+assert.ok(Number.isFinite(nonFiniteInputs.score));
+
 console.log("MATCHER opportunity scoring verification: PASS");
+
