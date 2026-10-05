@@ -1,11 +1,12 @@
-export type IdentityDecision = "AUTO_LINK" | "REVIEW" | "BLOCK";
+export type IdentifierType = "JAN" | "EAN" | "UPC" | "MPN" | "SKU" | "SUPPLIER_PRODUCT_NO";
 
-export type IdentityInput = {
-  gtin?: string | null;
-  mpn?: string | null;
+export type ProductIdentifier = { type: IdentifierType; value: string };
+
+export type IdentityCandidate = {
   brand?: string | null;
   modelNumber?: string | null;
   title?: string | null;
+  identifiers?: ProductIdentifier[];
   color?: string | null;
   size?: string | null;
   capacity?: string | null;
@@ -14,147 +15,164 @@ export type IdentityInput = {
   condition?: string | null;
 };
 
+export type IdentityDecision = "AUTO_LINK" | "REVIEW" | "BLOCK";
+
 export type IdentityEvidence = {
   field: string;
-  result: "EXACT" | "MISMATCH" | "MISSING" | "WEAK";
-  sourceValue: string | null;
-  masterValue: string | null;
+  candidate: string | number | null;
+  master: string | number | null;
+  result: "MATCH" | "MISMATCH" | "MISSING" | "WEAK";
   reason: string;
 };
 
-export type IdentityResult = {
+export type IdentityMatchResult = {
   decision: IdentityDecision;
   matchMethod: "STRONG" | "WEAK" | "NONE";
+  hardBlockReasons: string[];
   evidence: IdentityEvidence[];
-  blockingReasons: string[];
 };
 
-const normalizeText = (value?: string | null) =>
-  value?.trim().replace(/\s+/g, " ").toLocaleLowerCase("ja-JP") || null;
+const GLOBAL_IDENTIFIERS: IdentifierType[] = ["JAN", "EAN", "UPC"];
 
-const normalizeGtin = (value?: string | null) =>
-  value?.replace(/[^0-9]/g, "") || null;
+function normalize(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const normalized = value.normalize("NFKC").trim().toUpperCase().replace(/\s+/g, "").replaceAll("-", "");
+  return normalized || null;
+}
 
-const normalizeSetCount = (value?: number | null) =>
-  value === null || value === undefined ? null : Number(value);
+function identifierMap(input: IdentityCandidate) {
+  return new Map(
+    (input.identifiers ?? [])
+      .map((item) => [item.type, normalize(item.value)] as const)
+      .filter(([, value]) => value !== null),
+  );
+}
 
-const exactPair = (
-  field: string,
-  sourceValue: string | null,
-  masterValue: string | null,
-  reason: string,
+function same(a: string | null | undefined, b: string | null | undefined) {
+  const left = normalize(a);
+  const right = normalize(b);
+  return left !== null && right !== null && left === right;
+}
+
+function addPairEvidence(
   evidence: IdentityEvidence[],
-  blockingReasons: string[],
-) => {
-  if (!sourceValue || !masterValue) {
-    evidence.push({ field, result: "MISSING", sourceValue, masterValue, reason });
+  field: string,
+  candidate: string | number | null,
+  master: string | number | null,
+  reason: string,
+) {
+  if (candidate == null || master == null) {
+    evidence.push({ field, candidate, master, result: "MISSING", reason });
     return;
   }
-  if (sourceValue === masterValue) {
-    evidence.push({ field, result: "EXACT", sourceValue, masterValue, reason });
-  } else {
-    evidence.push({ field, result: "MISMATCH", sourceValue, masterValue, reason });
-    blockingReasons.push(`${field.toUpperCase()}_MISMATCH`);
-  }
-};
+  evidence.push({
+    field,
+    candidate,
+    master,
+    result: String(candidate) === String(master) ? "MATCH" : "MISMATCH",
+    reason,
+  });
+}
 
-export function evaluateIdentityMatch(
-  source: IdentityInput,
-  master: IdentityInput,
-): IdentityResult {
+export function matchProductIdentity(
+  candidate: IdentityCandidate,
+  master: IdentityCandidate,
+): IdentityMatchResult {
   const evidence: IdentityEvidence[] = [];
-  const blockingReasons: string[] = [];
+  const hardBlockReasons: string[] = [];
+  const candidateIds = identifierMap(candidate);
+  const masterIds = identifierMap(master);
 
-  const sourceGtin = normalizeGtin(source.gtin);
-  const masterGtin = normalizeGtin(master.gtin);
-  const sourceMpn = normalizeText(source.mpn || source.modelNumber);
-  const masterMpn = normalizeText(master.mpn || master.modelNumber);
-
-  exactPair("gtin", sourceGtin, masterGtin, "GTIN must match exactly when both are present.", evidence, blockingReasons);
-  exactPair("mpn", sourceMpn, masterMpn, "MPN/model number must match exactly when both are present.", evidence, blockingReasons);
-
-  const variantFields: Array<[string, string | null, string | null]> = [
-    ["brand", normalizeText(source.brand), normalizeText(master.brand)],
-    ["color", normalizeText(source.color), normalizeText(master.color)],
-    ["size", normalizeText(source.size), normalizeText(master.size)],
-    ["capacity", normalizeText(source.capacity), normalizeText(master.capacity)],
-    ["generation", normalizeText(source.generation), normalizeText(master.generation)],
-    ["condition", normalizeText(source.condition), normalizeText(master.condition)],
-  ];
-
-  for (const [field, sourceValue, masterValue] of variantFields) {
-    exactPair(field, sourceValue, masterValue, `${field} must not contradict the master when both are known.`, evidence, blockingReasons);
+  const variantFields = ["color", "size", "capacity", "generation", "condition"] as const;
+  for (const field of variantFields) {
+    const left = candidate[field];
+    const right = master[field];
+    if (left == null || right == null) {
+      addPairEvidence(evidence, field, left ?? null, right ?? null, "Unknown variant data cannot be guessed.");
+    } else if (!same(String(left), String(right))) {
+      addPairEvidence(evidence, field, left, right, "Known variant contradiction is a hard block.");
+      hardBlockReasons.push(field.toUpperCase() + "_MISMATCH");
+    } else {
+      addPairEvidence(evidence, field, left, right, "Known variant matches exactly.");
+    }
   }
 
-  const sourceSetCount = normalizeSetCount(source.setCount);
-  const masterSetCount = normalizeSetCount(master.setCount);
-  if (sourceSetCount === null || masterSetCount === null) {
-    evidence.push({
-      field: "set_count",
-      result: "MISSING",
-      sourceValue: sourceSetCount === null ? null : String(sourceSetCount),
-      masterValue: masterSetCount === null ? null : String(masterSetCount),
-      reason: "Set count is blocking only when both values are known and disagree.",
-    });
-  } else if (sourceSetCount === masterSetCount) {
-    evidence.push({
-      field: "set_count",
-      result: "EXACT",
-      sourceValue: String(sourceSetCount),
-      masterValue: String(masterSetCount),
-      reason: "Set count matches exactly.",
-    });
+  const leftSet = candidate.setCount ?? null;
+  const rightSet = master.setCount ?? null;
+  if (leftSet == null || rightSet == null) {
+    addPairEvidence(evidence, "set_count", leftSet, rightSet, "Set count is blocking only when both values are known.");
+  } else if (leftSet !== rightSet) {
+    addPairEvidence(evidence, "set_count", leftSet, rightSet, "Set count contradiction is a hard block.");
+    hardBlockReasons.push("SET_COUNT_MISMATCH");
   } else {
-    evidence.push({
-      field: "set_count",
-      result: "MISMATCH",
-      sourceValue: String(sourceSetCount),
-      masterValue: String(masterSetCount),
-      reason: "Set count mismatch is a hard block.",
-    });
-    blockingReasons.push("SET_COUNT_MISMATCH");
+    addPairEvidence(evidence, "set_count", leftSet, rightSet, "Set count matches exactly.");
   }
 
-  if (blockingReasons.length) {
+  for (const type of GLOBAL_IDENTIFIERS) {
+    const left = candidateIds.get(type) ?? null;
+    const right = masterIds.get(type) ?? null;
+    if (left == null || right == null) {
+      addPairEvidence(evidence, type, left, right, "Strong identifier is missing on one side; never infer it.");
+    } else if (left !== right) {
+      addPairEvidence(evidence, type, left, right, "Strong identifier contradiction is a hard block.");
+      hardBlockReasons.push(type + "_MISMATCH");
+    } else {
+      addPairEvidence(evidence, type, left, right, "Strong identifier matches exactly.");
+    }
+  }
+
+  const candidateMpn = candidateIds.get("MPN") ?? normalize(candidate.modelNumber);
+  const masterMpn = masterIds.get("MPN") ?? normalize(master.modelNumber);
+  if (candidateMpn == null || masterMpn == null) {
+    addPairEvidence(evidence, "MPN", candidateMpn, masterMpn, "MPN/model evidence is not guessed when missing.");
+  } else if (candidateMpn !== masterMpn) {
+    addPairEvidence(evidence, "MPN", candidateMpn, masterMpn, "MPN/model contradiction is a hard block.");
+    hardBlockReasons.push("MPN_MISMATCH");
+  } else {
+    addPairEvidence(evidence, "MPN", candidateMpn, masterMpn, "MPN/model matches exactly.");
+  }
+
+  if (hardBlockReasons.length > 0) {
     return {
       decision: "BLOCK",
       matchMethod: "NONE",
+      hardBlockReasons: [...new Set(hardBlockReasons)],
       evidence,
-      blockingReasons: [...new Set(blockingReasons)],
     };
   }
 
-  const gtinExact = Boolean(sourceGtin && masterGtin && sourceGtin === masterGtin);
-  const mpnExact = Boolean(sourceMpn && masterMpn && sourceMpn === masterMpn);
-  const brandExact = Boolean(
-    normalizeText(source.brand) &&
-      normalizeText(master.brand) &&
-      normalizeText(source.brand) === normalizeText(master.brand),
-  );
+  const exactGlobal = GLOBAL_IDENTIFIERS.some((type) => {
+    const left = candidateIds.get(type);
+    const right = masterIds.get(type);
+    return Boolean(left && right && left === right);
+  });
 
-  if (gtinExact || (mpnExact && brandExact)) {
+  const brandMatch = same(candidate.brand, master.brand);
+  const mpnMatch = Boolean(candidateMpn && masterMpn && candidateMpn === masterMpn);
+
+  if (exactGlobal || (mpnMatch && brandMatch)) {
     return {
       decision: "AUTO_LINK",
       matchMethod: "STRONG",
+      hardBlockReasons: [],
       evidence,
-      blockingReasons: [],
     };
   }
 
-  if (source.title && master.title) {
+  if (candidate.title && master.title) {
     evidence.push({
       field: "title",
+      candidate: normalize(candidate.title),
+      master: normalize(master.title),
       result: "WEAK",
-      sourceValue: normalizeText(source.title),
-      masterValue: normalizeText(master.title),
-      reason: "Title similarity is never sufficient for automatic linking.",
+      reason: "Title similarity can surface a candidate, but can never promote it to AUTO_LINK.",
     });
   }
 
   return {
     decision: "REVIEW",
     matchMethod: "WEAK",
+    hardBlockReasons: [],
     evidence,
-    blockingReasons: [],
   };
 }
