@@ -279,3 +279,7 @@ h2 { font-size:17px; margin:0 0 12px; }
 .decision-market span { color:#53606e; font-size:8px; letter-spacing:.13em; }
 .decision-market strong { color:#c4cad2; font-size:11px; overflow-wrap:anywhere; }
 @media (max-width:520px) { .decision-market{grid-template-columns:1fr 1fr}.decision-market div{padding:11px} }
+
+.status-live span { background:#7ee787; box-shadow:0 0 12px rgba(126,231,135,.45); }
+.status-empty span { background:#d7b86e; box-shadow:0 0 12px rgba(215,184,110,.35); }
+.status-unavailable span { background:#d87979; box-shadow:0 0 12px rgba(216,121,121,.35); }
