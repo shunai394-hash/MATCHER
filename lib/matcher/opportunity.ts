@@ -37,7 +37,8 @@ export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
   else reasons.push("profit unavailable or non-positive");
   if (input.roiPercent >= 30) reasons.push("ROI strong");
   if (input.salesVelocity >= 70) reasons.push("demand moving");
-  if (input.competition >= 70) reasons.push("competition manageable");
+  if (input.competition <= 30) reasons.push("competition manageable");
+  if (input.competition >= 70) reasons.push("competition pressure high");
   if (input.priceStability >= 70) reasons.push("price stable");
   if (input.identityStrength >= 90) reasons.push("identity proven");
   if (input.freshness < 70) reasons.push("data freshness too low");
