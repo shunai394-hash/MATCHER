@@ -12,6 +12,11 @@ const pillars = [
 const flow = ["Supplier Data", "Identity Match", "Product Master", "Cost / Profit", "Safety Gate", "Sellability"];
 
 export default function Home() {
+  const opportunityScores = [
+    scoreOpportunity({ expectedProfit: 3840, roiPercent: 42, salesVelocity: 90, competition: 80, priceStability: 85, freshness: 95, identityStrength: 100, risk: 5 }),
+    scoreOpportunity({ expectedProfit: 2460, roiPercent: 31, salesVelocity: 70, competition: 55, priceStability: 72, freshness: 80, identityStrength: 96, risk: 18 }),
+    scoreOpportunity({ expectedProfit: 5100, roiPercent: 70, salesVelocity: 30, competition: 25, priceStability: 25, freshness: 20, identityStrength: 90, risk: 70 }),
+  ];
   return (
     <main className="shell">
       <a className="skip-link" href="#decision">判断画面へ移動</a>
@@ -69,18 +74,18 @@ export default function Home() {
         <div className="opportunity-list">
           <article className="opportunity-item priority">
             <div className="opportunity-rank">01</div>
-            <div><span>PRIORITY · ILLUSTRATIVE</span><h3>Noise-Canceling Headphones / Black</h3><p>ROI 42% · expected profit ¥3,840 · demand moving · identity proven</p></div>
-            <strong>82</strong>
+            <div><span>{opportunityScores[0].tier} · ILLUSTRATIVE</span><h3>Noise-Canceling Headphones / Black</h3><p>ROI 42% · expected profit ¥3,840 · demand moving · identity proven</p></div>
+            <strong>{opportunityScores[0].score}</strong>
           </article>
           <article className="opportunity-item watch">
             <div className="opportunity-rank">02</div>
-            <div><span>WATCH · ILLUSTRATIVE</span><h3>Portable SSD / 1TB</h3><p>ROI 31% · expected profit ¥2,460 · competition rising</p></div>
-            <strong>64</strong>
+            <div><span>{opportunityScores[1].tier} · ILLUSTRATIVE</span><h3>Portable SSD / 1TB</h3><p>ROI 31% · expected profit ¥2,460 · competition rising</p></div>
+            <strong>{opportunityScores[1].score}</strong>
           </article>
           <article className="opportunity-item reject">
             <div className="opportunity-rank">03</div>
-            <div><span>REJECT · ILLUSTRATIVE</span><h3>Wireless Earbuds / White</h3><p>High apparent margin · weak demand evidence · stale price</p></div>
-            <strong>38</strong>
+            <div><span>{opportunityScores[2].tier} · ILLUSTRATIVE</span><h3>Wireless Earbuds / White</h3><p>High apparent margin · weak demand evidence · stale price</p></div>
+            <strong>{opportunityScores[2].score}</strong>
           </article>
         </div>
         <p className="opportunity-foot">※現在は体験用データ。実データ接続後は、この順位を需要・仕入れ価格・販売相場・競合・鮮度から動的に再計算する。</p>
