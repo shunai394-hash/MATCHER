@@ -32,7 +32,8 @@ export type IdentityMatchResult = {
   evidence: IdentityEvidence[];
 };
 
-const GLOBAL_IDENTIFIERS: IdentifierType[] = ["JAN", "EAN", "UPC"];
+const GLOBAL_IDENTIFIERS = ["JAN", "EAN", "UPC"] as const;
+type GlobalIdentifierType = (typeof GLOBAL_IDENTIFIERS)[number];
 
 export function normalizeText(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -66,7 +67,7 @@ function hasIdentifierConflict(map: Map<IdentifierType, string[]>, type: Identif
   return (map.get(type) ?? []).length > 1;
 }
 
-function isValidCheckDigit(value: string, type: "JAN" | "EAN" | "UPC") {
+function isValidCheckDigit(value: string, type: GlobalIdentifierType) {
   if (!/^\d+$/.test(value)) return false;
   const expectedLength = type === "UPC" ? 12 : 13;
   if (value.length !== expectedLength) return false;
