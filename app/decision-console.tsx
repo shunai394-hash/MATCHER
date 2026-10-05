@@ -3,9 +3,9 @@
 import { useRef, useState } from "react";
 
 const candidates = [
-  { id: "01", state: "SELLABLE", tone: "sellable", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier A", buy: "¥12,800", sell: "¥21,900", profit: "+¥3,840", confidence: "94%", reason: "JAN exact · variant aligned · stock fresh", gates: [["IDENTITY", "PASS"], ["VARIANT", "PASS"], ["ECONOMICS", "PASS"], ["FRESHNESS", "PASS"]] },
-  { id: "02", state: "BLOCKED", tone: "blocked", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier B", buy: "¥11,400", sell: "¥21,900", profit: "—", confidence: "3%", reason: "Color mismatch · Black vs White", gates: [["IDENTITY", "PASS"], ["VARIANT", "BLOCK"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
-  { id: "03", state: "REVIEW", tone: "review", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier C", buy: "¥13,100", sell: "¥21,900", profit: "—", confidence: "41%", reason: "MPN missing · variant evidence incomplete", gates: [["IDENTITY", "REVIEW"], ["VARIANT", "REVIEW"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
+  { id: "01", state: "SELLABLE", tone: "sellable", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier A", buy: "¥12,800", sell: "¥21,900", profit: "+¥3,840", evidenceCoverage: "4/4", reason: "JAN exact · variant aligned · stock fresh", gates: [["IDENTITY", "PASS"], ["VARIANT", "PASS"], ["ECONOMICS", "PASS"], ["FRESHNESS", "PASS"]] },
+  { id: "02", state: "BLOCKED", tone: "blocked", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier B", buy: "¥11,400", sell: "¥21,900", profit: "—", evidenceCoverage: "2/4", reason: "Color mismatch · Black vs White", gates: [["IDENTITY", "PASS"], ["VARIANT", "BLOCK"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
+  { id: "03", state: "REVIEW", tone: "review", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier C", buy: "¥13,100", sell: "¥21,900", profit: "—", evidenceCoverage: "2/4", reason: "MPN missing · variant evidence incomplete", gates: [["IDENTITY", "REVIEW"], ["VARIANT", "REVIEW"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
 ] as const;
 
 export function DecisionConsole() {
@@ -68,7 +68,7 @@ export function DecisionConsole() {
         <div className={`decision-detail ${item.tone}`} id="decision-detail" role="tabpanel" aria-live="polite">
           <div className="decision-topline">
             <span>{item.state}</span>
-            <b>{item.confidence} evidence coverage</b>
+            <b>{item.evidenceCoverage} evidence coverage</b>
           </div>
           <h3>{item.product}</h3>
           <div className="decision-grid">
