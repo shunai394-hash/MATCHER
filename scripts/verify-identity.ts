@@ -3,7 +3,7 @@ import { matchProductIdentity } from "../lib/matcher/identity.ts";
 
 const base = {
   identifiers: [
-    { type: "JAN" as const, value: "4901234567890" },
+    { type: "JAN" as const, value: "4901234567894" },
     { type: "MPN" as const, value: "ABC-123" },
   ],
   brand: "Example",
@@ -18,7 +18,7 @@ const base = {
 };
 
 const strong = matchProductIdentity(
-  { ...base, identifiers: [{ type: "JAN", value: "4901-2345-67890" }, { type: "MPN", value: "ABC-123" }] },
+  { ...base, identifiers: [{ type: "JAN", value: "4901-2345-67894" }, { type: "MPN", value: "ABC-123" }] },
   base,
 );
 assert.equal(strong.decision, "AUTO_LINK");
@@ -29,7 +29,7 @@ assert.equal(variantBlock.decision, "BLOCK");
 assert.ok(variantBlock.hardBlockReasons.includes("COLOR_MISMATCH"));
 
 const mpnBlock = matchProductIdentity(
-  { ...base, identifiers: [{ type: "JAN", value: "4901234567890" }, { type: "MPN", value: "ABC-999" }] },
+  { ...base, identifiers: [{ type: "JAN", value: "4901234567894" }, { type: "MPN", value: "ABC-999" }] },
   base,
 );
 assert.equal(mpnBlock.decision, "BLOCK");
@@ -50,7 +50,7 @@ assert.equal(weakNeverPromotes.decision, "REVIEW");
 assert.equal(weakNeverPromotes.matchMethod, "WEAK");
 
 const duplicateIdentifierBlock = matchProductIdentity(
-  { ...base, identifiers: [{ type: "JAN", value: "4901234567890" }, { type: "JAN", value: "4909999999999" }, { type: "MPN", value: "ABC-123" }] },
+  { ...base, identifiers: [{ type: "JAN", value: "4901234567894" }, { type: "JAN", value: "4909999999998" }, { type: "MPN", value: "ABC-123" }] },
   base,
 );
 assert.equal(duplicateIdentifierBlock.decision, "BLOCK");
@@ -61,3 +61,19 @@ const deterministicB = matchProductIdentity({ ...base }, base);
 assert.deepEqual(deterministicA, deterministicB);
 
 console.log("MATCHER identity verification: PASS");
+
+
+const invalidGlobal = matchProductIdentity(
+  { ...base, identifiers: [{ type: "JAN", value: "4901234567890" }, { type: "MPN", value: "ABC-123" }] },
+  base,
+);
+assert.equal(invalidGlobal.decision, "REVIEW");
+assert.ok(invalidGlobal.evidence.some((item) => item.field === "JAN" && item.reason.includes("invalid")));
+
+const conservativeTextNormalization = matchProductIdentity(
+  { ...base, color: "Dark   Blue", identifiers: [{ type: "MPN", value: "ABC-123" }] },
+  { ...base, color: "Dark Blue", identifiers: [{ type: "MPN", value: "ABC-123" }] },
+);
+assert.equal(conservativeTextNormalization.decision, "AUTO_LINK");
+
+console.log("MATCHER precision boundary verification: PASS");
