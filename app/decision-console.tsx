@@ -46,7 +46,7 @@ export function DecisionConsole({ opportunities }: { opportunities: LiveOpportun
           <h2 id="decision-title">利益がある商品ではなく、<em>買っていい商品</em>を出す。</h2>
           <p className="console-lead">実データから候補を絞り、証拠を並べ、最後の購入判断は人が握る。</p>
         </div>
-        <span className="console-live"><i aria-hidden="true" /> LIVE DATA</span>
+        <span className="console-live"><i aria-hidden="true" /> VERIFIED DATA ONLY</span>
       </div>
 
       <div className="console-body">
@@ -96,6 +96,7 @@ export function DecisionConsole({ opportunities }: { opportunities: LiveOpportun
               <b>{item.identityStrength}% identity · {item.freshness}% freshness</b>
             </div>
             <h3>{item.product}</h3>
+            <p className="decision-context">{item.supplier} · market observed {new Date(item.marketObservedAt).toLocaleString("ja-JP", { dateStyle: "short", timeStyle: "short" })}</p>
             <div className="decision-grid">
               <div><small>SUPPLIER COST</small><strong>¥{Math.round(item.buy).toLocaleString()}</strong></div>
               <div><small>EXPECTED SELL</small><strong>¥{Math.round(item.sell).toLocaleString()}</strong></div>
@@ -124,7 +125,7 @@ export function DecisionConsole({ opportunities }: { opportunities: LiveOpportun
             </div>
             <div className="decision-actions">
               <button type="button" className="decision-primary" onClick={() => document.getElementById("proof")?.scrollIntoView({ behavior: "smooth" })}>判定の根拠を見る</button>
-              <span>購入は人の承認後に進みます。</span>
+              <span>購入は人の承認後に進みます。カード決済前に最終確認します。</span>
             </div>
           </div>
         ) : (
