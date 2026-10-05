@@ -9,7 +9,8 @@ function dedupe(products: SourceProduct[]) {
   const seen = new Set<string>();
   return products.map(normalizeSourceProduct).filter((product) => {
     const identifier = product.identifiers?.find((item) => item.type === "JAN")?.value;
-    const key = identifier ? `JAN:${identifier}` : `${product.externalId}:${product.productName.toUpperCase()}`;
+    const source = product.sourceKey ?? "unknown-source";
+    const key = identifier ? `${source}:JAN:${identifier}` : `${source}:${product.externalId}:${product.productName.toUpperCase()}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
