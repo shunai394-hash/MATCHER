@@ -40,3 +40,7 @@ export function calculateNetEconomics(input: { salePrice: number; buyPrice: numb
   const expectedProfit = salePrice - totalCost;
   return { valid: true, expectedProfit, roiPercent: (expectedProfit / (buyPrice + shippingCost)) * 100, totalCost };
 }
+
+export function isProfitableEconomics(result: NetEconomics, minimumProfit = 1, minimumRoiPercent = 0) {
+  return result.valid && Number.isFinite(result.expectedProfit) && Number.isFinite(result.roiPercent) && result.expectedProfit >= minimumProfit && result.roiPercent >= minimumRoiPercent;
+}
