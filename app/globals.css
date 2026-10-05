@@ -263,3 +263,13 @@ h2 { font-size:17px; margin:0 0 12px; }
  .opportunity-item { transition:none; }
  .opportunity-item:hover { transform:none; }
 }
+
+
+/* PASS 11 — truthful live-data empty states */
+.opportunity-empty { border:1px solid #252a31; background:#0d1014; padding:34px 28px; min-height:170px; display:flex; flex-direction:column; justify-content:center; gap:10px; }
+.opportunity-empty strong { color:#f2f3f5; font-size:12px; letter-spacing:.14em; }
+.opportunity-empty p { margin:0; color:#8993a0; font-size:13px; line-height:1.7; max-width:680px; }
+.opportunity-empty span { color:#53606e; font-size:10px; letter-spacing:.08em; }
+.console-empty { min-height:260px; padding:28px; display:flex; flex-direction:column; justify-content:center; gap:10px; background:#0d1014; }
+.console-empty strong { color:#f2f3f5; font-size:10px; letter-spacing:.14em; }
+.console-empty span { color:#697381; font-size:11px; line-height:1.7; max-width:360px; }
