@@ -200,6 +200,8 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
       if (!product || !profit || !match || !match.master_product_id) continue;
       const market = markets.get(match.master_product_id);
       if (!market) continue;
+      const marketAgeHours = Math.max(0, (Date.now() - Date.parse(market.observed_at)) / 3_600_000);
+      if (marketAgeHours > 24) continue;
 
       const sale = numberOrNull(profit.sale_price);
       const buy = numberOrNull(profit.supplier_cost);
