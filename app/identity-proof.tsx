@@ -61,8 +61,8 @@ export function IdentityProof() {
             <span>PRODUCT MASTER</span>
             <strong>{current.master}</strong>
           </div>
-          <div className="proof-confidence" aria-label={`confidence ${current.confidence} percent`}>
-            <div><span>CONFIDENCE</span><strong>{current.confidence}%</strong></div>
+          <div className="proof-confidence" aria-label={`evidence coverage ${current.confidence} percent`}>
+            <div><span>EVIDENCE COVERAGE</span><strong>{current.confidence}%</strong></div>
             <div className="confidence-track"><span style={{ width: `${current.confidence}%` }} /></div>
           </div>
           <div className="proof-evidence">
