@@ -34,16 +34,21 @@ export type IdentityMatchResult = {
 
 const GLOBAL_IDENTIFIERS: IdentifierType[] = ["JAN", "EAN", "UPC"];
 
-function normalize(value: string | null | undefined): string | null {
+function normalizeText(value: string | null | undefined): string | null {
   if (!value) return null;
-  const normalized = value.normalize("NFKC").trim().toUpperCase().replace(/\s+/g, "").replaceAll("-", "");
+  const normalized = value.normalize("NFKC").trim().toUpperCase().replace(/\s+/g, " ");
+  return normalized || null;
+}
+
+function normalizeIdentifier(value: string | null | undefined): string | null {
+  const normalized = normalizeText(value)?.replace(/\s+/g, "").replaceAll("-", "") ?? null;
   return normalized || null;
 }
 
 function identifierMap(input: IdentityCandidate) {
   const values = new Map<IdentifierType, string[]>();
   for (const item of input.identifiers ?? []) {
-    const value = normalize(item.value);
+    const value = normalizeIdentifier(item.value);
     if (!value) continue;
     const current = values.get(item.type) ?? [];
     if (!current.includes(value)) current.push(value);
@@ -68,8 +73,8 @@ function hasIdentifierConflict(
 }
 
 function same(a: string | null | undefined, b: string | null | undefined) {
-  const left = normalize(a);
-  const right = normalize(b);
+  const left = normalizeText(a);
+  const right = normalizeText(b);
   return left !== null && right !== null && left === right;
 }
 
@@ -84,11 +89,13 @@ function addPairEvidence(
     evidence.push({ field, candidate, master, result: "MISSING", reason });
     return;
   }
+  const normalizedCandidate = typeof candidate === "string" ? normalizeText(candidate) : candidate;
+  const normalizedMaster = typeof master === "string" ? normalizeText(master) : master;
   evidence.push({
     field,
     candidate,
     master,
-    result: String(candidate) === String(master) ? "MATCH" : "MISMATCH",
+    result: normalizedCandidate === normalizedMaster ? "MATCH" : "MISMATCH",
     reason,
   });
 }
@@ -184,8 +191,8 @@ export function matchProductIdentity(
     addPairEvidence(
       evidence,
       "model_number",
-      normalize(candidate.modelNumber),
-      normalize(master.modelNumber),
+      normalizeText(candidate.modelNumber),
+      normalizeText(master.modelNumber),
       "Model number alone never promotes a candidate to AUTO_LINK.",
     );
   }
@@ -203,8 +210,8 @@ export function matchProductIdentity(
   if (candidate.title && master.title) {
     evidence.push({
       field: "title",
-      candidate: normalize(candidate.title),
-      master: normalize(master.title),
+      candidate: normalizeText(candidate.title),
+      master: normalizeText(master.title),
       result: "WEAK",
       reason: "Title similarity can surface a candidate, but can never promote it to AUTO_LINK.",
     });
