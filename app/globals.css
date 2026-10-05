@@ -99,8 +99,8 @@ h2 { font-size:17px; margin:0 0 12px; }
 .console-head h2 { font-size:clamp(28px,4vw,48px); line-height:1.02; letter-spacing:-.045em; max-width:760px; margin:0; }
 .console-head h2 em { color:#aeb8c4; font-style:normal; }
 .console-lead { color:#8993a0; font-size:14px; line-height:1.7; margin:16px 0 0; max-width:600px; }
-.console-live { color:#899f8e; border:1px solid #33473a; background:#101a14; padding:9px 11px; font-size:9px; letter-spacing:.14em; white-space:nowrap; }
-.console-live i { display:inline-block; width:6px; height:6px; border-radius:50%; background:#7ee787; margin-right:7px; box-shadow:0 0 12px rgba(126,231,135,.45); }
+.console-live { color:#697381; border:1px solid #303640; background:#101318; padding:9px 11px; font-size:9px; letter-spacing:.14em; white-space:nowrap; }
+.console-live i { display:inline-block; width:6px; height:6px; border-radius:50%; background:#53606e; margin-right:7px; }
 .console-body { display:grid; grid-template-columns:.72fr 1.5fr; gap:8px; background:#252a31; }
 .candidate-list { display:grid; gap:1px; background:#252a31; }
 .candidate { border:0; background:#0d1014; color:#8993a0; min-height:104px; padding:18px; display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:12px; text-align:left; cursor:pointer; transition:background .2s,transform .2s,color .2s; }
@@ -155,10 +155,10 @@ h2 { font-size:17px; margin:0 0 12px; }
 .decision-detail.blocked .decision-signal strong { color:#e4aaaa; }
 .decision-detail.review .decision-signal strong { color:#ddc68d; }
 .signal-bar { height:4px; background:#20252c; margin-top:10px; overflow:hidden; }
-.signal-bar i { display:block; height:100%; background:#f2f3f5; transform-origin:left; transition:width .35s ease; }
-.decision-detail.sellable .signal-bar i { background:#7ee787; }
-.decision-detail.blocked .signal-bar i { background:#d87979; }
-.decision-detail.review .signal-bar i { background:#d7b86e; }
+.signal-bar i { display:block; height:100%; transform-origin:left; transition:transform .35s ease; }
+.signal-bar i.full { width:100%; background:#7ee787; }
+.signal-bar i.blocked { width:18%; background:#d87979; }
+.signal-bar i.review { width:48%; background:#d7b86e; }
 .decision-signal small { display:block; color:#697381; font-size:10px; line-height:1.6; margin-top:8px; }
 @media (prefers-reduced-motion:reduce) { .signal-bar i { transition:none; } }
 
