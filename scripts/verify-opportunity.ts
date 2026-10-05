@@ -35,3 +35,15 @@ const zeroProfit = scoreOpportunity({
 });
 assert.notEqual(zeroProfit.tier, "PRIORITY");
 
+
+const staleMarket = scoreOpportunity({
+  expectedProfit: 5000, roiPercent: 40, salesVelocity: 90, competition: 90,
+  priceStability: 90, freshness: 0, identityStrength: 100, risk: 10,
+});
+assert(staleMarket.tier !== "PRIORITY", "stale market evidence must never be PRIORITY");
+
+const zeroMarket = scoreOpportunity({
+  expectedProfit: 5000, roiPercent: 40, salesVelocity: 0, competition: 0,
+  priceStability: 0, freshness: 90, identityStrength: 100, risk: 10,
+});
+assert(zeroMarket.tier !== "PRIORITY", "missing market signals must not become PRIORITY");
