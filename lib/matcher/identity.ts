@@ -148,7 +148,6 @@ export function matchProductIdentity(
   });
 
   const brandMatch = same(candidate.brand, master.brand);
-  const modelMatch = same(candidate.modelNumber, master.modelNumber);
   if (candidate.modelNumber && master.modelNumber) {
     addPairEvidence(
       evidence,
