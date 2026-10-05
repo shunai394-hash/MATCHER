@@ -17,9 +17,10 @@ export default function Home() {
       <header className="header">
         <a className="brand" href="#" aria-label="MATCHER home">MATCHER</a>
         <nav className="nav" aria-label="Primary">
+          <a href="#journey">Journey</a>
           <a href="#decision">Decision</a>
-          <a href="#proof">Identity proof</a>
-          <a href="#architecture">Architecture</a>
+          <a href="#proof">Proof</a>
+          <a href="#architecture">System</a>
         </nav>
         <div className="status" aria-label="Interface status"><span aria-hidden="true" /> decision-first interface</div>
       </header>
@@ -34,6 +35,25 @@ export default function Home() {
         </div>
         <div className="hero-meta" aria-label="MATCHER principles">
           <span>IDENTITY FIRST</span><span>·</span><span>EVIDENCE LED</span><span>·</span><span>HUMAN APPROVED</span>
+        </div>
+        <div className="hero-signal" aria-label="The MATCHER decision model">
+          <div><span>SEARCH</span><b>↓</b><strong>JUDGEMENT</strong></div>
+          <p>探す量を増やすのではなく、<em>判断に必要な情報だけを前に出す。</em></p>
+        </div>
+      </section>
+
+      <section className="journey" id="journey" aria-labelledby="journey-title">
+        <div className="journey-head">
+          <div>
+            <p className="section-index">00 / USER JOURNEY</p>
+            <h2 id="journey-title">見る → 確かめる → 決める。</h2>
+          </div>
+          <p>一画面の中で「なぜ買えるか」「なぜ止まるか」を理解できる。MATCHERはデータを見せるためではなく、迷いを減らすために設計する。</p>
+        </div>
+        <div className="journey-steps">
+          <article><span>01</span><strong>FIND</strong><p>候補を絞り、商品そのものを先に特定する。</p></article>
+          <article><span>02</span><strong>PROVE</strong><p>識別子・仕様・バリアントを証拠として確認する。</p></article>
+          <article><span>03</span><strong>DECIDE</strong><p>利益・鮮度・安全性を通過させ、人が最終承認する。</p></article>
         </div>
       </section>
 
@@ -75,6 +95,12 @@ export default function Home() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="closing" aria-labelledby="closing-title">
+        <p className="section-index">04 / THE PROMISE</p>
+        <h2 id="closing-title">「探す」を終わらせ、<em>買う理由</em>を残す。</h2>
+        <p>商品同定から仕入れ判断までを一本につなぎ、判断の根拠が後から追える体験へ。</p>
       </section>
 
       <footer className="footer">
