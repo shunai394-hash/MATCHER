@@ -1,3 +1,4 @@
+import { DecisionConsole } from "./decision-console";
 import { IdentityProof } from "./identity-proof";
 
 const pillars = [
@@ -15,24 +16,27 @@ export default function Home() {
       <header className="header">
         <a className="brand" href="#" aria-label="MATCHER home">MATCHER</a>
         <nav className="nav" aria-label="Primary">
+          <a href="#decision">Decision</a>
           <a href="#proof">Identity proof</a>
           <a href="#architecture">Architecture</a>
         </nav>
-        <div className="status" aria-label="System status"><span aria-hidden="true" /> foundation online</div>
+        <div className="status" aria-label="System status"><span aria-hidden="true" /> decision engine online</div>
       </header>
 
       <section className="hero" aria-labelledby="hero-title">
         <p className="eyebrow">PRODUCT IDENTITY &amp; SUPPLIER INTELLIGENCE</p>
         <h1 id="hero-title">同じ商品を、<br /><em>正しく見つける。</em></h1>
-        <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する基盤。</p>
+        <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する。だから、仕入れ候補を探し続ける時間を減らせる。</p>
         <div className="hero-actions">
-          <a className="button primary" href="#proof">See the decision proof <span aria-hidden="true">↘</span></a>
-          <a className="button secondary" href="#architecture">View the core flow <span aria-hidden="true">↓</span></a>
+          <a className="button primary" href="#decision">仕入れ候補を見る <span aria-hidden="true">↘</span></a>
+          <a className="button secondary" href="#proof">判定の根拠を見る <span aria-hidden="true">↓</span></a>
         </div>
         <div className="hero-meta" aria-label="MATCHER principles">
-          <span>IDENTITY FIRST</span><span>·</span><span>EVIDENCE LED</span><span>·</span><span>SAFETY GATED</span>
+          <span>IDENTITY FIRST</span><span>·</span><span>EVIDENCE LED</span><span>·</span><span>HUMAN APPROVED</span>
         </div>
       </section>
+
+      <DecisionConsole />
 
       <section id="proof"><IdentityProof /></section>
 
