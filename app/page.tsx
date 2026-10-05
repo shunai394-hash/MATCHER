@@ -20,7 +20,7 @@ export default function Home() {
           <a href="#proof">Identity proof</a>
           <a href="#architecture">Architecture</a>
         </nav>
-        <div className="status" aria-label="System status"><span aria-hidden="true" /> decision engine online</div>
+        <div className="status" aria-label="Experience status"><span aria-hidden="true" /> experience preview</div>
       </header>
 
       <section className="hero" aria-labelledby="hero-title">
