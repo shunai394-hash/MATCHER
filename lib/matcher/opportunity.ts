@@ -16,7 +16,7 @@ export type OpportunityResult = {
 };
 
 export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
-  const bounded = (n: number) => Math.max(0, Math.min(100, n));
+  const bounded = (n: number) => Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0;
   const safeProfit = Number.isFinite(input.expectedProfit) && input.expectedProfit > 0;
   const profitPotential = safeProfit
     ? Math.min(100, Math.max(0, 20 + (80 * Math.log10(input.expectedProfit + 1)) / Math.log10(10001)))
@@ -52,7 +52,7 @@ export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
     input.identityStrength >= 90 &&
     input.risk < 40;
 
-  const finalScore = Math.max(0, Math.min(100, score));
+  const finalScore = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
   return {
     score: finalScore,
     tier: safeForPriority && finalScore >= 72 ? "PRIORITY" : finalScore >= 52 ? "WATCH" : "REJECT",
