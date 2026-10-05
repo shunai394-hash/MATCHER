@@ -1,59 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const candidates = [
-  {
-    id: "01",
-    state: "SELLABLE",
-    tone: "sellable",
-    product: "Wireless Noise-Canceling Headphones",
-    supplier: "Supplier A",
-    buy: "¥12,800",
-    sell: "¥21,900",
-    profit: "+¥3,840",
-    confidence: "94%",
-    reason: "JAN exact · variant aligned · stock fresh",
-  },
-  {
-    id: "02",
-    state: "BLOCKED",
-    tone: "blocked",
-    product: "Wireless Noise-Canceling Headphones",
-    supplier: "Supplier B",
-    buy: "¥11,400",
-    sell: "¥21,900",
-    profit: "—",
-    confidence: "3%",
-    reason: "Color mismatch · 128GB vs 256GB",
-  },
-  {
-    id: "03",
-    state: "REVIEW",
-    tone: "review",
-    product: "Wireless Noise-Canceling Headphones",
-    supplier: "Supplier C",
-    buy: "¥13,100",
-    sell: "¥21,900",
-    profit: "—",
-    confidence: "41%",
-    reason: "MPN missing · variant evidence incomplete",
-  },
+  { id: "01", state: "SELLABLE", tone: "sellable", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier A", buy: "¥12,800", sell: "¥21,900", profit: "+¥3,840", confidence: "94%", reason: "JAN exact · variant aligned · stock fresh" },
+  { id: "02", state: "BLOCKED", tone: "blocked", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier B", buy: "¥11,400", sell: "¥21,900", profit: "—", confidence: "3%", reason: "Color mismatch · 128GB vs 256GB" },
+  { id: "03", state: "REVIEW", tone: "review", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier C", buy: "¥13,100", sell: "¥21,900", profit: "—", confidence: "41%", reason: "MPN missing · variant evidence incomplete" },
 ] as const;
 
 export function DecisionConsole() {
   const [active, setActive] = useState(0);
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const item = candidates[active];
+
+  const select = (index: number) => setActive(index);
+  const focusNext = (index: number) => {
+    select(index);
+    tabRefs.current[index]?.focus();
+  };
 
   return (
     <section className="console" id="decision" aria-labelledby="decision-title">
       <div className="console-head">
         <div>
-          <p className="section-index">03 / DECISION CONSOLE</p>
+          <p className="section-index">03 / DECISION PREVIEW</p>
           <h2 id="decision-title">利益がある商品ではなく、<em>買っていい商品</em>を出す。</h2>
           <p className="console-lead">MATCHERが候補を絞り、証拠を並べ、最後の購入判断は人が握る。</p>
         </div>
-        <span className="console-live"><i aria-hidden="true" /> LIVE DECISION MODEL</span>
+        <span className="console-live"><i aria-hidden="true" /> ILLUSTRATIVE SCENARIO</span>
       </div>
 
       <div className="console-body">
@@ -61,12 +35,25 @@ export function DecisionConsole() {
           {candidates.map((candidate, index) => (
             <button
               key={candidate.id}
+              ref={(node) => { tabRefs.current[index] = node; }}
               className={index === active ? "candidate active" : "candidate"}
               type="button"
               role="tab"
               aria-selected={index === active}
               aria-controls="decision-detail"
-              onClick={() => setActive(index)}
+              tabIndex={index === active ? 0 : -1}
+              onClick={() => select(index)}
+              onKeyDown={(event) => {
+                const next = event.key === "ArrowDown" || event.key === "ArrowRight"
+                  ? (index + 1) % candidates.length
+                  : event.key === "ArrowUp" || event.key === "ArrowLeft"
+                    ? (index - 1 + candidates.length) % candidates.length
+                    : -1;
+                if (next >= 0) {
+                  event.preventDefault();
+                  focusNext(next);
+                }
+              }}
             >
               <span className="candidate-number">{candidate.id}</span>
               <span className="candidate-main">
@@ -94,8 +81,8 @@ export function DecisionConsole() {
             <p>{item.reason}</p>
           </div>
           <div className="decision-actions">
-            <button type="button" className="decision-primary">Open evidence</button>
-            <span>Purchase requires human approval.</span>
+            <button type="button" className="decision-primary" onClick={() => document.getElementById("proof")?.scrollIntoView({ behavior: "smooth" })}>判定の根拠を見る</button>
+            <span>購入は人の承認後に進みます。</span>
           </div>
         </div>
       </div>
