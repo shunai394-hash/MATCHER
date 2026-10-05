@@ -3,9 +3,9 @@
 import { useRef, useState } from "react";
 
 const candidates = [
-  { id: "01", state: "SELLABLE", tone: "sellable", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier A", buy: "¥12,800", sell: "¥21,900", profit: "+¥3,840", confidence: "94%", reason: "JAN exact · variant aligned · stock fresh" },
-  { id: "02", state: "BLOCKED", tone: "blocked", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier B", buy: "¥11,400", sell: "¥21,900", profit: "—", confidence: "3%", reason: "Color mismatch · 128GB vs 256GB" },
-  { id: "03", state: "REVIEW", tone: "review", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier C", buy: "¥13,100", sell: "¥21,900", profit: "—", confidence: "41%", reason: "MPN missing · variant evidence incomplete" },
+  { id: "01", state: "SELLABLE", tone: "sellable", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier A", buy: "¥12,800", sell: "¥21,900", profit: "+¥3,840", confidence: "94%", reason: "JAN exact · variant aligned · stock fresh", gates: [["IDENTITY", "PASS"], ["VARIANT", "PASS"], ["ECONOMICS", "PASS"], ["FRESHNESS", "PASS"]] },
+  { id: "02", state: "BLOCKED", tone: "blocked", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier B", buy: "¥11,400", sell: "¥21,900", profit: "—", confidence: "3%", reason: "Color mismatch · Black vs White", gates: [["IDENTITY", "PASS"], ["VARIANT", "BLOCK"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
+  { id: "03", state: "REVIEW", tone: "review", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier C", buy: "¥13,100", sell: "¥21,900", profit: "—", confidence: "41%", reason: "MPN missing · variant evidence incomplete", gates: [["IDENTITY", "REVIEW"], ["VARIANT", "REVIEW"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
 ] as const;
 
 export function DecisionConsole() {
@@ -75,6 +75,14 @@ export function DecisionConsole() {
             <div><small>SUPPLIER COST</small><strong>{item.buy}</strong></div>
             <div><small>EXPECTED SELL</small><strong>{item.sell}</strong></div>
             <div><small>EXPECTED PROFIT</small><strong>{item.profit}</strong></div>
+          </div>
+          <div className="decision-gates" aria-label="判定ゲート">
+            {item.gates.map(([label, state]) => (
+              <div className="decision-gate" key={label}>
+                <span>{label}</span>
+                <strong>{state}</strong>
+              </div>
+            ))}
           </div>
           <div className="decision-reason">
             <span>WHY</span>

@@ -137,3 +137,11 @@ h2 { font-size:17px; margin:0 0 12px; }
 .skip-link:focus { transform:translateY(0); }
 .lead strong { color:#f2f3f5; font-weight:650; }
 @media (max-width:520px) { .status { max-width:150px; text-align:right; line-height:1.3; } }
+
+.decision-gates { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#252a31; margin-top:18px; position:relative; z-index:1; }
+.decision-gate { background:#101318; padding:12px 13px; display:grid; gap:7px; }
+.decision-gate span { color:#53606e; font-size:8px; letter-spacing:.13em; }
+.decision-gate strong { color:#a9d7b3; font-size:10px; letter-spacing:.1em; }
+.decision-detail.blocked .decision-gate strong { color:#e4aaaa; }
+.decision-detail.review .decision-gate strong { color:#ddc68d; }
+@media (max-width:520px) { .decision-gates{grid-template-columns:1fr 1fr}.decision-gate{padding:11px} }
