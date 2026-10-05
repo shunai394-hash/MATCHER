@@ -27,10 +27,7 @@ export function DecisionConsole() {
           <h2 id="decision-title">利益がある商品ではなく、<em>買っていい商品</em>を出す。</h2>
           <p className="console-lead">MATCHERが候補を絞り、証拠を並べ、最後の購入判断は人が握る。</p>
         </div>
-        <div className="console-status" aria-label="Preview data status">
-          <span className="console-live"><i aria-hidden="true" /> ILLUSTRATIVE SCENARIO</span>
-          <small>SAMPLE DATA · NOT LIVE INVENTORY</small>
-        </div>
+        <span className="console-live"><i aria-hidden="true" /> ILLUSTRATIVE SCENARIO</span>
       </div>
 
       <div className="console-body">

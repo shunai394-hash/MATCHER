@@ -132,3 +132,8 @@ h2 { font-size:17px; margin:0 0 12px; }
 .decision-actions span { color:#53606e; font-size:10px; }
 @media (max-width:800px) { .console-body{grid-template-columns:1fr}.console-head{align-items:flex-start;flex-direction:column}.console-live{display:none} }
 @media (max-width:520px) { .console{padding:20px}.candidate{min-height:88px;padding:14px}.candidate-profit{font-size:11px}.decision-detail{padding:22px}.decision-grid{grid-template-columns:1fr}.decision-reason{display:grid;gap:8px}.decision-actions{align-items:flex-start;flex-direction:column} }
+
+.skip-link { position:fixed; left:16px; top:16px; z-index:100; transform:translateY(-180%); background:#f2f3f5; color:#0b0d10; padding:10px 14px; font-size:11px; font-weight:700; text-decoration:none; box-shadow:0 8px 30px rgba(0,0,0,.3); }
+.skip-link:focus { transform:translateY(0); }
+.lead strong { color:#f2f3f5; font-weight:650; }
+@media (max-width:520px) { .status { max-width:150px; text-align:right; line-height:1.3; } }
