@@ -41,11 +41,30 @@ function normalize(value: string | null | undefined): string | null {
 }
 
 function identifierMap(input: IdentityCandidate) {
-  return new Map(
-    (input.identifiers ?? [])
-      .map((item) => [item.type, normalize(item.value)] as const)
-      .filter(([, value]) => value !== null),
-  );
+  const values = new Map<IdentifierType, string[]>();
+  for (const item of input.identifiers ?? []) {
+    const value = normalize(item.value);
+    if (!value) continue;
+    const current = values.get(item.type) ?? [];
+    if (!current.includes(value)) current.push(value);
+    values.set(item.type, current);
+  }
+  return values;
+}
+
+function identifierValue(
+  map: Map<IdentifierType, string[]>,
+  type: IdentifierType,
+) {
+  const values = map.get(type) ?? [];
+  return values.length === 1 ? values[0] : null;
+}
+
+function hasIdentifierConflict(
+  map: Map<IdentifierType, string[]>,
+  type: IdentifierType,
+) {
+  return (map.get(type) ?? []).length > 1;
 }
 
 function same(a: string | null | undefined, b: string | null | undefined) {
@@ -109,8 +128,8 @@ export function matchProductIdentity(
   }
 
   for (const type of GLOBAL_IDENTIFIERS) {
-    const left = candidateIds.get(type) ?? null;
-    const right = masterIds.get(type) ?? null;
+    const left = identifierValue(candidateIds, type);
+    const right = identifierValue(masterIds, type);
     if (left == null || right == null) {
       addPairEvidence(evidence, type, left, right, "Strong identifier is missing on one side; never infer it.");
     } else if (left !== right) {
@@ -121,8 +140,8 @@ export function matchProductIdentity(
     }
   }
 
-  const candidateMpn = candidateIds.get("MPN") ?? null;
-  const masterMpn = masterIds.get("MPN") ?? null;
+  const candidateMpn = identifierValue(candidateIds, "MPN");
+  const masterMpn = identifierValue(masterIds, "MPN");
   if (candidateMpn == null || masterMpn == null) {
     addPairEvidence(evidence, "MPN", candidateMpn, masterMpn, "MPN/model evidence is not guessed when missing.");
   } else if (candidateMpn !== masterMpn) {
@@ -130,6 +149,19 @@ export function matchProductIdentity(
     hardBlockReasons.push("MPN_MISMATCH");
   } else {
     addPairEvidence(evidence, "MPN", candidateMpn, masterMpn, "MPN/model matches exactly.");
+  }
+
+  for (const type of ["JAN", "EAN", "UPC", "MPN"] as const) {
+    if (hasIdentifierConflict(candidateIds, type) || hasIdentifierConflict(masterIds, type)) {
+      hardBlockReasons.push(type + "_CONFLICT");
+      evidence.push({
+        field: type,
+        candidate: (candidateIds.get(type) ?? []).join(" | ") || null,
+        master: (masterIds.get(type) ?? []).join(" | ") || null,
+        result: "MISMATCH",
+        reason: "Multiple distinct strong identifiers of the same type are ambiguous; stop instead of choosing one.",
+      });
+    }
   }
 
   if (hardBlockReasons.length > 0) {
@@ -142,8 +174,8 @@ export function matchProductIdentity(
   }
 
   const exactGlobal = GLOBAL_IDENTIFIERS.some((type) => {
-    const left = candidateIds.get(type);
-    const right = masterIds.get(type);
+    const left = identifierValue(candidateIds, type);
+    const right = identifierValue(masterIds, type);
     return Boolean(left && right && left === right);
   });
 
