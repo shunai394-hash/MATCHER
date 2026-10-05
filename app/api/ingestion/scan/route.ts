@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       for (const item of result.products) {
         if (validateSourceProduct(item).length) { rejected++; continue; }
         accepted++;
-        const sourceKey = item.sourceUrl?.includes("shopping.yahoo.co.jp") ? "yahoo-shopping" : item.sourceUrl?.includes("rakuten.co.jp") ? "rakuten-ichiba" : "shopping-source";
+        const sourceKey = item.sourceKey ?? "shopping-source";
         try { await persistSupplierDiscovery(sourceKey, item); persisted++; }
         catch (error) { errors.push(`${query}:persist:${error instanceof Error ? error.message : "UNKNOWN"}`); }
       }
