@@ -17,6 +17,7 @@ export type OpportunityResult = {
 
 export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
   const bounded = (n: number) => Math.max(0, Math.min(100, n));
+  const safeProfit = Number.isFinite(input.expectedProfit) && input.expectedProfit > 0;
   const score = Math.round(
     bounded(input.roiPercent) * 0.24 +
     bounded(input.salesVelocity) * 0.22 +
@@ -28,16 +29,30 @@ export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
   );
 
   const reasons: string[] = [];
+  if (safeProfit) reasons.push(`profit positive: ¥${Math.round(input.expectedProfit).toLocaleString()}`);
+  else reasons.push("profit unavailable or non-positive");
   if (input.roiPercent >= 30) reasons.push("ROI strong");
   if (input.salesVelocity >= 70) reasons.push("demand moving");
   if (input.competition >= 70) reasons.push("competition manageable");
   if (input.priceStability >= 70) reasons.push("price stable");
   if (input.identityStrength >= 90) reasons.push("identity proven");
+  if (input.freshness < 70) reasons.push("data freshness too low");
   if (input.risk >= 40) reasons.push("risk needs review");
 
+  const safeForPriority =
+    safeProfit &&
+    input.freshness >= 70 &&
+    input.identityStrength >= 90 &&
+    input.risk < 40;
+
+  const finalScore = Math.max(0, Math.min(100, score));
   return {
-    score: Math.max(0, Math.min(100, score)),
-    tier: score >= 72 ? "PRIORITY" : score >= 52 ? "WATCH" : "REJECT",
+    score: finalScore,
+    tier: safeForPriority && finalScore >= 72
+      ? "PRIORITY"
+      : finalScore >= 52
+        ? "WATCH"
+        : "REJECT",
     reasons,
   };
 }
