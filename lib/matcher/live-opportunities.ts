@@ -36,6 +36,7 @@ type ProfitSnapshot = {
 };
 type IdentityMatch = {
   supplier_product_id: string;
+  master_product_id: string;
   decision: "AUTO_LINK" | "REVIEW" | "REJECT" | "BLOCK";
   hard_block: boolean;
   created_at: string;
@@ -196,8 +197,8 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
       const product = products.get(offer.supplier_product_id);
       const profit = profits.get(offer.id);
       const match = matches.get(offer.supplier_product_id);
-      if (!product || !profit || !match || !("master_product_id" in match)) continue;
-      const market = markets.get((match as IdentityMatch & { master_product_id: string }).master_product_id);
+      if (!product || !profit || !match || !match.master_product_id) continue;
+      const market = markets.get(match.master_product_id);
       if (!market) continue;
 
       const sale = numberOrNull(profit.sale_price);
