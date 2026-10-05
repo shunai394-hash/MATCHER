@@ -283,3 +283,5 @@ h2 { font-size:17px; margin:0 0 12px; }
 .status-live span { background:#7ee787; box-shadow:0 0 12px rgba(126,231,135,.45); }
 .status-empty span { background:#d7b86e; box-shadow:0 0 12px rgba(215,184,110,.35); }
 .status-unavailable span { background:#d87979; box-shadow:0 0 12px rgba(216,121,121,.35); }
+
+.decision-context { position:relative; z-index:1; color:#53606e; font-size:10px; letter-spacing:.04em; margin:-17px 0 20px; }
