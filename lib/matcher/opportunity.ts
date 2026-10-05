@@ -18,14 +18,18 @@ export type OpportunityResult = {
 export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
   const bounded = (n: number) => Math.max(0, Math.min(100, n));
   const safeProfit = Number.isFinite(input.expectedProfit) && input.expectedProfit > 0;
+  const profitPotential = safeProfit
+    ? Math.min(100, Math.max(0, 20 + (80 * Math.log10(input.expectedProfit + 1)) / Math.log10(10001)))
+    : 0;
   const score = Math.round(
-    bounded(input.roiPercent) * 0.24 +
-    bounded(input.salesVelocity) * 0.22 +
-    bounded(input.competition) * 0.12 +
-    bounded(input.priceStability) * 0.12 +
+    profitPotential * 0.18 +
+    bounded(input.roiPercent) * 0.18 +
+    bounded(input.salesVelocity) * 0.18 +
+    bounded(input.competition) * 0.10 +
+    bounded(input.priceStability) * 0.10 +
     bounded(input.freshness) * 0.10 +
-    bounded(input.identityStrength) * 0.20 -
-    bounded(input.risk) * 0.24,
+    bounded(input.identityStrength) * 0.16 -
+    bounded(input.risk) * 0.20,
   );
 
   const reasons: string[] = [];
