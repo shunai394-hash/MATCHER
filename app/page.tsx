@@ -57,6 +57,34 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="opportunity" id="opportunity" aria-labelledby="opportunity-title">
+        <div className="opportunity-head">
+          <div>
+            <p className="section-index">02 / PROFIT OPPORTUNITY</p>
+            <h2 id="opportunity-title">利益率だけでなく、<em>売れる確率と競争リスク</em>まで見て並べる。</h2>
+          </div>
+          <p>「価格差が大きい順」ではなく、需要・粗利・競合・価格安定性・鮮度・商品同定の確度・リスクをまとめて優先順位化する。</p>
+        </div>
+        <div className="opportunity-list">
+          <article className="opportunity-item priority">
+            <div className="opportunity-rank">01</div>
+            <div><span>PRIORITY · ILLUSTRATIVE</span><h3>Noise-Canceling Headphones / Black</h3><p>ROI 42% · expected profit ¥3,840 · demand moving · identity proven</p></div>
+            <strong>82</strong>
+          </article>
+          <article className="opportunity-item watch">
+            <div className="opportunity-rank">02</div>
+            <div><span>WATCH · ILLUSTRATIVE</span><h3>Portable SSD / 1TB</h3><p>ROI 31% · expected profit ¥2,460 · competition rising</p></div>
+            <strong>64</strong>
+          </article>
+          <article className="opportunity-item reject">
+            <div className="opportunity-rank">03</div>
+            <div><span>REJECT · ILLUSTRATIVE</span><h3>Wireless Earbuds / White</h3><p>High apparent margin · weak demand evidence · stale price</p></div>
+            <strong>38</strong>
+          </article>
+        </div>
+        <p className="opportunity-foot">※現在は体験用データ。実データ接続後は、この順位を需要・仕入れ価格・販売相場・競合・鮮度から動的に再計算する。</p>
+      </section>
+
       <DecisionConsole />
       <section id="proof"><IdentityProof /></section>
 
