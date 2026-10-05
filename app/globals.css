@@ -285,3 +285,7 @@ h2 { font-size:17px; margin:0 0 12px; }
 .status-unavailable span { background:#d87979; box-shadow:0 0 12px rgba(216,121,121,.35); }
 
 .decision-context { position:relative; z-index:1; color:#53606e; font-size:10px; letter-spacing:.04em; margin:-17px 0 20px; }
+
+.opportunity-readiness { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; background:#252a31; margin-top:10px; max-width:720px; }
+.opportunity-readiness span { background:#11151a; padding:9px 10px; color:#7f8996; font-size:9px; letter-spacing:.08em; }
+@media (max-width:520px) { .opportunity-readiness { grid-template-columns:1fr; } }
