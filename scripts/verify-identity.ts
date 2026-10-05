@@ -60,4 +60,19 @@ const deterministicA = matchProductIdentity({ ...base }, base);
 const deterministicB = matchProductIdentity({ ...base }, base);
 assert.deepEqual(deterministicA, deterministicB);
 
+
+const normalizedVariantEvidence = matchProductIdentity(
+  { ...base, color: "Dark   Blue" },
+  { ...base, color: "Dark Blue" },
+);
+const colorEvidence = normalizedVariantEvidence.evidence.find((item) => item.field === "color");
+assert.equal(colorEvidence?.result, "MATCH");
+
+const identifierFormattingEvidence = matchProductIdentity(
+  { ...base, identifiers: [{ type: "JAN", value: "4901-2345-67890" }, { type: "MPN", value: "ABC-123" }] },
+  base,
+);
+const janEvidence = identifierFormattingEvidence.evidence.find((item) => item.field === "JAN");
+assert.equal(janEvidence?.result, "MATCH");
+
 console.log("MATCHER identity verification: PASS");
