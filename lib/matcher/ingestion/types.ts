@@ -1,4 +1,5 @@
-export type SourceProduct = {\n  sourceKey?: string;
+export type SourceProduct = {
+  sourceKey?: string;
   externalId: string;
   productName: string;
   brand?: string | null;
