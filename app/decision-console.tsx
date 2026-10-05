@@ -101,7 +101,13 @@ export function DecisionConsole({ opportunities }: { opportunities: LiveOpportun
               <div><small>EXPECTED SELL</small><strong>¥{Math.round(item.sell).toLocaleString()}</strong></div>
               <div><small>EXPECTED PROFIT</small><strong>¥{Math.round(item.profit).toLocaleString()}</strong></div>
             </div>
-            <div className="decision-gates" aria-label="判定ゲート">
+            <div className="decision-market" aria-label="市場シグナル">
+  <div><span>DEMAND</span><strong>{item.demandVelocity}/100</strong></div>
+  <div><span>COMPETITION</span><strong>{item.competition}/100</strong></div>
+  <div><span>PRICE STABILITY</span><strong>{item.priceStability}/100</strong></div>
+  <div><span>MARKET</span><strong>{item.marketSource}</strong></div>
+</div>
+<div className="decision-gates" aria-label="判定ゲート">
               <div className="decision-gate"><span>IDENTITY</span><strong>{item.identityStrength >= 90 ? "PASS" : item.identityStrength === 0 ? "BLOCK" : "REVIEW"}</strong></div>
               <div className="decision-gate"><span>ORDERABILITY</span><strong>{item.orderability === "ORDERABLE" ? "PASS" : item.orderability === "BLOCKED" ? "BLOCK" : "REVIEW"}</strong></div>
               <div className="decision-gate"><span>ECONOMICS</span><strong>{item.costComplete && item.profit > 0 ? "PASS" : "BLOCK"}</strong></div>
