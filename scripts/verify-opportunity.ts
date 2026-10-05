@@ -15,3 +15,17 @@ const risky = scoreOpportunity({
 assert.notEqual(risky.tier, "PRIORITY");
 
 console.log("MATCHER opportunity scoring verification: PASS");
+
+const staleHighMargin = scoreOpportunity({
+  expectedProfit: 12000, roiPercent: 90, salesVelocity: 95, competition: 90,
+  priceStability: 90, freshness: 20, identityStrength: 100, risk: 5,
+});
+assert.notEqual(staleHighMargin.tier, "PRIORITY");
+assert.ok(staleHighMargin.reasons.includes("data freshness too low"));
+
+const zeroProfit = scoreOpportunity({
+  expectedProfit: 0, roiPercent: 90, salesVelocity: 95, competition: 90,
+  priceStability: 90, freshness: 95, identityStrength: 100, risk: 5,
+});
+assert.notEqual(zeroProfit.tier, "PRIORITY");
+
