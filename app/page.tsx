@@ -1,6 +1,7 @@
 import { DecisionConsole } from "./decision-console";
 import { IdentityProof } from "./identity-proof";
 import { getLiveOpportunities } from "../lib/matcher/live-opportunities";
+import { ingestionConfiguration } from "../lib/matcher/ingestion/config";
 
 const pillars = [
   ["01", "Product Master", "内部商品IDを中心に、識別子・仕様・バリアントを統合"],
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const liveFeed = await getLiveOpportunities();
+  const ingestion = ingestionConfiguration();
   return (
     <main className="shell">
       <a className="skip-link" href="#decision">判断画面へ移動</a>
