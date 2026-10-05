@@ -93,3 +93,42 @@ h2 { font-size:17px; margin:0 0 12px; }
  html{scroll-behavior:auto}.button,.card,.proof-tab,.flow-item,.confidence-track span{transition:none}
  .button:hover,.card:hover,.proof-tab:hover,.flow-item:hover{transform:none}
 }
+
+.console { margin-top:8px; border:1px solid #252a31; background:linear-gradient(145deg,#12161b,#0b0e12); padding:30px; box-shadow:0 28px 100px rgba(0,0,0,.22); }
+.console-head { display:flex; justify-content:space-between; align-items:flex-end; gap:30px; margin-bottom:28px; }
+.console-head h2 { font-size:clamp(28px,4vw,48px); line-height:1.02; letter-spacing:-.045em; max-width:760px; margin:0; }
+.console-head h2 em { color:#aeb8c4; font-style:normal; }
+.console-lead { color:#8993a0; font-size:14px; line-height:1.7; margin:16px 0 0; max-width:600px; }
+.console-live { color:#899f8e; border:1px solid #33473a; background:#101a14; padding:9px 11px; font-size:9px; letter-spacing:.14em; white-space:nowrap; }
+.console-live i { display:inline-block; width:6px; height:6px; border-radius:50%; background:#7ee787; margin-right:7px; box-shadow:0 0 12px rgba(126,231,135,.45); }
+.console-body { display:grid; grid-template-columns:.72fr 1.5fr; gap:8px; background:#252a31; }
+.candidate-list { display:grid; gap:1px; background:#252a31; }
+.candidate { border:0; background:#0d1014; color:#8993a0; min-height:104px; padding:18px; display:grid; grid-template-columns:34px 1fr auto; align-items:center; gap:12px; text-align:left; cursor:pointer; transition:background .2s,transform .2s,color .2s; }
+.candidate:hover { background:#151a20; }
+.candidate.active { background:#171c22; color:#f2f3f5; box-shadow:inset 2px 0 #f2f3f5; }
+.candidate-number { color:#53606e; font-size:10px; }
+.candidate-main { display:grid; gap:7px; }
+.candidate-main strong { font-size:11px; letter-spacing:.13em; }
+.candidate-main small { color:#697381; font-size:10px; }
+.candidate-profit { font-size:13px; color:#a9d7b3; }
+.candidate:nth-child(2) .candidate-profit,.candidate:nth-child(3) .candidate-profit { color:#697381; }
+.decision-detail { background:#090b0e; padding:30px; min-height:320px; position:relative; overflow:hidden; }
+.decision-detail::after { content:""; position:absolute; width:280px; height:280px; right:-100px; top:-110px; border:1px solid rgba(255,255,255,.05); border-radius:50%; }
+.decision-topline { display:flex; justify-content:space-between; gap:20px; color:#a9d7b3; font-size:10px; letter-spacing:.15em; position:relative; z-index:1; }
+.decision-detail.blocked .decision-topline { color:#e4aaaa; }
+.decision-detail.review .decision-topline { color:#ddc68d; }
+.decision-topline b { color:#697381; font-weight:500; letter-spacing:.04em; }
+.decision-detail h3 { font-size:clamp(22px,3vw,34px); letter-spacing:-.035em; margin:26px 0; max-width:650px; position:relative; z-index:1; }
+.decision-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:#252a31; position:relative; z-index:1; }
+.decision-grid div { background:#101318; padding:16px; display:grid; gap:9px; }
+.decision-grid small { color:#697381; font-size:8px; letter-spacing:.13em; }
+.decision-grid strong { font-size:18px; }
+.decision-detail.sellable .decision-grid div:last-child strong { color:#a9d7b3; }
+.decision-reason { display:flex; gap:18px; border-bottom:1px solid #252a31; padding:18px 0; position:relative; z-index:1; }
+.decision-reason span { color:#697381; font-size:9px; letter-spacing:.14em; }
+.decision-reason p { margin:0; color:#aab3bf; font-size:12px; line-height:1.6; }
+.decision-actions { display:flex; align-items:center; gap:14px; margin-top:20px; position:relative; z-index:1; }
+.decision-primary { border:1px solid #667180; background:#f2f3f5; color:#0b0d10; min-height:40px; padding:0 14px; font-size:10px; letter-spacing:.08em; cursor:pointer; }
+.decision-actions span { color:#53606e; font-size:10px; }
+@media (max-width:800px) { .console-body{grid-template-columns:1fr}.console-head{align-items:flex-start;flex-direction:column}.console-live{display:none} }
+@media (max-width:520px) { .console{padding:20px}.candidate{min-height:88px;padding:14px}.candidate-profit{font-size:11px}.decision-detail{padding:22px}.decision-grid{grid-template-columns:1fr}.decision-reason{display:grid;gap:8px}.decision-actions{align-items:flex-start;flex-direction:column} }
