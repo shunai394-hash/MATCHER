@@ -1,6 +1,6 @@
 import { DecisionConsole } from "./decision-console";
 import { IdentityProof } from "./identity-proof";
-import { scoreOpportunity } from "../lib/matcher/opportunity";
+import { getLiveOpportunities } from "../lib/matcher/live-opportunities";
 
 const pillars = [
   ["01", "Product Master", "内部商品IDを中心に、識別子・仕様・バリアントを統合"],
@@ -11,12 +11,10 @@ const pillars = [
 
 const flow = ["Supplier Data", "Identity Match", "Product Master", "Cost / Profit", "Safety Gate", "Sellability"];
 
-export default function Home() {
-  const opportunityScores = [
-    scoreOpportunity({ expectedProfit: 3840, roiPercent: 42, salesVelocity: 90, competition: 80, priceStability: 85, freshness: 95, identityStrength: 100, risk: 5 }),
-    scoreOpportunity({ expectedProfit: 2460, roiPercent: 31, salesVelocity: 70, competition: 55, priceStability: 72, freshness: 80, identityStrength: 96, risk: 18 }),
-    scoreOpportunity({ expectedProfit: 5100, roiPercent: 70, salesVelocity: 30, competition: 25, priceStability: 25, freshness: 20, identityStrength: 90, risk: 70 }),
-  ];
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const liveFeed = await getLiveOpportunities();
   return (
     <main className="shell">
       <a className="skip-link" href="#decision">判断画面へ移動</a>
@@ -34,7 +32,7 @@ export default function Home() {
       <section className="hero" aria-labelledby="hero-title">
         <p className="eyebrow">PROFIT OPPORTUNITY / SUPPLIER INTELLIGENCE</p>
         <h1 id="hero-title">利益機会を、<br /><em>探す前に見つける。</em></h1>
-        <p className="lead">仕入れ候補をただ増やすのではなく、利益・需要・競争・鮮度・商品同定を一つの判断にまとめる。<strong>「何を仕入れるか」を探し続ける時間を、買う理由を確かめる時間に変える。</strong></p>
+        <p className="lead">仕入れ候補をただ増やすのではなく、利益・需要・競争・鮮度・商品同定を一つの判断にまとめる。実データが揃わない機会は、見せない。<strong>「何を仕入れるか」を探し続ける時間を、買う理由を確かめる時間に変える。</strong></p>
         <div className="hero-actions">
           <a className="button primary" href="#opportunity">利益機会を見る <span aria-hidden="true">↘</span></a>
           <a className="button secondary" href="#proof">判定の根拠を見る <span aria-hidden="true">↓</span></a>
@@ -71,24 +69,28 @@ export default function Home() {
           </div>
           <p>「価格差が大きい順」ではなく、期待利益・ROI・需要速度・競争・価格安定性・鮮度・商品同定・リスクをまとめて優先順位化する。</p>
         </div>
-        <div className="opportunity-list">
-          <article className="opportunity-item priority">
-            <div className="opportunity-rank">01</div>
-            <div><span>{opportunityScores[0].tier} · ILLUSTRATIVE</span><h3>Noise-Canceling Headphones / Black</h3><p>ROI 42% · expected profit ¥3,840 · demand moving · identity proven</p></div>
-            <strong>{opportunityScores[0].score}</strong>
-          </article>
-          <article className="opportunity-item watch">
-            <div className="opportunity-rank">02</div>
-            <div><span>{opportunityScores[1].tier} · ILLUSTRATIVE</span><h3>Portable SSD / 1TB</h3><p>ROI 31% · expected profit ¥2,460 · competition rising</p></div>
-            <strong>{opportunityScores[1].score}</strong>
-          </article>
-          <article className="opportunity-item reject">
-            <div className="opportunity-rank">03</div>
-            <div><span>{opportunityScores[2].tier} · ILLUSTRATIVE</span><h3>Wireless Earbuds / White</h3><p>High apparent margin · weak demand evidence · stale price</p></div>
-            <strong>{opportunityScores[2].score}</strong>
-          </article>
-        </div>
-        <p className="opportunity-foot">※現在は体験用データ。実データ接続時は、仕入れ価格・販売相場・手数料・送料・需要・競合・鮮度・同定結果から再計算し、根拠のない機会は優先表示しない。</p>
+        {liveFeed.opportunities.length > 0 ? (
+          <div className="opportunity-list">
+            {liveFeed.opportunities.map((item, index) => (
+              <article className={`opportunity-item ${item.tier.toLowerCase()}`} key={item.id}>
+                <div className="opportunity-rank">{String(index + 1).padStart(2, "0")}</div>
+                <div>
+                  <span>{item.tier} · LIVE</span>
+                  <h3>{item.product}</h3>
+                  <p>ROI {item.roiPercent}% · expected profit ¥{Math.round(item.profit).toLocaleString()} · {item.supplier} · freshness {item.freshness}%</p>
+                </div>
+                <strong>{item.score}</strong>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="opportunity-empty" role="status">
+            <strong>{liveFeed.status === "UNAVAILABLE" ? "LIVE FEED UNAVAILABLE" : "WAITING FOR VERIFIED OPPORTUNITIES"}</strong>
+            <p>{liveFeed.message}</p>
+            <span>架空の利益機会は表示しません。</span>
+          </div>
+        )}
+        <p className="opportunity-foot">LIVE: supplier offer / verified profit / identity / freshness. 需要速度・競争・価格安定性が未接続の候補は、利益機会として過大評価しません。</p>
       </section>
 
       <DecisionConsole />
