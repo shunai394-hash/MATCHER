@@ -20,7 +20,7 @@ export default function Home() {
           <a href="#journey">Journey</a>
           <a href="#decision">Decision</a>
           <a href="#proof">Proof</a>
-          <a href="#architecture">System</a>
+          <a href="#precision-title">Precision</a>
         </nav>
         <div className="status" aria-label="Interface status"><span aria-hidden="true" /> decision-first interface</div>
       </header>
