@@ -26,7 +26,10 @@ export default async function Home() {
           <a href="#proof">Proof</a>
           <a href="#precision-title">Precision</a>
         </nav>
-        <div className="status" aria-label="Interface status"><span aria-hidden="true" /> decision-first interface</div>
+        <div className={`status status-${liveFeed.status.toLowerCase()}`} aria-label="Live data status">
+  <span aria-hidden="true" />
+  {liveFeed.status === "LIVE" ? "verified live data" : liveFeed.status === "EMPTY" ? "waiting for verified data" : "live feed unavailable"}
+</div>
       </header>
 
       <section className="hero" aria-labelledby="hero-title">
@@ -90,7 +93,7 @@ export default async function Home() {
             <span>架空の利益機会は表示しません。</span>
           </div>
         )}
-        <p className="opportunity-foot">LIVE: supplier offer / verified profit / identity / freshness. 需要速度・競争・価格安定性が未接続の候補は、利益機会として過大評価しません。</p>
+        <p className="opportunity-foot">LIVE: supplier offer / verified profit / identity / freshness / market observation. 市場観測が欠けた候補は、利益機会としてランキングしません。</p>
       </section>
 
       <DecisionConsole opportunities={liveFeed.opportunities} />
