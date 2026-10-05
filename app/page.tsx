@@ -13,6 +13,7 @@ const flow = ["Supplier Data", "Identity Match", "Product Master", "Cost / Profi
 export default function Home() {
   return (
     <main className="shell">
+      <a className="skip-link" href="#decision">判断画面へ移動</a>
       <header className="header">
         <a className="brand" href="#" aria-label="MATCHER home">MATCHER</a>
         <nav className="nav" aria-label="Primary">
@@ -20,13 +21,13 @@ export default function Home() {
           <a href="#proof">Identity proof</a>
           <a href="#architecture">Architecture</a>
         </nav>
-        <div className="status" aria-label="Experience status"><span aria-hidden="true" /> experience preview</div>
+        <div className="status" aria-label="Interface status"><span aria-hidden="true" /> decision-first interface</div>
       </header>
 
       <section className="hero" aria-labelledby="hero-title">
-        <p className="eyebrow">PRODUCT IDENTITY &amp; SUPPLIER INTELLIGENCE</p>
+        <p className="eyebrow">PRODUCT IDENTITY / SUPPLIER INTELLIGENCE</p>
         <h1 id="hero-title">同じ商品を、<br /><em>正しく見つける。</em></h1>
-        <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する。だから、仕入れ候補を探し続ける時間を減らせる。</p>
+        <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する。<strong>「何を仕入れるか」を探し続ける時間を、判断の時間に変える。</strong></p>
         <div className="hero-actions">
           <a className="button primary" href="#decision">仕入れ候補を見る <span aria-hidden="true">↘</span></a>
           <a className="button secondary" href="#proof">判定の根拠を見る <span aria-hidden="true">↓</span></a>
@@ -37,7 +38,6 @@ export default function Home() {
       </section>
 
       <DecisionConsole />
-
       <section id="proof"><IdentityProof /></section>
 
       <section className="section-intro" aria-labelledby="pillars-title">
