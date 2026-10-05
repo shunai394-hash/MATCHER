@@ -28,3 +28,15 @@ export function rankPriceSpreads(products: SourceProduct[]): PriceSpread[] {
   }
   return results.sort((a, b) => b.grossSpread - a.grossSpread);
 }
+
+
+export type NetEconomics = { valid: boolean; expectedProfit: number; roiPercent: number; totalCost: number };
+
+export function calculateNetEconomics(input: { salePrice: number; buyPrice: number; shippingCost: number; marketplaceFeeRate: number; paymentFeeRate: number; fixedFee: number }): NetEconomics {
+  const { salePrice, buyPrice, shippingCost, marketplaceFeeRate, paymentFeeRate, fixedFee } = input;
+  if (![salePrice,buyPrice,shippingCost,marketplaceFeeRate,paymentFeeRate,fixedFee].every(Number.isFinite) || salePrice <= 0 || buyPrice <= 0 || shippingCost < 0 || marketplaceFeeRate < 0 || paymentFeeRate < 0 || fixedFee < 0) return { valid: false, expectedProfit: 0, roiPercent: 0, totalCost: 0 };
+  const fees = salePrice * (marketplaceFeeRate + paymentFeeRate) + fixedFee;
+  const totalCost = buyPrice + shippingCost + fees;
+  const expectedProfit = salePrice - totalCost;
+  return { valid: true, expectedProfit, roiPercent: (expectedProfit / (buyPrice + shippingCost)) * 100, totalCost };
+}
