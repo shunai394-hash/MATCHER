@@ -121,8 +121,8 @@ export function matchProductIdentity(
     }
   }
 
-  const candidateMpn = candidateIds.get("MPN") ?? normalize(candidate.modelNumber);
-  const masterMpn = masterIds.get("MPN") ?? normalize(master.modelNumber);
+  const candidateMpn = candidateIds.get("MPN") ?? null;
+  const masterMpn = masterIds.get("MPN") ?? null;
   if (candidateMpn == null || masterMpn == null) {
     addPairEvidence(evidence, "MPN", candidateMpn, masterMpn, "MPN/model evidence is not guessed when missing.");
   } else if (candidateMpn !== masterMpn) {
@@ -148,6 +148,16 @@ export function matchProductIdentity(
   });
 
   const brandMatch = same(candidate.brand, master.brand);
+  const modelMatch = same(candidate.modelNumber, master.modelNumber);
+  if (candidate.modelNumber && master.modelNumber) {
+    addPairEvidence(
+      evidence,
+      "model_number",
+      normalize(candidate.modelNumber),
+      normalize(master.modelNumber),
+      "Model number alone never promotes a candidate to AUTO_LINK.",
+    );
+  }
   const mpnMatch = Boolean(candidateMpn && masterMpn && candidateMpn === masterMpn);
 
   if (exactGlobal || (mpnMatch && brandMatch)) {
