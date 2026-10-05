@@ -86,7 +86,7 @@ export function DecisionConsole() {
           </div>
           <div className="decision-signal" aria-label="判定サマリー">
             <div><span>DECISION SIGNAL</span><strong>{item.state === "SELLABLE" ? "BUY CANDIDATE" : item.state === "BLOCKED" ? "DO NOT BUY" : "HUMAN REVIEW"}</strong></div>
-            <div className="signal-bar" aria-hidden="true"><i className={item.state === "SELLABLE" ? "full" : item.state === "BLOCKED" ? "blocked" : "review"} /></div>
+            <div className="signal-bar" aria-label={`${item.gates.filter(([, state]) => state === "PASS").length} of ${item.gates.length} gates passed`}><i style={{ width: `${(item.gates.filter(([, state]) => state === "PASS").length / item.gates.length) * 100}%` }} /></div>
             <small>{item.state === "SELLABLE" ? "全ゲート通過。カード決済の前に人の購入承認が必要です。" : item.state === "BLOCKED" ? "バリアント不一致。利益計算より先に停止します。" : "識別証拠が不足。追加確認が必要です。"}</small>
           </div>
           <div className="decision-reason">
