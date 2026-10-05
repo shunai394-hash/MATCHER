@@ -1,26 +1,32 @@
 import { strict as assert } from "node:assert";
 import { scoreOpportunity } from "../lib/matcher/opportunity.ts";
 
-const priority = scoreOpportunity({
+const manageableCompetition = scoreOpportunity({
+  expectedProfit: 5000, roiPercent: 60, salesVelocity: 90, competition: 20,
+  priceStability: 85, freshness: 95, identityStrength: 100, risk: 5,
+});
+assert.equal(manageableCompetition.tier, "PRIORITY");
+assert.ok(manageableCompetition.score >= 72);
+assert.ok(manageableCompetition.reasons.includes("competition manageable"));
+
+const highCompetition = scoreOpportunity({
   expectedProfit: 5000, roiPercent: 60, salesVelocity: 90, competition: 80,
   priceStability: 85, freshness: 95, identityStrength: 100, risk: 5,
 });
-assert.equal(priority.tier, "PRIORITY");
-assert.ok(priority.score >= 72);
+assert.ok(manageableCompetition.score > highCompetition.score);
+assert.ok(highCompetition.reasons.includes("competition pressure high"));
 
 const higherProfit = scoreOpportunity({
   expectedProfit: 9000, roiPercent: 60, salesVelocity: 90, competition: 80,
   priceStability: 85, freshness: 95, identityStrength: 100, risk: 5,
 });
-assert.ok(higherProfit.score > priority.score);
+assert.ok(higherProfit.score > highCompetition.score);
 
 const risky = scoreOpportunity({
   expectedProfit: 9000, roiPercent: 80, salesVelocity: 80, competition: 70,
   priceStability: 40, freshness: 30, identityStrength: 100, risk: 80,
 });
 assert.notEqual(risky.tier, "PRIORITY");
-
-console.log("MATCHER opportunity scoring verification: PASS");
 
 const staleHighMargin = scoreOpportunity({
   expectedProfit: 12000, roiPercent: 90, salesVelocity: 95, competition: 90,
@@ -35,3 +41,4 @@ const zeroProfit = scoreOpportunity({
 });
 assert.notEqual(zeroProfit.tier, "PRIORITY");
 
+console.log("MATCHER opportunity scoring verification: PASS");
