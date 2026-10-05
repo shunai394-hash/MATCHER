@@ -93,7 +93,7 @@ export default async function Home() {
         <p className="opportunity-foot">LIVE: supplier offer / verified profit / identity / freshness. 需要速度・競争・価格安定性が未接続の候補は、利益機会として過大評価しません。</p>
       </section>
 
-      <DecisionConsole />
+      <DecisionConsole opportunities={liveFeed.opportunities} />
       <section id="proof"><IdentityProof /></section>
 
       <section className="precision-contract" aria-labelledby="precision-title">
