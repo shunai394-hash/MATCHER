@@ -49,6 +49,13 @@ const weakNeverPromotes = matchProductIdentity(
 assert.equal(weakNeverPromotes.decision, "REVIEW");
 assert.equal(weakNeverPromotes.matchMethod, "WEAK");
 
+const duplicateIdentifierBlock = matchProductIdentity(
+  { ...base, identifiers: [{ type: "JAN", value: "4901234567890" }, { type: "JAN", value: "4909999999999" }, { type: "MPN", value: "ABC-123" }] },
+  base,
+);
+assert.equal(duplicateIdentifierBlock.decision, "BLOCK");
+assert.ok(duplicateIdentifierBlock.hardBlockReasons.includes("JAN_CONFLICT"));
+
 const deterministicA = matchProductIdentity({ ...base }, base);
 const deterministicB = matchProductIdentity({ ...base }, base);
 assert.deepEqual(deterministicA, deterministicB);
