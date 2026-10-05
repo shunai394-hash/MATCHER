@@ -60,6 +60,23 @@ export default function Home() {
       <DecisionConsole />
       <section id="proof"><IdentityProof /></section>
 
+      <section className="precision-contract" aria-labelledby="precision-title">
+        <div className="precision-head">
+          <div>
+            <p className="section-index">01 / PRECISION CONTRACT</p>
+            <h2 id="precision-title">一致度ではなく、<em>止めるべき理由</em>を先に判定する。</h2>
+          </div>
+          <p>曖昧な候補を「たぶん同じ商品」として通さない。強い識別子、型番、バリアント、鮮度の順に証拠を確認し、矛盾が一つでもあれば下流の利益計算より先に止める。</p>
+        </div>
+        <div className="precision-rules">
+          <article><span>01</span><strong>IDENTIFIER</strong><p>JAN / EAN / UPC が一致しても、バリアント不一致なら結合しない。</p><b>HARD GATE</b></article>
+          <article><span>02</span><strong>MODEL</strong><p>MPN / 型番は完全一致を優先。欠落は推測で補完せず REVIEW。</p><b>NO GUESSING</b></article>
+          <article><span>03</span><strong>VARIANT</strong><p>色・サイズ・容量・セット数・状態の矛盾は BLOCK。</p><b>BLOCK ON CONFLICT</b></article>
+          <article><span>04</span><strong>FRESHNESS</strong><p>価格・在庫・送料は独立して鮮度を評価し、古い値を現在値として扱わない。</p><b>TIME-AWARE</b></article>
+        </div>
+        <div className="precision-foot"><strong>PRINCIPLE</strong><span>WEAK MATCH → REVIEW → NEVER SILENTLY PROMOTE</span></div>
+      </section>
+
       <section className="section-intro" aria-labelledby="pillars-title">
         <div>
           <p className="section-index">01 / FOUNDATION</p>
