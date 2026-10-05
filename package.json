@@ -10,7 +10,8 @@
     "verify:gate": "node --experimental-strip-types scripts/verify-gate.ts",
     "verify:identity": "node --experimental-strip-types scripts/verify-identity.ts",
     "verify:opportunity": "node --experimental-strip-types scripts/verify-opportunity.ts",
-    "verify:ingestion": "node --experimental-strip-types scripts/verify-ingestion.ts"
+    "verify:ingestion": "node --experimental-strip-types scripts/verify-ingestion.ts",
+    "verify:spread": "node --experimental-strip-types scripts/verify-spread.ts"
   },
   "dependencies": {
     "next": "16.3.5",
