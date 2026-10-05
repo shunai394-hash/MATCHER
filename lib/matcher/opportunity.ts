@@ -21,11 +21,13 @@ export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
   const profitPotential = safeProfit
     ? Math.min(100, Math.max(0, 20 + (80 * Math.log10(input.expectedProfit + 1)) / Math.log10(10001)))
     : 0;
+
+  // Competition is pressure: more competition must reduce opportunity score.
   const score = Math.round(
     profitPotential * 0.18 +
     bounded(input.roiPercent) * 0.18 +
     bounded(input.salesVelocity) * 0.18 +
-    bounded(input.competition) * 0.10 +
+    (100 - bounded(input.competition)) * 0.10 +
     bounded(input.priceStability) * 0.10 +
     bounded(input.freshness) * 0.10 +
     bounded(input.identityStrength) * 0.16 -
