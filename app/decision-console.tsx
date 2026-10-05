@@ -84,6 +84,11 @@ export function DecisionConsole() {
               </div>
             ))}
           </div>
+          <div className="decision-signal" aria-label="判定サマリー">
+            <div><span>DECISION SIGNAL</span><strong>{item.state === "SELLABLE" ? "BUY CANDIDATE" : item.state === "BLOCKED" ? "DO NOT BUY" : "HUMAN REVIEW"}</strong></div>
+            <div className="signal-bar" aria-hidden="true"><i style={{ width: item.state === "SELLABLE" ? "94%" : item.state === "BLOCKED" ? "3%" : "41%" }} /></div>
+            <small>{item.state === "SELLABLE" ? "全ゲート通過。購入承認へ進めます。" : item.state === "BLOCKED" ? "バリアント不一致。利益計算より先に停止します。" : "識別証拠が不足。追加確認が必要です。"}</small>
+          </div>
           <div className="decision-reason">
             <span>WHY</span>
             <p>{item.reason}</p>
