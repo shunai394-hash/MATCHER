@@ -273,3 +273,9 @@ h2 { font-size:17px; margin:0 0 12px; }
 .console-empty { min-height:260px; padding:28px; display:flex; flex-direction:column; justify-content:center; gap:10px; background:#0d1014; }
 .console-empty strong { color:#f2f3f5; font-size:10px; letter-spacing:.14em; }
 .console-empty span { color:#697381; font-size:11px; line-height:1.7; max-width:360px; }
+
+.decision-market { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#252a31; margin-top:18px; position:relative; z-index:1; }
+.decision-market div { background:#0f1318; padding:12px 13px; display:grid; gap:7px; }
+.decision-market span { color:#53606e; font-size:8px; letter-spacing:.13em; }
+.decision-market strong { color:#c4cad2; font-size:11px; overflow-wrap:anywhere; }
+@media (max-width:520px) { .decision-market{grid-template-columns:1fr 1fr}.decision-market div{padding:11px} }
