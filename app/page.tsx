@@ -93,7 +93,10 @@ export default async function Home() {
             <span>架空の利益機会は表示しません。</span>
           </div>
         )}
-        <p className="opportunity-foot">LIVE: supplier offer / verified profit / identity / freshness / market observation. 市場観測が欠けた候補は、利益機会としてランキングしません。</p>
+        <p className="opportunity-foot">
+  LIVE SIGNALS: economics · identity · supplier freshness · market observation.
+  {liveFeed.status === "LIVE" ? "現在の順位は検証済みデータから算出。" : "市場観測が入るまで順位を作りません。"}
+</p>
       </section>
 
       <DecisionConsole opportunities={liveFeed.opportunities} />
