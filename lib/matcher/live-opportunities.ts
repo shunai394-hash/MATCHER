@@ -33,7 +33,6 @@ type ProfitSnapshot = {
   other_cost: number | string | null;
   expected_profit: number | string | null;
   calculated_at: string;
-  cost_complete: boolean;
 };
 type IdentityMatch = {
   supplier_product_id: string;
@@ -127,7 +126,7 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
         supabase.from("supplier_offer").select("id,supplier_product_id,currency,orderability").limit(1000),
         supabase.from("supplier_product").select("id,supplier_id,product_name,brand,model_number,color,size,capacity,set_count,condition").limit(1000),
         supabase.from("supplier").select("id,name").limit(500),
-        supabase.from("profit_snapshot").select("supplier_offer_id,sale_price,supplier_cost,shipping_cost,payment_fee,marketplace_fee,tax,other_cost,expected_profit,calculated_at,cost_complete").order("calculated_at", { ascending: false }).limit(2000),
+        supabase.from("profit_snapshot").select("supplier_offer_id,sale_price,supplier_cost,shipping_cost,payment_fee,marketplace_fee,tax,other_cost,expected_profit,calculated_at").order("calculated_at", { ascending: false }).limit(2000),
         supabase.from("identity_match").select("supplier_product_id,decision,hard_block,created_at").order("created_at", { ascending: false }).limit(2000),
         supabase.from("supplier_offer_freshness").select("supplier_offer_id,price_observed_at,inventory_observed_at,shipping_observed_at").limit(2000),
         supabase.from("freshness_policy").select("data_type,max_age_seconds"),
@@ -168,7 +167,9 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
       const buy = numberOrNull(profit.supplier_cost);
       const shipping = numberOrNull(profit.shipping_cost) ?? 0;
       const expectedProfit = numberOrNull(profit.expected_profit);
-      if (sale === null || buy === null || expectedProfit === null || !profit.cost_complete) continue;
+      const costComplete = [profit.supplier_cost, profit.shipping_cost, profit.payment_fee, profit.marketplace_fee, profit.tax, profit.other_cost]
+        .every((value) => numberOrNull(value) !== null);
+      if (sale === null || buy === null || expectedProfit === null || !costComplete) continue;
 
       const totalAcquisition = buy + shipping;
       const roiPercent = totalAcquisition > 0 ? (expectedProfit / totalAcquisition) * 100 : 0;
@@ -199,7 +200,7 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
         identityStrength,
         freshness: freshnessValue,
         orderability: offer.orderability,
-        costComplete: profit.cost_complete,
+        costComplete,
         calculatedAt: profit.calculated_at,
         reasons: [
           ...scored.reasons,
