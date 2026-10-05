@@ -12,11 +12,15 @@ const pillars = [
 const flow = ["Supplier Data", "Identity Match", "Product Master", "Cost / Profit", "Safety Gate", "Sellability"];
 
 export default function Home() {
-  const opportunityScores = [
-    scoreOpportunity({ expectedProfit: 3840, roiPercent: 42, salesVelocity: 90, competition: 80, priceStability: 85, freshness: 95, identityStrength: 100, risk: 5 }),
-    scoreOpportunity({ expectedProfit: 2460, roiPercent: 31, salesVelocity: 70, competition: 55, priceStability: 72, freshness: 80, identityStrength: 96, risk: 18 }),
-    scoreOpportunity({ expectedProfit: 5100, roiPercent: 70, salesVelocity: 30, competition: 25, priceStability: 25, freshness: 20, identityStrength: 90, risk: 70 }),
-  ];
+  const opportunityInputs = [
+    { product: "Noise-Canceling Headphones / Black", summary: "ROI 42% · expected profit ¥3,840 · demand moving · identity proven", input: { expectedProfit: 3840, roiPercent: 42, salesVelocity: 90, competition: 80, priceStability: 85, freshness: 95, identityStrength: 100, risk: 5 } },
+    { product: "Portable SSD / 1TB", summary: "ROI 31% · expected profit ¥2,460 · competition rising", input: { expectedProfit: 2460, roiPercent: 31, salesVelocity: 70, competition: 55, priceStability: 72, freshness: 80, identityStrength: 96, risk: 18 } },
+    { product: "Wireless Earbuds / White", summary: "High apparent margin · weak demand evidence · stale price", input: { expectedProfit: 5100, roiPercent: 70, salesVelocity: 30, competition: 25, priceStability: 25, freshness: 20, identityStrength: 90, risk: 70 } },
+  ] as const;
+  const opportunities = opportunityInputs
+    .map((item) => ({ ...item, result: scoreOpportunity(item.input) }))
+    .sort((a, b) => b.result.score - a.result.score);
+
   return (
     <main className="shell">
       <a className="skip-link" href="#decision">判断画面へ移動</a>
@@ -72,21 +76,18 @@ export default function Home() {
           <p>「価格差が大きい順」ではなく、期待利益・ROI・需要速度・競争・価格安定性・鮮度・商品同定・リスクをまとめて優先順位化する。</p>
         </div>
         <div className="opportunity-list">
-          <article className="opportunity-item priority">
-            <div className="opportunity-rank">01</div>
-            <div><span>{opportunityScores[0].tier} · ILLUSTRATIVE</span><h3>Noise-Canceling Headphones / Black</h3><p>ROI 42% · expected profit ¥3,840 · demand moving · identity proven</p></div>
-            <strong>{opportunityScores[0].score}</strong>
-          </article>
-          <article className="opportunity-item watch">
-            <div className="opportunity-rank">02</div>
-            <div><span>{opportunityScores[1].tier} · ILLUSTRATIVE</span><h3>Portable SSD / 1TB</h3><p>ROI 31% · expected profit ¥2,460 · competition rising</p></div>
-            <strong>{opportunityScores[1].score}</strong>
-          </article>
-          <article className="opportunity-item reject">
-            <div className="opportunity-rank">03</div>
-            <div><span>{opportunityScores[2].tier} · ILLUSTRATIVE</span><h3>Wireless Earbuds / White</h3><p>High apparent margin · weak demand evidence · stale price</p></div>
-            <strong>{opportunityScores[2].score}</strong>
-          </article>
+          {opportunities.map((opportunity, index) => (
+            <article className={`opportunity-item ${opportunity.result.tier.toLowerCase()}`} key={opportunity.product}>
+              <div className="opportunity-rank">{String(index + 1).padStart(2, "0")}</div>
+              <div>
+                <span>{opportunity.result.tier} · ILLUSTRATIVE</span>
+                <h3>{opportunity.product}</h3>
+                <p>{opportunity.summary}</p>
+                <small>{opportunity.result.reasons.join(" · ")}</small>
+              </div>
+              <strong aria-label={`Opportunity score ${opportunity.result.score}`}>{opportunity.result.score}</strong>
+            </article>
+          ))}
         </div>
         <p className="opportunity-foot">※現在は体験用データ。実データ接続時は、仕入れ価格・販売相場・手数料・送料・需要・競合・鮮度・同定結果から再計算し、根拠のない機会は優先表示しない。</p>
       </section>
