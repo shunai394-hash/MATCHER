@@ -68,7 +68,7 @@ export function DecisionConsole() {
         <div className={`decision-detail ${item.tone}`} id="decision-detail" role="tabpanel" aria-live="polite">
           <div className="decision-topline">
             <span>{item.state}</span>
-            <b>{item.confidence} identity confidence</b>
+            <b>{item.confidence} evidence coverage</b>
           </div>
           <h3>{item.product}</h3>
           <div className="decision-grid">
