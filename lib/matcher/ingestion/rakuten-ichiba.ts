@@ -19,6 +19,7 @@ export async function searchRakutenIchiba(query: string, signal?: AbortSignal): 
   const body = (await response.json()) as RakutenResponse;
   return (body.Items ?? []).flatMap(({ Item: item }) => {
     if (!item?.itemCode || !item.itemName || !Number.isFinite(Number(item.itemPrice))) return [];
-    return [{\n      sourceKey: "rakuten-ichiba", externalId: item.itemCode, productName: item.itemName, identifiers: item.jan ? [{ type: "JAN" as const, value: item.jan }] : [], cost: Number(item.itemPrice), shippingCost: null, inventory: 1, orderability: "ORDERABLE" as const, currency: "JPY", sourceUrl: item.itemUrl ?? null }];
+    return [{
+      sourceKey: "rakuten-ichiba", externalId: item.itemCode, productName: item.itemName, identifiers: item.jan ? [{ type: "JAN" as const, value: item.jan }] : [], cost: Number(item.itemPrice), shippingCost: null, inventory: 1, orderability: "ORDERABLE" as const, currency: "JPY", sourceUrl: item.itemUrl ?? null }];
   });
 }
