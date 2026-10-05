@@ -3,9 +3,9 @@
 import { useRef, useState } from "react";
 
 const candidates = [
-  { id: "01", state: "SELLABLE", tone: "sellable", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier A", buy: "¥12,800", sell: "¥21,900", profit: "+¥3,840", evidenceCoverage: "4/4", reason: "JAN exact · variant aligned · stock fresh", gates: [["IDENTITY", "PASS"], ["VARIANT", "PASS"], ["ECONOMICS", "PASS"], ["FRESHNESS", "PASS"]] },
-  { id: "02", state: "BLOCKED", tone: "blocked", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier B", buy: "¥11,400", sell: "¥21,900", profit: "—", evidenceCoverage: "2/4", reason: "Color mismatch · Black vs White", gates: [["IDENTITY", "PASS"], ["VARIANT", "BLOCK"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
-  { id: "03", state: "REVIEW", tone: "review", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier C", buy: "¥13,100", sell: "¥21,900", profit: "—", evidenceCoverage: "2/4", reason: "MPN missing · variant evidence incomplete", gates: [["IDENTITY", "REVIEW"], ["VARIANT", "REVIEW"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
+  { id: "01", state: "SELLABLE", tone: "sellable", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier A", buy: "¥12,800", sell: "¥21,900", profit: "+¥3,840", evidenceCoverage: "4/4", freshness: "2 min ago", approval: "HUMAN APPROVAL", reason: "JAN exact · variant aligned · stock fresh", gates: [["IDENTITY", "PASS"], ["VARIANT", "PASS"], ["ECONOMICS", "PASS"], ["FRESHNESS", "PASS"]] },
+  { id: "02", state: "BLOCKED", tone: "blocked", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier B", buy: "¥11,400", sell: "¥21,900", profit: "—", evidenceCoverage: "2/4", freshness: "not evaluated", approval: "STOPPED BEFORE PURCHASE", reason: "Color mismatch · Black vs White", gates: [["IDENTITY", "PASS"], ["VARIANT", "BLOCK"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
+  { id: "03", state: "REVIEW", tone: "review", product: "Wireless Noise-Canceling Headphones", supplier: "Supplier C", buy: "¥13,100", sell: "¥21,900", profit: "—", evidenceCoverage: "2/4", freshness: "not evaluated", approval: "HUMAN REVIEW", reason: "MPN missing · variant evidence incomplete", gates: [["IDENTITY", "REVIEW"], ["VARIANT", "REVIEW"], ["ECONOMICS", "—"], ["FRESHNESS", "—"]] },
 ] as const;
 
 export function DecisionConsole() {
@@ -68,7 +68,7 @@ export function DecisionConsole() {
         <div className={`decision-detail ${item.tone}`} id="decision-detail" role="tabpanel" aria-live="polite">
           <div className="decision-topline">
             <span>{item.state}</span>
-            <b>{item.evidenceCoverage} evidence coverage</b>
+            <b>{item.evidenceCoverage} evidence coverage · {item.freshness}</b>
           </div>
           <h3>{item.product}</h3>
           <div className="decision-grid">
@@ -86,8 +86,8 @@ export function DecisionConsole() {
           </div>
           <div className="decision-signal" aria-label="判定サマリー">
             <div><span>DECISION SIGNAL</span><strong>{item.state === "SELLABLE" ? "BUY CANDIDATE" : item.state === "BLOCKED" ? "DO NOT BUY" : "HUMAN REVIEW"}</strong></div>
-            <div className="signal-bar" aria-hidden="true"><i style={{ width: item.state === "SELLABLE" ? "94%" : item.state === "BLOCKED" ? "3%" : "41%" }} /></div>
-            <small>{item.state === "SELLABLE" ? "全ゲート通過。購入承認へ進めます。" : item.state === "BLOCKED" ? "バリアント不一致。利益計算より先に停止します。" : "識別証拠が不足。追加確認が必要です。"}</small>
+            <div className="signal-bar" aria-label={`${item.gates.filter(([, state]) => state === "PASS").length} of ${item.gates.length} gates passed`}><i style={{ width: `${(item.gates.filter(([, state]) => state === "PASS").length / item.gates.length) * 100}%` }} /></div>
+            <small>{item.state === "SELLABLE" ? "全ゲート通過。カード決済の前に人の購入承認が必要です。" : item.state === "BLOCKED" ? "バリアント不一致。利益計算より先に停止します。" : "識別証拠が不足。追加確認が必要です。"}</small>
           </div>
           <div className="decision-reason">
             <span>WHY</span>
@@ -95,8 +95,14 @@ export function DecisionConsole() {
           </div>
           <div className="decision-actions">
             <button type="button" className="decision-primary" onClick={() => document.getElementById("proof")?.scrollIntoView({ behavior: "smooth" })}>判定の根拠を見る</button>
-            <span>購入は人の承認後に進みます。</span>
+            <span>{item.approval}</span>
           </div>
+          {item.state === "SELLABLE" && (
+            <div className="approval-checkpoint" role="note">
+              <strong>CARD PAYMENT CHECKPOINT</strong>
+              <span>MATCHERはカード決済を自動実行しません。最終購入は人が承認してから進みます。</span>
+            </div>
+          )}
         </div>
       </div>
     </section>
