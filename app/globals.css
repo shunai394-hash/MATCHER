@@ -145,3 +145,19 @@ h2 { font-size:17px; margin:0 0 12px; }
 .decision-detail.blocked .decision-gate strong { color:#e4aaaa; }
 .decision-detail.review .decision-gate strong { color:#ddc68d; }
 @media (max-width:520px) { .decision-gates{grid-template-columns:1fr 1fr}.decision-gate{padding:11px} }
+
+
+.decision-signal { margin-top:18px; padding:14px 0 16px; border-top:1px solid #252a31; border-bottom:1px solid #252a31; position:relative; z-index:1; }
+.decision-signal > div:first-child { display:flex; justify-content:space-between; align-items:baseline; gap:18px; }
+.decision-signal span { color:#53606e; font-size:8px; letter-spacing:.16em; }
+.decision-signal strong { color:#f2f3f5; font-size:10px; letter-spacing:.12em; }
+.decision-detail.sellable .decision-signal strong { color:#a9d7b3; }
+.decision-detail.blocked .decision-signal strong { color:#e4aaaa; }
+.decision-detail.review .decision-signal strong { color:#ddc68d; }
+.signal-bar { height:4px; background:#20252c; margin-top:10px; overflow:hidden; }
+.signal-bar i { display:block; height:100%; background:#f2f3f5; transform-origin:left; transition:width .35s ease; }
+.decision-detail.sellable .signal-bar i { background:#7ee787; }
+.decision-detail.blocked .signal-bar i { background:#d87979; }
+.decision-detail.review .signal-bar i { background:#d7b86e; }
+.decision-signal small { display:block; color:#697381; font-size:10px; line-height:1.6; margin-top:8px; }
+@media (prefers-reduced-motion:reduce) { .signal-bar i { transition:none; } }
