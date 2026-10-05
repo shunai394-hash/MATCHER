@@ -1,5 +1,6 @@
 import { strict as assert } from "node:assert";
 import { matchProductIdentity } from "../lib/matcher/identity.ts";
+import { resolveProductMaster } from "../lib/matcher/resolver.ts";
 
 const base = {
   identifiers: [
@@ -77,3 +78,21 @@ const conservativeTextNormalization = matchProductIdentity(
 assert.equal(conservativeTextNormalization.decision, "AUTO_LINK");
 
 console.log("MATCHER precision boundary verification: PASS");
+
+
+const uniqueResolution = resolveProductMaster(base, [
+  { ...base, title: "Master A" },
+  { ...base, title: "Master B" },
+]);
+assert.equal(uniqueResolution.decision, "REVIEW");
+if (uniqueResolution.decision === "REVIEW") {
+  assert.equal(uniqueResolution.reason, "AMBIGUOUS_STRONG_MATCH");
+}
+
+const singleResolution = resolveProductMaster(base, [{ ...base, title: "Master A" }]);
+assert.equal(singleResolution.decision, "AUTO_LINK");
+if (singleResolution.decision === "AUTO_LINK") {
+  assert.equal(singleResolution.masterIndex, 0);
+}
+
+console.log("MATCHER master resolution verification: PASS");
