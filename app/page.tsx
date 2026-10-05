@@ -32,7 +32,7 @@ export default function Home() {
           <a href="#proof">Proof</a>
           <a href="#precision-title">Precision</a>
         </nav>
-        <div className="status" aria-label="Interface status"><span aria-hidden="true" /> decision-first interface</div>
+        <div className="status" aria-label="Data status"><span aria-hidden="true" /> scenario preview · not live data</div>
       </header>
 
       <section className="hero" aria-labelledby="hero-title">
