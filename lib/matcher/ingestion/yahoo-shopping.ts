@@ -29,7 +29,8 @@ export async function searchYahooShopping(query: string, signal?: AbortSignal): 
     const price = Number(hit.Price);
     const jan = hit.JanCode?.trim();
     if (!hit.Code || !hit.Name || !Number.isFinite(price) || price <= 0) return [];
-    return [{\n      sourceKey: "yahoo-shopping",
+    return [{
+      sourceKey: "yahoo-shopping",
       externalId: hit.Code,
       productName: hit.Name,
       brand: hit.Brand?.Name ?? null,
