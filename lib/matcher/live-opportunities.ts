@@ -170,6 +170,7 @@ export function marketScores(row: Market) {
 }
 
 export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityFeed> {
+  const safeLimit = Number.isInteger(limit) ? Math.max(1, Math.min(100, limit)) : 20;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) {
@@ -295,10 +296,15 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
       });
     }
 
-    opportunities.sort((a, b) => b.score - a.score || b.profit - a.profit);
+    opportunities.sort((a, b) =>
+      b.score - a.score ||
+      b.profit - a.profit ||
+      b.roiPercent - a.roiPercent ||
+      a.id.localeCompare(b.id),
+    );
     return {
       status: opportunities.length > 0 ? "LIVE" : "EMPTY",
-      opportunities: opportunities.slice(0, limit),
+      opportunities: opportunities.slice(0, safeLimit),
       message: opportunities.length > 0
         ? "Ranked from live supplier offers, identity matches, fresh observations, market evidence and complete costs."
         : "Supplier data exists, but no offer has passed every identity, freshness, market and complete-cost gate.",
