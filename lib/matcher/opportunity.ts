@@ -17,6 +17,7 @@ export type OpportunityResult = {
 
 export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
   const bounded = (n: number) => Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0;
+  const invalidPressure = !Number.isFinite(input.competition) || !Number.isFinite(input.risk);
   const safeProfit = Number.isFinite(input.expectedProfit) && input.expectedProfit > 0;
   const profitPotential = safeProfit
     ? Math.min(100, Math.max(0, 20 + (80 * Math.log10(input.expectedProfit + 1)) / Math.log10(10001)))
@@ -45,6 +46,7 @@ export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
   if (input.identityStrength >= 90) reasons.push("identity proven");
   if (input.freshness < 70) reasons.push("data freshness too low");
   if (input.risk >= 40) reasons.push("risk needs review");
+  if (!Number.isFinite(input.competition) || !Number.isFinite(input.risk)) reasons.push("competition or risk is invalid");
 
   const safeForPriority =
     safeProfit &&
@@ -53,9 +55,10 @@ export function scoreOpportunity(input: OpportunityInput): OpportunityResult {
     input.risk < 40;
 
   const finalScore = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
+  const safeFinalScore = invalidPressure ? 0 : finalScore;
   return {
-    score: finalScore,
-    tier: safeForPriority && finalScore >= 72 ? "PRIORITY" : finalScore >= 52 ? "WATCH" : "REJECT",
+    score: safeFinalScore,
+    tier: safeForPriority && !invalidPressure && safeFinalScore >= 72 ? "PRIORITY" : safeFinalScore >= 52 && !invalidPressure ? "WATCH" : "REJECT",
     reasons,
   };
 }
