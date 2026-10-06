@@ -32,18 +32,24 @@ export type IdentityMatchResult = {
   evidence: IdentityEvidence[];
 };
 
-const GLOBAL_IDENTIFIERS: IdentifierType[] = ["JAN", "EAN", "UPC"];
+const GLOBAL_IDENTIFIERS = ["JAN", "EAN", "UPC"] as const;
+type GlobalIdentifierType = (typeof GLOBAL_IDENTIFIERS)[number];
 
-function normalize(value: string | null | undefined): string | null {
+export function normalizeText(value: string | null | undefined): string | null {
   if (!value) return null;
-  const normalized = value.normalize("NFKC").trim().toUpperCase().replace(/\s+/g, "").replaceAll("-", "");
+  const normalized = value.normalize("NFKC").trim().toUpperCase().replace(/\s+/g, " ");
   return normalized || null;
+}
+
+export function normalizeIdentifier(value: string | null | undefined): string | null {
+  const normalized = normalizeText(value);
+  return normalized ? normalized.replace(/[\s-]/g, "") : null;
 }
 
 function identifierMap(input: IdentityCandidate) {
   const values = new Map<IdentifierType, string[]>();
   for (const item of input.identifiers ?? []) {
-    const value = normalize(item.value);
+    const value = normalizeIdentifier(item.value);
     if (!value) continue;
     const current = values.get(item.type) ?? [];
     if (!current.includes(value)) current.push(value);
@@ -52,24 +58,36 @@ function identifierMap(input: IdentityCandidate) {
   return values;
 }
 
-function identifierValue(
-  map: Map<IdentifierType, string[]>,
-  type: IdentifierType,
-) {
+function identifierValue(map: Map<IdentifierType, string[]>, type: IdentifierType) {
   const values = map.get(type) ?? [];
   return values.length === 1 ? values[0] : null;
 }
 
-function hasIdentifierConflict(
-  map: Map<IdentifierType, string[]>,
-  type: IdentifierType,
-) {
+function hasIdentifierConflict(map: Map<IdentifierType, string[]>, type: IdentifierType) {
   return (map.get(type) ?? []).length > 1;
 }
 
+function isValidCheckDigit(value: string, type: GlobalIdentifierType) {
+  if (!/^\d+$/.test(value)) return false;
+  const expectedLength = type === "UPC" ? 12 : 13;
+  if (value.length !== expectedLength) return false;
+  const digits = [...value].map(Number);
+  const check = digits.pop()!;
+  let sum = 0;
+  for (let i = 0; i < digits.length; i += 1) {
+    const fromRight = digits.length - 1 - i;
+    sum += digits[i] * (fromRight % 2 === 0 ? 3 : 1);
+  }
+  return (10 - (sum % 10)) % 10 === check;
+}
+
+function isValidGlobalIdentifier(value: string, type: "JAN" | "EAN" | "UPC") {
+  return isValidCheckDigit(value, type);
+}
+
 function same(a: string | null | undefined, b: string | null | undefined) {
-  const left = normalize(a);
-  const right = normalize(b);
+  const left = normalizeText(a);
+  const right = normalizeText(b);
   return left !== null && right !== null && left === right;
 }
 
@@ -84,13 +102,10 @@ function addPairEvidence(
     evidence.push({ field, candidate, master, result: "MISSING", reason });
     return;
   }
-  evidence.push({
-    field,
-    candidate,
-    master,
-    result: String(candidate) === String(master) ? "MATCH" : "MISMATCH",
-    reason,
-  });
+  const equal = typeof candidate === "string" && typeof master === "string"
+    ? same(candidate, master)
+    : String(candidate) === String(master);
+  evidence.push({ field, candidate, master, result: equal ? "MATCH" : "MISMATCH", reason });
 }
 
 export function matchProductIdentity(
@@ -135,8 +150,10 @@ export function matchProductIdentity(
     } else if (left !== right) {
       addPairEvidence(evidence, type, left, right, "Strong identifier contradiction is a hard block.");
       hardBlockReasons.push(type + "_MISMATCH");
+    } else if (!isValidGlobalIdentifier(left, type)) {
+      addPairEvidence(evidence, type, left, right, "Identifier format/check digit is invalid; exact text is not sufficient for auto-link.");
     } else {
-      addPairEvidence(evidence, type, left, right, "Strong identifier matches exactly.");
+      addPairEvidence(evidence, type, left, right, "Strong identifier matches exactly and passes check-digit validation.");
     }
   }
 
@@ -165,55 +182,34 @@ export function matchProductIdentity(
   }
 
   if (hardBlockReasons.length > 0) {
-    return {
-      decision: "BLOCK",
-      matchMethod: "NONE",
-      hardBlockReasons: [...new Set(hardBlockReasons)],
-      evidence,
-    };
+    return { decision: "BLOCK", matchMethod: "NONE", hardBlockReasons: [...new Set(hardBlockReasons)], evidence };
   }
 
   const exactGlobal = GLOBAL_IDENTIFIERS.some((type) => {
     const left = identifierValue(candidateIds, type);
     const right = identifierValue(masterIds, type);
-    return Boolean(left && right && left === right);
+    return Boolean(left && right && left === right && isValidGlobalIdentifier(left, type));
   });
 
   const brandMatch = same(candidate.brand, master.brand);
   if (candidate.modelNumber && master.modelNumber) {
-    addPairEvidence(
-      evidence,
-      "model_number",
-      normalize(candidate.modelNumber),
-      normalize(master.modelNumber),
-      "Model number alone never promotes a candidate to AUTO_LINK.",
-    );
+    addPairEvidence(evidence, "model_number", candidate.modelNumber, master.modelNumber, "Model number alone never promotes a candidate to AUTO_LINK.");
   }
   const mpnMatch = Boolean(candidateMpn && masterMpn && candidateMpn === masterMpn);
 
   if (exactGlobal || (mpnMatch && brandMatch)) {
-    return {
-      decision: "AUTO_LINK",
-      matchMethod: "STRONG",
-      hardBlockReasons: [],
-      evidence,
-    };
+    return { decision: "AUTO_LINK", matchMethod: "STRONG", hardBlockReasons: [], evidence };
   }
 
   if (candidate.title && master.title) {
     evidence.push({
       field: "title",
-      candidate: normalize(candidate.title),
-      master: normalize(master.title),
+      candidate: normalizeText(candidate.title),
+      master: normalizeText(master.title),
       result: "WEAK",
       reason: "Title similarity can surface a candidate, but can never promote it to AUTO_LINK.",
     });
   }
 
-  return {
-    decision: "REVIEW",
-    matchMethod: "WEAK",
-    hardBlockReasons: [],
-    evidence,
-  };
+  return { decision: "REVIEW", matchMethod: "WEAK", hardBlockReasons: [], evidence };
 }

@@ -1,5 +1,7 @@
 import { DecisionConsole } from "./decision-console";
 import { IdentityProof } from "./identity-proof";
+import { getLiveOpportunities } from "../lib/matcher/live-opportunities";
+import { ingestionConfiguration } from "../lib/matcher/ingestion/config";
 
 const pillars = [
   ["01", "Product Master", "内部商品IDを中心に、識別子・仕様・バリアントを統合"],
@@ -10,7 +12,11 @@ const pillars = [
 
 const flow = ["Supplier Data", "Identity Match", "Product Master", "Cost / Profit", "Safety Gate", "Sellability"];
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const liveFeed = await getLiveOpportunities();
+  const ingestion = ingestionConfiguration();
   return (
     <main className="shell">
       <a className="skip-link" href="#decision">判断画面へ移動</a>
@@ -22,23 +28,26 @@ export default function Home() {
           <a href="#proof">Proof</a>
           <a href="#precision-title">Precision</a>
         </nav>
-        <div className="status" aria-label="Interface status"><span aria-hidden="true" /> decision-first interface</div>
+        <div className={`status status-${liveFeed.status.toLowerCase()}`} aria-label="Live data status">
+  <span aria-hidden="true" />
+  {liveFeed.status === "LIVE" ? "verified live data" : liveFeed.status === "EMPTY" ? "waiting for verified data" : "live feed unavailable"}
+</div>
       </header>
 
       <section className="hero" aria-labelledby="hero-title">
-        <p className="eyebrow">PRODUCT IDENTITY / SUPPLIER INTELLIGENCE</p>
-        <h1 id="hero-title">同じ商品を、<br /><em>正しく見つける。</em></h1>
-        <p className="lead">商品を識別し、サプライヤーを正確につなぎ、実コストと安全性まで判定する。<strong>「何を仕入れるか」を探し続ける時間を、判断の時間に変える。</strong></p>
+        <p className="eyebrow">PROFIT OPPORTUNITY / SUPPLIER INTELLIGENCE</p>
+        <h1 id="hero-title">利益機会を、<br /><em>探す前に見つける。</em></h1>
+        <p className="lead">仕入れ候補をただ増やすのではなく、利益・需要・競争・鮮度・商品同定を一つの判断にまとめる。実データが揃わない機会は、見せない。<strong>「何を仕入れるか」を探し続ける時間を、買う理由を確かめる時間に変える。</strong></p>
         <div className="hero-actions">
-          <a className="button primary" href="#decision">仕入れ候補を見る <span aria-hidden="true">↘</span></a>
+          <a className="button primary" href="#opportunity">利益機会を見る <span aria-hidden="true">↘</span></a>
           <a className="button secondary" href="#proof">判定の根拠を見る <span aria-hidden="true">↓</span></a>
         </div>
         <div className="hero-meta" aria-label="MATCHER principles">
-          <span>IDENTITY FIRST</span><span>·</span><span>EVIDENCE LED</span><span>·</span><span>HUMAN APPROVED</span>
+          <span>PROFIT FIRST</span><span>·</span><span>EVIDENCE LED</span><span>·</span><span>HUMAN APPROVED</span>
         </div>
         <div className="hero-signal" aria-label="The MATCHER decision model">
-          <div><span>SEARCH</span><b>↓</b><strong>JUDGEMENT</strong></div>
-          <p>探す量を増やすのではなく、<em>判断に必要な情報だけを前に出す。</em></p>
+          <div><span>OPPORTUNITY</span><b>↓</b><strong>JUDGEMENT</strong></div>
+          <p>候補を増やすのではなく、<em>今見る価値が高い機会だけを前に出す。</em></p>
         </div>
       </section>
 
@@ -57,7 +66,42 @@ export default function Home() {
         </div>
       </section>
 
-      <DecisionConsole />
+      <section className="opportunity" id="opportunity" aria-labelledby="opportunity-title">
+        <div className="opportunity-head">
+          <div>
+            <p className="section-index">02 / PROFIT OPPORTUNITY</p>
+            <h2 id="opportunity-title">利益率だけでなく、<em>売れる確率と競争リスク</em>まで見て並べる。</h2>
+          </div>
+          <p>「価格差が大きい順」ではなく、期待利益・ROI・需要速度・競争・価格安定性・鮮度・商品同定・リスクをまとめて優先順位化する。</p>
+        </div>
+        {liveFeed.opportunities.length > 0 ? (
+          <div className="opportunity-list">
+            {liveFeed.opportunities.map((item, index) => (
+              <article className={`opportunity-item ${item.tier.toLowerCase()}`} key={item.id}>
+                <div className="opportunity-rank">{String(index + 1).padStart(2, "0")}</div>
+                <div>
+                  <span>{item.tier} · LIVE</span>
+                  <h3>{item.product}</h3>
+                  <p>ROI {item.roiPercent}% · expected profit ¥{Math.round(item.profit).toLocaleString()} · {item.supplier} · freshness {item.freshness}%</p>
+                </div>
+                <strong>{item.score}</strong>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="opportunity-empty" role="status">
+            <strong>{liveFeed.status === "UNAVAILABLE" ? "LIVE FEED UNAVAILABLE" : "WAITING FOR VERIFIED OPPORTUNITIES"}</strong>
+            <p>{liveFeed.message}</p>
+            <span>架空の利益機会は表示しません。</span>
+          </div>
+        )}
+        <p className="opportunity-foot">
+  LIVE SIGNALS: economics · identity · supplier freshness · market observation.
+  {liveFeed.status === "LIVE" ? "現在の順位は検証済みデータから算出。" : "市場観測が入るまで順位を作りません。"}
+</p>
+      </section>
+
+      <DecisionConsole opportunities={liveFeed.opportunities} />
       <section id="proof"><IdentityProof /></section>
 
       <section className="precision-contract" aria-labelledby="precision-title">
@@ -82,7 +126,7 @@ export default function Home() {
           <p className="section-index">01 / FOUNDATION</p>
           <h2 id="pillars-title">Matching is only the beginning.</h2>
         </div>
-        <p>識別したあとに、つなぐ・計算する・止める。MATCHERは商品同定を、販売判断まで続く一つの系として扱う。</p>
+        <p>利益機会を見つけたあとに、つなぐ・証明する・計算する・止める。MATCHERは商品同定を、販売判断まで続く一つの系として扱う。</p>
       </section>
 
       <section className="grid" aria-label="MATCHER capabilities">
@@ -122,7 +166,7 @@ export default function Home() {
 
       <footer className="footer">
         <span>MATCHER</span>
-        <span>PRODUCT IDENTITY / SUPPLIER INTELLIGENCE</span>
+        <span>PROFIT OPPORTUNITY / SUPPLIER INTELLIGENCE</span>
         <span>FOUNDATION BUILD · 2026</span>
       </footer>
     </main>
