@@ -82,6 +82,20 @@ assert.equal(nonFiniteInputs.score, 0);
 assert.equal(nonFiniteInputs.tier, "REJECT");
 assert.ok(Number.isFinite(nonFiniteInputs.score));
 
+const invalidRisk = scoreOpportunity({
+  expectedProfit: 9000, roiPercent: 80, salesVelocity: 90, competition: 10,
+  priceStability: 95, freshness: 95, identityStrength: 100, risk: Number.NaN,
+});
+assert.equal(invalidRisk.score, 0);
+assert.equal(invalidRisk.tier, "REJECT");
+
+const invalidCompetition = scoreOpportunity({
+  expectedProfit: 9000, roiPercent: 80, salesVelocity: 90, competition: Number.NaN,
+  priceStability: 95, freshness: 95, identityStrength: 100, risk: 5,
+});
+assert.equal(invalidCompetition.score, 0);
+assert.equal(invalidCompetition.tier, "REJECT");
+
 console.log("MATCHER opportunity scoring verification: PASS");
 
 
