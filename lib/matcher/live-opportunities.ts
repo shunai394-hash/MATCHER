@@ -148,7 +148,7 @@ export function marketScores(row: Market) {
   const median = finite(row.median_sale_price);
   const stddev = finite(row.price_stddev);
   const observedAt = time(row.observed_at);
-  if (start === null || end === null || end <= start || observedAt === null || observedAt > Date.now()) {
+  if (start === null || end === null || end <= start || observedAt === null || observedAt > Date.now() || end > Date.now() || observedAt < end) {
     return { demandVelocity: 0, competition: 0, priceStability: 0 };
   }
 
