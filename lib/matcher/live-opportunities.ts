@@ -128,7 +128,7 @@ function freshnessScore(row: Freshness): number {
   const price = time(row.price_observed_at);
   const inventory = time(row.inventory_observed_at);
   const shipping = time(row.shipping_observed_at);
-  if (price === null || inventory === null || shipping === null) return 0;
+  if (price === null || inventory === null || shipping === null || price > now || inventory > now || shipping > now) return 0;
 
   const priceScore = Math.max(0, Math.min(100, 100 * (1 - (now - price) / (24 * 60 * 60 * 1000))));
   const inventoryScore = Math.max(0, Math.min(100, 100 * (1 - (now - inventory) / (30 * 60 * 1000))));
@@ -138,7 +138,7 @@ function freshnessScore(row: Freshness): number {
 
 function marketFreshness(observedAt: string): number {
   const t = time(observedAt);
-  if (t === null) return 0;
+  if (t === null || t > Date.now()) return 0;
   return Math.max(0, Math.min(100, 100 * (1 - (Date.now() - t) / (24 * 60 * 60 * 1000))));
 }
 
