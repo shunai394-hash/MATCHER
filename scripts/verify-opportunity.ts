@@ -71,7 +71,7 @@ const malformedMarket = marketScores({
   sales_count: -10, active_listing_count: -5, median_sale_price: 10000, price_stddev: 500,
   observed_at: "not-a-date", evidence_url: null,
 });
-assert.deepEqual(malformedMarket, { demandVelocity: 0, competition: 0, priceStability: 95 });
+assert.deepEqual(malformedMarket, { demandVelocity: 0, competition: 0, priceStability: 0 });
 
 const nonFiniteInputs = scoreOpportunity({
   expectedProfit: Number.NaN, roiPercent: Number.POSITIVE_INFINITY, salesVelocity: Number.NaN,
