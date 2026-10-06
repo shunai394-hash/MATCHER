@@ -106,3 +106,11 @@ const futureMarket = marketScores({
 });
 assert.deepEqual(futureMarket, { demandVelocity: 0, competition: 0, priceStability: 0 });
 console.log("MATCHER future freshness boundary verification: PASS");
+
+const incompleteMarket = marketScores({
+  master_product_id: "m", source: "test", window_start: "2026-10-01T00:00:00Z", window_end: new Date(Date.now() + 60_000).toISOString(),
+  sales_count: 100, active_listing_count: 1, median_sale_price: 10000, price_stddev: 500,
+  observed_at: new Date().toISOString(), evidence_url: null,
+});
+assert.deepEqual(incompleteMarket, { demandVelocity: 0, competition: 0, priceStability: 0 });
+console.log("MATCHER future market-window verification: PASS");
