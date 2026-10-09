@@ -114,6 +114,7 @@ export function matchProductIdentity(
 ): IdentityMatchResult {
   const evidence: IdentityEvidence[] = [];
   const hardBlockReasons: string[] = [];
+  let hasInvalidGlobalIdentifier = false;
   const candidateIds = identifierMap(candidate);
   const masterIds = identifierMap(master);
 
@@ -148,6 +149,7 @@ export function matchProductIdentity(
     if (left == null || right == null) {
       addPairEvidence(evidence, type, left, right, "Strong identifier is missing on one side; never infer it.");
     } else if (!isValidGlobalIdentifier(left, type) || !isValidGlobalIdentifier(right, type)) {
+      hasInvalidGlobalIdentifier = true;
       addPairEvidence(evidence, type, left, right, "Identifier format/check digit is invalid; treat it as untrusted evidence and REVIEW rather than hard-blocking on its value.");
     } else if (left !== right) {
       addPairEvidence(evidence, type, left, right, "Two valid strong identifiers contradict each other; this is a hard block.");
@@ -197,7 +199,7 @@ export function matchProductIdentity(
   }
   const mpnMatch = Boolean(candidateMpn && masterMpn && candidateMpn === masterMpn);
 
-  if (exactGlobal || (mpnMatch && brandMatch)) {
+  if (exactGlobal || (mpnMatch && brandMatch && !hasInvalidGlobalIdentifier)) {
     return { decision: "AUTO_LINK", matchMethod: "STRONG", hardBlockReasons: [], evidence };
   }
 
