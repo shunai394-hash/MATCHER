@@ -27,6 +27,16 @@ type SpreadCandidate = {
   referenceSourceUrl: string | null;
 };
 
+function safeExternalUrl(value?: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 type ScanResult = {
   ok: boolean;
   queries: string[];
@@ -113,7 +123,7 @@ export function DiscoveryConsole() {
                     <span>JAN {item.jan ?? "未確認"} · GROSS SPREAD</span>
                     <h3>粗価格差 ¥{Math.round(item.grossSpread).toLocaleString()}</h3>
                     <p>仕入れ表示価格 ¥{item.buyPrice == null ? "—" : Math.round(item.buyPrice).toLocaleString()} → 比較価格 ¥{item.referenceSellPrice == null ? "—" : Math.round(item.referenceSellPrice).toLocaleString()} · 粗ROI {item.grossRoiPercent}%</p>
-                    <p>{item.buySourceUrl ? <a href={item.buySourceUrl} target="_blank" rel="noreferrer">仕入れ元を開く</a> : "仕入れ元URLなし"}　{item.referenceSourceUrl ? <a href={item.referenceSourceUrl} target="_blank" rel="noreferrer">比較元を開く</a> : "比較元URLなし"}</p>
+                    <p>{safeExternalUrl(item.buySourceUrl) ? <a href={safeExternalUrl(item.buySourceUrl)!} target="_blank" rel="noreferrer">仕入れ元を開く</a> : "仕入れ元URLなし"}　{safeExternalUrl(item.referenceSourceUrl) ? <a href={safeExternalUrl(item.referenceSourceUrl)!} target="_blank" rel="noreferrer">比較元を開く</a> : "比較元URLなし"}</p>
                   </div>
                 </article>
               ))}
@@ -136,7 +146,7 @@ export function DiscoveryConsole() {
                     <h3>{item.productName}</h3>
                     <p>{item.brand ?? "ブランド未確認"} · JAN {item.identifiers?.find((id) => ["JAN", "EAN", "UPC"].includes(id.type))?.value ?? "未確認"}</p>
                     <p>表示価格 {item.cost == null ? "未取得" : `¥${Math.round(item.cost).toLocaleString()}`} · 送料 {item.shippingCost == null ? "未取得" : `¥${Math.round(item.shippingCost).toLocaleString()}`} · 在庫 {item.inventory == null ? "未確認" : item.inventory}</p>
-                    {item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noreferrer">商品ページを開く ↗</a> : <span>商品URLなし</span>}
+                    {safeExternalUrl(item.sourceUrl) ? <a href={safeExternalUrl(item.sourceUrl)!} target="_blank" rel="noreferrer">商品ページを開く ↗</a> : <span>商品URLなし</span>}
                   </div>
                 </article>
               ))}
