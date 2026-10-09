@@ -44,7 +44,19 @@ export async function POST(request: Request) {
       buySourceUrl: spread.buy.sourceUrl,
       referenceSourceUrl: spread.referenceSell.sourceUrl,
     }));
-    return NextResponse.json({ ok: true, queries, sources, discovered, accepted, rejected, persisted, spreadCandidates: spreads, errors });
+    const products = allProducts.slice(0, 80).map((item) => ({
+      source: item.sourceKey ?? "unknown-source",
+      externalId: item.externalId,
+      productName: item.productName,
+      brand: item.brand ?? null,
+      identifiers: item.identifiers ?? [],
+      cost: item.cost ?? null,
+      shippingCost: item.shippingCost ?? null,
+      inventory: item.inventory ?? null,
+      orderability: item.orderability ?? "UNKNOWN",
+      sourceUrl: item.sourceUrl ?? null,
+    }));
+    return NextResponse.json({ ok: true, queries, sources, discovered, accepted, rejected, persisted, products, spreadCandidates: spreads, errors });
   } catch (error) {
     return NextResponse.json({ ok: false, code: error instanceof Error ? error.message : "SCAN_FAILED", queries, sources, discovered, accepted, rejected, persisted, errors }, { status: 502 });
   } finally {
