@@ -81,7 +81,7 @@ function isValidCheckDigit(value: string, type: GlobalIdentifierType) {
   return (10 - (sum % 10)) % 10 === check;
 }
 
-function isValidGlobalIdentifier(value: string, type: "JAN" | "EAN" | "UPC") {
+export function isValidGlobalIdentifier(value: string, type: "JAN" | "EAN" | "UPC") {
   return isValidCheckDigit(value, type);
 }
 
