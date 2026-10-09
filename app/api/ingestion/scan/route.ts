@@ -32,7 +32,7 @@ export async function GET() {
 
     const suppliers = new Map((suppliersResult.data ?? []).map((item) => [item.id, item.name]));
     const offers = new Map((offersResult.data ?? []).map((item) => [item.supplier_product_id, item]));
-    const latestSnapshots = new Map<string, (typeof snapshotsResult.data)[number]>();
+    const latestSnapshots = new Map<string, { supplier_offer_id: string; supplier_cost: number | string | null; shipping_cost: number | string | null; inventory: number | null; observed_at: string }>();
     for (const snapshot of snapshotsResult.data ?? []) {
       if (!latestSnapshots.has(snapshot.supplier_offer_id)) latestSnapshots.set(snapshot.supplier_offer_id, snapshot);
     }
