@@ -54,7 +54,7 @@ const yen = (value: number | null | undefined) =>
   value == null || !Number.isFinite(value) ? "未取得" : "¥" + Math.round(value).toLocaleString("ja-JP");
 
 export function LiveDiscoveryConsole() {
-  const [query, setQuery] = useState("Apple AirPods");
+  const [query, setQuery] = useState("Nintendo Switch 2 本体");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState("");
