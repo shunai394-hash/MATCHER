@@ -120,8 +120,8 @@ export function LiveDiscoveryConsole() {
       {result && (
         <div className="live-discovery-results" aria-live="polite">
           <div className="live-discovery-summary">
-            <div><strong>{result.discovered ?? 0}</strong><span>取得件数</span></div>
-            <div><strong>{result.persisted ?? 0}</strong><span>DB保存件数</span></div>
+            <div><strong>{result.discovered ?? 0}</strong><span>{result.mode === "stored" ? "保存済み商品" : "取得件数"}</span></div>
+            <div><strong>{result.persisted ?? 0}</strong><span>{result.mode === "stored" ? "保存済み件数" : "DB保存件数"}</span></div>
             <div><strong>{result.spreadCandidates?.length ?? 0}</strong><span>JAN一致の価格差候補</span></div>
           </div>
           {result.spreadCandidates && result.spreadCandidates.length > 0 && (
