@@ -1,6 +1,6 @@
-import { normalizeSourceProduct } from "../lib/matcher/ingestion/normalize";
-import { validateSourceProduct } from "../lib/matcher/ingestion/validate";
-import { searchYahooShopping } from "../lib/matcher/ingestion/yahoo-shopping";
+import { normalizeSourceProduct } from "../lib/matcher/ingestion/normalize.ts";
+import { validateSourceProduct } from "../lib/matcher/ingestion/validate.ts";
+import { searchYahooShopping } from "../lib/matcher/ingestion/yahoo-shopping.ts";
 
 const valid = normalizeSourceProduct({
   externalId: "  sku-1 ",
