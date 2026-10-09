@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 type DiscoveredProduct = {
   source: string;
@@ -27,6 +27,7 @@ type SpreadCandidate = {
 
 type ScanResult = {
   ok: boolean;
+  mode?: "stored" | "scan";
   queries?: string[];
   sources?: string[];
   discovered?: number;
@@ -39,7 +40,7 @@ type ScanResult = {
   code?: string;
 };
 
-const yen = (value: number | null | undefined) =>
+const safeHttpUrl = (value: string | null | undefined) => {\n  if (!value) return null;\n  try { const url = new URL(value); return url.protocol === "https:" || url.protocol === "http:" ? url.href : null; } catch { return null; }\n};\n\nconst yen = (value: number | null | undefined) =>
   value == null || !Number.isFinite(value) ? "未取得" : "¥" + Math.round(value).toLocaleString("ja-JP");
 
 export function LiveDiscoveryConsole() {
@@ -47,6 +48,21 @@ export function LiveDiscoveryConsole() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ingestion/scan", { cache: "no-store" })
+      .then(async (response) => ({ response, payload: (await response.json()) as ScanResult }))
+      .then(({ response, payload }) => {
+        if (!active) return;
+        if (response.ok && payload.ok) setResult(payload);
+        else setError(payload.code ?? "保存済み商品を読み込めませんでした。");
+      })
+      .catch(() => {
+        if (active) setError("保存済み商品を読み込めませんでした。");
+      });
+    return () => { active = false; };
+  }, []);
 
   async function scan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -123,7 +139,7 @@ export function LiveDiscoveryConsole() {
                     <small>{product.source} · 在庫 {product.inventory == null ? "未確認" : product.inventory} · {product.orderability === "ORDERABLE" ? "注文可" : "注文可否未確認"}</small>
                   </div>
                   <div className="live-product-price"><strong>{yen(product.cost)}</strong><span>送料 {yen(product.shippingCost)}</span></div>
-                  {product.sourceUrl && <a href={product.sourceUrl} target="_blank" rel="noreferrer">販売ページ ↗</a>}
+                  {safeHttpUrl(product.sourceUrl) && <a href={safeHttpUrl(product.sourceUrl)!} target="_blank" rel="noreferrer">販売ページ ↗</a>}
                 </article>
               );
             }) : <p className="live-discovery-feedback">この検索では商品を取得できませんでした。検索語を変えて再試行してください。</p>}
