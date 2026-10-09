@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 type DiscoveredProduct = {
   sourceKey?: string;
@@ -37,6 +37,14 @@ function safeExternalUrl(value?: string | null): string | null {
   }
 }
 
+type IngestionStatus = {
+  readyForScan?: boolean;
+  configured?: boolean;
+  missingSourceCredentials?: string[];
+  missingDatabaseCredentials?: string[];
+  database?: { configured: boolean; missing: string[] };
+};
+
 type ScanResult = {
   ok: boolean;
   queries: string[];
@@ -51,6 +59,16 @@ type ScanResult = {
 
 export function DiscoveryConsole() {
   const [query, setQuery] = useState("ワイヤレスイヤホン");
+  const [status, setStatus] = useState<IngestionStatus | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/ingestion/status")
+      .then((response) => response.ok ? response.json() as Promise<IngestionStatus> : null)
+      .then((value) => { if (active && value) setStatus(value); })
+      .catch(() => { if (active) setStatus(null); });
+    return () => { active = false; };
+  }, []);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState("");
@@ -87,6 +105,15 @@ export function DiscoveryConsole() {
         </div>
         <p>Yahoo!ショッピングと楽天市場の取得結果を表示します。価格差は粗い候補であり、手数料・送料・需要・鮮度を検証するまでは純利益や購入推奨として扱いません。</p>
       </div>
+
+      {status && status.readyForScan === false ? (
+        <div className="opportunity-empty" role="status">
+          <strong>CONFIGURATION REQUIRED</strong>
+          <p>商品検索を実行する前に、Vercelの環境変数を設定してください。</p>
+          {status.missingSourceCredentials?.length ? <p>検索元: {status.missingSourceCredentials.join(", ")}</p> : null}
+          {(status.missingDatabaseCredentials ?? status.database?.missing ?? []).length ? <p>保存・利益判定: {(status.missingDatabaseCredentials ?? status.database?.missing ?? []).join(", ")}</p> : null}
+        </div>
+      ) : null}
 
       <form className="hero-actions discovery-form" onSubmit={scan} aria-label="商品検索">
         <label htmlFor="matcher-query">検索キーワード</label>
