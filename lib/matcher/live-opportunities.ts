@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { scoreOpportunity, type OpportunityResult } from "./opportunity";
+import { scoreOpportunity, type OpportunityResult } from "./opportunity.ts";
 
 type Offer = {
   id: string;
