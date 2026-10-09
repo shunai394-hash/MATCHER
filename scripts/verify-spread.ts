@@ -33,7 +33,7 @@ if (invalidJan.length !== 0) throw new Error("invalid check-digit JAN must not p
 console.log("verify:spread strong identity + variant + MPN + check-digit PASS");
 
 const economics = calculateNetEconomics({ salePrice: 2000, buyPrice: 1000, shippingCost: 200, marketplaceFeeRate: 0.1, paymentFeeRate: 0.03, fixedFee: 0 });
-if (!economics.valid || economics.expectedProfit !== 740) throw new Error("net economics calculation failed");
+if (!economics.valid || economics.expectedProfit !== 540) throw new Error("net economics calculation failed");
 const invalid = calculateNetEconomics({ salePrice: 0, buyPrice: 1000, shippingCost: 0, marketplaceFeeRate: 0.1, paymentFeeRate: 0.03, fixedFee: 0 });
 if (invalid.valid) throw new Error("invalid economics accepted");
 console.log("verify:net-economics PASS");
