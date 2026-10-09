@@ -65,10 +65,11 @@ console.log("MATCHER identity verification: PASS");
 
 
 const invalidGlobal = matchProductIdentity(
-  { ...base, identifiers: [{ type: "JAN", value: "4901234567890" }, { type: "MPN", value: "ABC-123" }] },
-  base,
+  { ...base, identifiers: [{ type: "JAN", value: "4901234567890" }] },
+  { ...base, identifiers: [{ type: "JAN", value: "4901234567890" }] },
 );
 assert.equal(invalidGlobal.decision, "REVIEW");
+assert.equal(invalidGlobal.matchMethod, "WEAK");
 assert.ok(invalidGlobal.evidence.some((item) => item.field === "JAN" && item.reason.includes("invalid")));
 
 const conservativeTextNormalization = matchProductIdentity(
