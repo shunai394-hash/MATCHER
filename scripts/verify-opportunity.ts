@@ -90,5 +90,14 @@ const futureMarket = marketScores({
   master_product_id: "m", source: "test", window_start: "2026-10-01T00:00:00Z", window_end: "2026-10-02T00:00:00Z",
   sales_count: 10, active_listing_count: 2, median_sale_price: 10000, price_stddev: 500, observed_at: futureTimestamp, evidence_url: null,
 });
-assert.deepEqual(futureMarket, { demandVelocity: 100, competition: 24, priceStability: 95 });
-console.log("MATCHER future freshness boundary verification: PASS");
+assert.deepEqual(futureMarket, { demandVelocity: 0, competition: 0, priceStability: 0 });
+
+const futureWindow = marketScores({
+  master_product_id: "m", source: "test",
+  window_start: new Date(Date.now() + 60_000).toISOString(),
+  window_end: new Date(Date.now() + 120_000).toISOString(),
+  sales_count: 10, active_listing_count: 2, median_sale_price: 10000, price_stddev: 500,
+  observed_at: new Date().toISOString(), evidence_url: null,
+});
+assert.deepEqual(futureWindow, { demandVelocity: 0, competition: 0, priceStability: 0 });
+console.log("MATCHER future market timestamp/window boundary verification: PASS");
