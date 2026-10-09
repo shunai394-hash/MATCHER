@@ -1,4 +1,5 @@
 import type { SourceProduct } from "./types";
+import { isValidGlobalIdentifier } from "../identity.ts";
 
 export type PriceSpread = {
   buy: SourceProduct;
@@ -11,7 +12,7 @@ export function rankPriceSpreads(products: SourceProduct[]): PriceSpread[] {
   const byJan = new Map<string, SourceProduct[]>();
   for (const product of products) {
     const jan = product.identifiers?.find((x) => x.type === "JAN")?.value;
-    if (!jan || product.cost == null || product.cost <= 0) continue;
+    if (!jan || !isValidGlobalIdentifier(jan, "JAN") || product.cost == null || product.cost <= 0) continue;
     const list = byJan.get(jan) ?? [];
     list.push(product);
     byJan.set(jan, list);
