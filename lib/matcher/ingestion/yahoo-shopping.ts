@@ -1,17 +1,33 @@
 import type { SourceProduct } from "./types";
 
+// Yahoo Shopping V3 uses lower-camel-case JSON fields. Uppercase aliases are
+// retained defensively for older fixtures/responses, but are not the primary contract.
 type YahooHit = {
+  code?: string;
+  name?: string;
+  janCode?: string;
+  price?: number;
+  url?: string;
+  inStock?: boolean;
+  condition?: string;
+  seller?: { sellerId?: string; name?: string; url?: string };
+  brand?: { id?: number; name?: string };
   Code?: string;
   Name?: string;
   JanCode?: string;
   Price?: number;
   Url?: string;
+  InStock?: boolean;
+  Condition?: string;
   Seller?: { SellerId?: string; Name?: string; Url?: string };
   Brand?: { Id?: number; Name?: string };
-  Condition?: string;
 };
 
-type YahooResponse = { hits?: YahooHit[] };
+type YahooResponse = {
+  hits?: YahooHit[];
+  totalResultsAvailable?: number;
+  totalResultsReturned?: number;
+};
 
 export async function searchYahooShopping(query: string, signal?: AbortSignal): Promise<SourceProduct[]> {
   const appId = process.env.MATCHER_YAHOO_SHOPPING_APP_ID?.trim();
@@ -25,22 +41,32 @@ export async function searchYahooShopping(query: string, signal?: AbortSignal): 
   const response = await fetch(url, { signal, headers: { accept: "application/json" } });
   if (!response.ok) throw new Error(`YAHOO_SHOPPING_HTTP_${response.status}`);
   const body = (await response.json()) as YahooResponse;
-  return (body.hits ?? []).flatMap((hit) => {
-    const price = Number(hit.Price);
-    const jan = hit.JanCode?.trim();
-    if (!hit.Code || !hit.Name || !Number.isFinite(price) || price <= 0) return [];
+  if (!Array.isArray(body.hits)) {
+    if (Number(body.totalResultsReturned ?? 0) > 0) throw new Error("YAHOO_SHOPPING_RESPONSE_INVALID");
+    return [];
+  }
+
+  return body.hits.flatMap((hit) => {
+    const externalId = hit.code ?? hit.Code;
+    const productName = hit.name ?? hit.Name;
+    const price = Number(hit.price ?? hit.Price);
+    const jan = (hit.janCode ?? hit.JanCode)?.trim();
+    if (!externalId || !productName || !Number.isFinite(price) || price <= 0) return [];
+    const inStock = hit.inStock ?? hit.InStock;
+    const sellerUrl = hit.seller?.url ?? hit.Seller?.Url;
     return [{
       sourceKey: "yahoo-shopping",
-      externalId: hit.Code,
-      productName: hit.Name,
-      brand: hit.Brand?.Name ?? null,
+      externalId,
+      productName,
+      brand: hit.brand?.name ?? hit.Brand?.Name ?? null,
       identifiers: jan ? [{ type: "JAN" as const, value: jan }] : [],
       cost: price,
       shippingCost: null,
       inventory: null,
-      orderability: "UNKNOWN" as const,
+      orderability: inStock === true ? "ORDERABLE" as const : inStock === false ? "OUT_OF_STOCK" as const : "UNKNOWN" as const,
       currency: "JPY",
-      sourceUrl: hit.Url ?? hit.Seller?.Url ?? null,
+      condition: hit.condition ?? hit.Condition ?? null,
+      sourceUrl: hit.url ?? hit.Url ?? sellerUrl ?? null,
     }];
   });
 }
