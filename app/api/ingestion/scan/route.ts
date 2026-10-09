@@ -85,12 +85,27 @@ export async function POST(request: Request) {
       discovered += result.products.length;
       allProducts.push(...result.products);
       errors.push(...result.errors.map((error) => `${query}:${error}`));
-      for (const item of result.products) {
-        if (validateSourceProduct(item).length) { rejected++; continue; }
-        accepted++;
-        const sourceKey = item.sourceKey ?? "shopping-source";
-        try { await persistSupplierDiscovery(sourceKey, item); persisted++; }
-        catch (error) { errors.push(`${query}:persist:${error instanceof Error ? error.message : "UNKNOWN"}`); }
+      const validItems = result.products.filter((item) => validateSourceProduct(item).length === 0);
+      rejected += result.products.length - validItems.length;
+      accepted += validItems.length;
+
+      // Persist in small concurrent batches. Sequentially issuing six database
+      // operations per product caused 50-item scans to hit the function timeout.
+      const batchSize = 5;
+      for (let offset = 0; offset < validItems.length; offset += batchSize) {
+        const batch = validItems.slice(offset, offset + batchSize);
+        const outcomes = await Promise.all(batch.map(async (item) => {
+          try {
+            await persistSupplierDiscovery(item.sourceKey ?? "shopping-source", item);
+            return { ok: true as const };
+          } catch (error) {
+            return { ok: false as const, message: error instanceof Error ? error.message : "UNKNOWN" };
+          }
+        }));
+        for (const outcome of outcomes) {
+          if (outcome.ok) persisted++;
+          else if (errors.length < 100) errors.push(`${query}:persist:${outcome.message}`);
+        }
       }
     }
     const spreads = rankPriceSpreads(allProducts).slice(0, 20).map((spread) => ({
