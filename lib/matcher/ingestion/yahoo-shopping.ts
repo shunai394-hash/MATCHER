@@ -46,7 +46,7 @@ export async function searchYahooShopping(query: string, signal?: AbortSignal): 
     return [];
   }
 
-  return body.hits.flatMap((hit) => {
+  const products = body.hits.flatMap((hit) => {
     const externalId = hit.code ?? hit.Code;
     const productName = hit.name ?? hit.Name;
     const price = Number(hit.price ?? hit.Price);
@@ -69,4 +69,7 @@ export async function searchYahooShopping(query: string, signal?: AbortSignal): 
       sourceUrl: hit.url ?? hit.Url ?? sellerUrl ?? null,
     }];
   });
+  if (body.hits.length > 0 && products.length === 0) throw new Error("YAHOO_SHOPPING_ITEMS_UNPARSEABLE");
+  if (Number(body.totalResultsReturned ?? 0) > 0 && body.hits.length === 0) throw new Error("YAHOO_SHOPPING_RESPONSE_INCONSISTENT");
+  return products;
 }
