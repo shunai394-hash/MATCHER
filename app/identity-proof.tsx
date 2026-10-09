@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 
 const cases = [
-  { key:"exact", label:"EXACT IDENTIFIER", title:"JAN / EAN / UPC", source:"4901234567890", master:"4901234567890", decision:"AUTO LINK", coverage:"3/3", note:"同一GTIN。識別子が一致。", evidence:["GTIN exact match","Variant fields aligned","No blocking signal"] },
+  { key:"exact", label:"EXACT IDENTIFIER", title:"JAN / EAN / UPC", source:"4901234567894", master:"4901234567894", decision:"AUTO LINK", coverage:"3/3", note:"同一GTIN。識別子が一致。", evidence:["GTIN exact match","Variant fields aligned","No blocking signal"] },
   { key:"strong", label:"STRONG EVIDENCE", title:"Brand + MPN", source:"ACME / AX-204", master:"ACME / AX-204", decision:"AUTO LINK", coverage:"3/3", note:"ブランドとメーカー型番が一致。", evidence:["Brand exact match","MPN exact match","Variant evidence present"] },
   { key:"variant", label:"VARIANT CRITICAL", title:"Variant mismatch", source:"BLACK / 256GB", master:"WHITE / 128GB", decision:"BLOCK", coverage:"1/3", note:"色・容量が異なるため自動結合しない。", evidence:["Brand context only","Color mismatch","Capacity mismatch"] },
   { key:"review", label:"INSUFFICIENT EVIDENCE", title:"Needs review", source:"Brand only", master:"ACME", decision:"REVIEW", coverage:"1/3", note:"証拠不足。推測で商品を結合しない。", evidence:["Brand exact match","MPN missing","Variant unknown"] },
