@@ -43,6 +43,7 @@ type IngestionStatus = {
   missingSourceCredentials?: string[];
   missingDatabaseCredentials?: string[];
   database?: { configured: boolean; missing: string[] };
+  sources?: Record<string, { configured: boolean; missing: string[] }>;
 };
 
 type ScanResult = {
@@ -72,6 +73,8 @@ export function DiscoveryConsole() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState("");
+  const missingSourceVariables = status?.missingSourceCredentials ?? Object.values(status?.sources ?? {}).flatMap((source) => source.missing);
+  const missingDatabaseVariables = status?.missingDatabaseCredentials ?? status?.database?.missing ?? [];
 
   async function scan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -110,8 +113,8 @@ export function DiscoveryConsole() {
         <div className="opportunity-empty" role="status">
           <strong>CONFIGURATION REQUIRED</strong>
           <p>商品検索を実行する前に、Vercelの環境変数を設定してください。</p>
-          {status.missingSourceCredentials?.length ? <p>検索元: {status.missingSourceCredentials.join(", ")}</p> : null}
-          {(status.missingDatabaseCredentials ?? status.database?.missing ?? []).length ? <p>保存・利益判定: {(status.missingDatabaseCredentials ?? status.database?.missing ?? []).join(", ")}</p> : null}
+          {missingSourceVariables.length ? <p>検索元: {missingSourceVariables.join(", ")}</p> : null}
+          {missingDatabaseVariables.length ? <p>保存・利益判定: {missingDatabaseVariables.join(", ")}</p> : null}
         </div>
       ) : null}
 
