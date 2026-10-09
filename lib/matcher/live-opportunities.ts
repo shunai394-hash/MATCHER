@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { scoreOpportunity, type OpportunityResult } from "./opportunity";
+import { scoreOpportunity, type OpportunityResult } from "./opportunity.ts";
 
 type Offer = {
   id: string;
@@ -147,7 +147,12 @@ export function marketScores(row: Market) {
   const end = time(row.window_end);
   const median = finite(row.median_sale_price);
   const stddev = finite(row.price_stddev);
-  if (start === null || end === null || end <= start) {
+  const observedAt = time(row.observed_at);
+  const now = Date.now();
+  if (
+    start === null || end === null || observedAt === null ||
+    end <= start || start > now || end > now || observedAt > now
+  ) {
     return { demandVelocity: 0, competition: 0, priceStability: 0 };
   }
 

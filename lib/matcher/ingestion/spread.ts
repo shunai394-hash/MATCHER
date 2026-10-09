@@ -1,3 +1,4 @@
+import { matchProductIdentity, normalizeIdentifier, type IdentityCandidate } from "../identity.ts";
 import type { SourceProduct } from "./types";
 
 export type PriceSpread = {
@@ -7,28 +8,74 @@ export type PriceSpread = {
   grossRoiPercent: number;
 };
 
+function identityCandidate(product: SourceProduct): IdentityCandidate {
+  return {
+    brand: product.brand,
+    modelNumber: product.modelNumber,
+    title: product.productName,
+    identifiers: (product.identifiers ?? []).map(({ type, value }) => ({ type, value })),
+    color: product.color,
+    size: product.size,
+    capacity: product.capacity,
+    generation: product.generation,
+    setCount: product.setCount,
+    condition: product.condition,
+  };
+}
+
 export function rankPriceSpreads(products: SourceProduct[]): PriceSpread[] {
   const byJan = new Map<string, SourceProduct[]>();
   for (const product of products) {
-    const jan = product.identifiers?.find((x) => x.type === "JAN")?.value;
+    const jan = normalizeIdentifier(product.identifiers?.find((x) => x.type === "JAN")?.value);
     if (!jan || product.cost == null || product.cost <= 0) continue;
     const list = byJan.get(jan) ?? [];
     list.push(product);
     byJan.set(jan, list);
   }
+
   const results: PriceSpread[] = [];
   for (const list of byJan.values()) {
     if (list.length < 2) continue;
-    const buy = [...list].sort((a, b) => (a.cost ?? Infinity) - (b.cost ?? Infinity))[0];
-    const referenceSell = [...list].sort((a, b) => (b.cost ?? -Infinity) - (a.cost ?? -Infinity))[0];
-    if (buy === referenceSell || referenceSell.cost == null || buy.cost == null) continue;
-    const grossSpread = referenceSell.cost - buy.cost;
-    if (grossSpread <= 0) continue;
-    results.push({ buy, referenceSell, grossSpread, grossRoiPercent: (grossSpread / buy.cost) * 100 });
+
+    // A JAN group containing any identity contradiction is quarantined as a whole.
+    // This prevents a reused/incorrect JAN from generating a plausible-looking spread.
+    let identityConflict = false;
+    for (let i = 0; i < list.length && !identityConflict; i += 1) {
+      for (let j = i + 1; j < list.length; j += 1) {
+        const identity = matchProductIdentity(identityCandidate(list[i]), identityCandidate(list[j]));
+        if (identity.decision !== "AUTO_LINK" || identity.matchMethod !== "STRONG") {
+          identityConflict = true;
+          break;
+        }
+      }
+    }
+    if (identityConflict) continue;
+
+    const ordered = [...list].sort((a, b) => (a.cost ?? Infinity) - (b.cost ?? Infinity));
+    const buy = ordered[0];
+    if (buy.cost == null) continue;
+
+    for (const referenceSell of ordered.slice(1).reverse()) {
+      if (referenceSell.cost == null || referenceSell.cost <= buy.cost) continue;
+      if (buy.sourceKey === referenceSell.sourceKey && buy.externalId === referenceSell.externalId) continue;
+
+      // A matching JAN is necessary but not sufficient: conflicting MPN or variant
+      // evidence must block a spread so different products never look profitable.
+      const identity = matchProductIdentity(identityCandidate(buy), identityCandidate(referenceSell));
+      if (identity.decision !== "AUTO_LINK" || identity.matchMethod !== "STRONG") continue;
+
+      const grossSpread = referenceSell.cost - buy.cost;
+      results.push({
+        buy,
+        referenceSell,
+        grossSpread,
+        grossRoiPercent: (grossSpread / buy.cost) * 100,
+      });
+      break;
+    }
   }
   return results.sort((a, b) => b.grossSpread - a.grossSpread);
 }
-
 
 export type NetEconomics = { valid: boolean; expectedProfit: number; roiPercent: number; totalCost: number };
 

@@ -1,4 +1,5 @@
 import { DecisionConsole } from "./decision-console";
+import { DiscoveryConsole } from "./discovery-console";
 import { IdentityProof } from "./identity-proof";
 import { getLiveOpportunities } from "../lib/matcher/live-opportunities";
 import { ingestionConfiguration } from "../lib/matcher/ingestion/config";
@@ -23,6 +24,7 @@ export default async function Home() {
       <header className="header">
         <a className="brand" href="#" aria-label="MATCHER home">MATCHER</a>
         <nav className="nav" aria-label="Primary">
+          <a href="#discovery">Discover</a>
           <a href="#journey">Journey</a>
           <a href="#decision">Decision</a>
           <a href="#proof">Proof</a>
@@ -65,6 +67,8 @@ export default async function Home() {
           <article><span>03</span><strong>DECIDE</strong><p>利益・鮮度・安全性を通過させ、人が最終承認する。</p></article>
         </div>
       </section>
+
+      <DiscoveryConsole />
 
       <section className="opportunity" id="opportunity" aria-labelledby="opportunity-title">
         <div className="opportunity-head">

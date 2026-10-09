@@ -289,3 +289,16 @@ h2 { font-size:17px; margin:0 0 12px; }
 .opportunity-readiness { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; background:#252a31; margin-top:10px; max-width:720px; }
 .opportunity-readiness span { background:#11151a; padding:9px 10px; color:#7f8996; font-size:9px; letter-spacing:.08em; }
 @media (max-width:520px) { .opportunity-readiness { grid-template-columns:1fr; } }
+
+.discovery-form { align-items:center; gap:12px; padding:18px; border:1px solid #252a31; background:rgba(16,19,24,.88); }
+.discovery-form label { color:#aab3bf; font-size:11px; font-weight:700; letter-spacing:.08em; }
+.discovery-form input { flex:1 1 260px; min-width:180px; min-height:46px; padding:0 14px; border:1px solid #303640; border-radius:0; outline:none; background:#0b0d10; color:#f2f3f5; font:inherit; }
+.discovery-form input:focus-visible { border-color:#aab3bf; box-shadow:0 0 0 2px rgba(170,179,191,.16); }
+.discovery-form button:disabled { cursor:progress; opacity:.65; }
+#discovery h3 { margin:32px 0 14px; font-size:17px; letter-spacing:-.02em; }
+#discovery .opportunity-item a { color:#c7d0dc; text-decoration:underline; text-underline-offset:3px; }
+#discovery .opportunity-item a:hover, #discovery .opportunity-item a:focus-visible { color:#fff; }
+#discovery details { margin-top:18px; color:#aab3bf; font-size:12px; }
+#discovery details summary { cursor:pointer; }
+#discovery details li { margin:8px 0; overflow-wrap:anywhere; }
+@media (max-width:720px) { .discovery-form { align-items:stretch; flex-direction:column; } .discovery-form input, .discovery-form button { width:100%; } }
