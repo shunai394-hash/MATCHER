@@ -1,9 +1,9 @@
 import { rankPriceSpreads, calculateNetEconomics } from "../lib/matcher/ingestion/spread.ts";
 
 const products = [
-  { sourceKey: "yahoo-shopping", externalId: "a", productName: "A", identifiers: [{ type: "JAN" as const, value: "490000000001" }], cost: 1000, currency: "JPY" },
-  { sourceKey: "rakuten-ichiba", externalId: "b", productName: "B", identifiers: [{ type: "JAN" as const, value: "490000000001" }], cost: 1600, currency: "JPY" },
-  { sourceKey: "rakuten-ichiba", externalId: "c", productName: "C", identifiers: [{ type: "JAN" as const, value: "490000000002" }], cost: 999, currency: "JPY" },
+  { sourceKey: "yahoo-shopping", externalId: "a", productName: "A", identifiers: [{ type: "JAN" as const, value: "4901234567894" }], cost: 1000, currency: "JPY" },
+  { sourceKey: "rakuten-ichiba", externalId: "b", productName: "B", identifiers: [{ type: "JAN" as const, value: "4901234567894" }], cost: 1600, currency: "JPY" },
+  { sourceKey: "rakuten-ichiba", externalId: "c", productName: "C", identifiers: [{ type: "JAN" as const, value: "4901234567887" }], cost: 999, currency: "JPY" },
 ];
 
 const result = rankPriceSpreads(products);
@@ -17,6 +17,11 @@ const sameSourceOnly = rankPriceSpreads([
   { ...products[0], externalId: "same-high", cost: 1800 },
 ]);
 if (sameSourceOnly.length !== 0) throw new Error("same-source prices must not be presented as cross-source opportunity");
+const invalidJanOnly = rankPriceSpreads([
+  { ...products[0], identifiers: [{ type: "JAN" as const, value: "490000000001" }], externalId: "invalid-low", cost: 1000 },
+  { ...products[1], identifiers: [{ type: "JAN" as const, value: "490000000001" }], externalId: "invalid-high", cost: 1800 },
+]);
+if (invalidJanOnly.length !== 0) throw new Error("invalid JAN must not produce a price spread");
 
 console.log("verify:spread cross-source guard PASS");
 
