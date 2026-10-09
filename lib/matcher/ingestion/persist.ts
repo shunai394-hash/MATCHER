@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { matchProductIdentity, normalizeIdentifier, type IdentityCandidate, type IdentityMatchResult } from "../identity";
+import { matchProductIdentity, normalizeIdentifier, type IdentityCandidate, type IdentityMatchResult, type ProductIdentifier } from "../identity";
 import type { SourceProduct } from "./types";
 
 function db() {
@@ -128,7 +128,7 @@ async function persistMasterIdentity(supabase: ReturnType<typeof db>, supplierPr
   for (const master of mastersResult.data ?? []) {
     const masterIdentifiers = (identifiersResult.data ?? [])
       .filter((row) => row.master_product_id === master.id)
-      .map((row) => ({ type: row.identifier_type as IdentityCandidate["identifiers"] extends Array<infer I> ? I extends { type: infer T } ? T : never : never, value: row.identifier_value }));
+      .map((row) => ({ type: row.identifier_type as ProductIdentifier["type"], value: row.identifier_value }));
     const variants = (variantsResult.data ?? []).filter((row) => row.master_product_id === master.id);
     const candidates = variants.length ? variants : [null];
     const results = candidates.map((variant) => matchProductIdentity(candidate, {
