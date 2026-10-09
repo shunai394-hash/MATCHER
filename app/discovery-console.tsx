@@ -88,7 +88,7 @@ export function DiscoveryConsole() {
         <p>Yahoo!ショッピングと楽天市場の取得結果を表示します。価格差は粗い候補であり、手数料・送料・需要・鮮度を検証するまでは純利益や購入推奨として扱いません。</p>
       </div>
 
-      <form className="hero-actions" onSubmit={scan} aria-label="商品検索">
+      <form className="hero-actions discovery-form" onSubmit={scan} aria-label="商品検索">
         <label htmlFor="matcher-query">検索キーワード</label>
         <input id="matcher-query" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={120} required placeholder="商品名・型番・JAN" />
         <button className="button primary" type="submit" disabled={loading || !query.trim()}>
