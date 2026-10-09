@@ -36,6 +36,21 @@ export function rankPriceSpreads(products: SourceProduct[]): PriceSpread[] {
   const results: PriceSpread[] = [];
   for (const list of byJan.values()) {
     if (list.length < 2) continue;
+
+    // A JAN group containing any identity contradiction is quarantined as a whole.
+    // This prevents a reused/incorrect JAN from generating a plausible-looking spread.
+    let identityConflict = false;
+    for (let i = 0; i < list.length && !identityConflict; i += 1) {
+      for (let j = i + 1; j < list.length; j += 1) {
+        const identity = matchProductIdentity(identityCandidate(list[i]), identityCandidate(list[j]));
+        if (identity.decision !== "AUTO_LINK" || identity.matchMethod !== "STRONG") {
+          identityConflict = true;
+          break;
+        }
+      }
+    }
+    if (identityConflict) continue;
+
     const ordered = [...list].sort((a, b) => (a.cost ?? Infinity) - (b.cost ?? Infinity));
     const buy = ordered[0];
     if (buy.cost == null) continue;
