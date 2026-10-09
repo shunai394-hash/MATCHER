@@ -52,6 +52,7 @@ jobs:
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/011_market_observation_for_live_opportunity.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/012_harden_hard_block_trigger_search_path.sql
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/013_index_foreign_keys_and_remove_duplicate.sql
+          psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 -f db/migrations/014_grant_service_role_ingestion.sql
       - name: Verify database schema and domain hardening
         run: |
           set -euo pipefail
