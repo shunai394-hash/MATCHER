@@ -1,4 +1,4 @@
-import { matchProductIdentity, normalizeIdentifier, type IdentityCandidate } from "../identity";
+import { matchProductIdentity, normalizeIdentifier, type IdentityCandidate } from "../identity.ts";
 import type { SourceProduct } from "./types";
 
 export type PriceSpread = {
