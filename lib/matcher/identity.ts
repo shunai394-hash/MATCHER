@@ -147,11 +147,11 @@ export function matchProductIdentity(
     const right = identifierValue(masterIds, type);
     if (left == null || right == null) {
       addPairEvidence(evidence, type, left, right, "Strong identifier is missing on one side; never infer it.");
+    } else if (!isValidGlobalIdentifier(left, type) || !isValidGlobalIdentifier(right, type)) {
+      addPairEvidence(evidence, type, left, right, "Identifier format/check digit is invalid; treat it as untrusted evidence and REVIEW rather than hard-blocking on its value.");
     } else if (left !== right) {
-      addPairEvidence(evidence, type, left, right, "Strong identifier contradiction is a hard block.");
+      addPairEvidence(evidence, type, left, right, "Two valid strong identifiers contradict each other; this is a hard block.");
       hardBlockReasons.push(type + "_MISMATCH");
-    } else if (!isValidGlobalIdentifier(left, type)) {
-      addPairEvidence(evidence, type, left, right, "Identifier format/check digit is invalid; exact text is not sufficient for auto-link.");
     } else {
       addPairEvidence(evidence, type, left, right, "Strong identifier matches exactly and passes check-digit validation.");
     }
