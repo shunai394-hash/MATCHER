@@ -35,7 +35,7 @@ export async function searchYahooShopping(query: string, signal?: AbortSignal): 
   const url = new URL("https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch");
   url.searchParams.set("appid", appId);
   url.searchParams.set("query", query);
-  url.searchParams.set("sort", "+price");
+  url.searchParams.set("sort", "-score");
   url.searchParams.set("condition", "new");
   url.searchParams.set("results", "50");
   const response = await fetch(url, { signal, headers: { accept: "application/json" } });
