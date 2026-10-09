@@ -21,12 +21,12 @@ const invalid = validateSourceProduct({ ...valid, inventory: -1 });
 if (!invalid.includes("INVENTORY_INVALID")) throw new Error("VALIDATION_REGRESSION");
 
 const originalFetch = globalThis.fetch;
-let requestedUrl: URL | null = null;
+const requestedUrls: string[] = [];
 const previousAppId = process.env.MATCHER_YAHOO_SHOPPING_APP_ID;
 process.env.MATCHER_YAHOO_SHOPPING_APP_ID = "test-app-id";
 try {
   globalThis.fetch = (async (input: RequestInfo | URL) => {
-    requestedUrl = new URL(String(input));
+    requestedUrls.push(String(input));
     return new Response(JSON.stringify({
     totalResultsAvailable: 1,
     totalResultsReturned: 1,
@@ -53,7 +53,8 @@ try {
     throw new Error("YAHOO_V3_PRICE_OR_JAN_NOT_PARSED");
   }
   if (yahooItems[0].orderability !== "ORDERABLE") throw new Error("YAHOO_V3_STOCK_NOT_PARSED");
-  if (requestedUrl?.searchParams.get("sort") !== "-score") throw new Error("YAHOO_SEARCH_MUST_PRIORITIZE_RELEVANCE");
+  const requestUrl = requestedUrls[0] ? new URL(requestedUrls[0]) : null;
+  if (requestUrl?.searchParams.get("sort") !== "-score") throw new Error("YAHOO_SEARCH_MUST_PRIORITIZE_RELEVANCE");
 } finally {
   globalThis.fetch = originalFetch;
   if (previousAppId === undefined) delete process.env.MATCHER_YAHOO_SHOPPING_APP_ID;
