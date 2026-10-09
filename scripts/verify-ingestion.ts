@@ -1,5 +1,5 @@
-import { normalizeSourceProduct } from "../lib/matcher/ingestion/normalize";
-import { validateSourceProduct } from "../lib/matcher/ingestion/validate";
+import { normalizeSourceProduct } from "../lib/matcher/ingestion/normalize.ts";
+import { validateSourceProduct } from "../lib/matcher/ingestion/validate.ts";
 
 const valid = normalizeSourceProduct({
   externalId: "  sku-1 ",
