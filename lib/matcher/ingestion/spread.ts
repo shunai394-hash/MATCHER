@@ -22,6 +22,7 @@ export function rankPriceSpreads(products: SourceProduct[]): PriceSpread[] {
     const buy = [...list].sort((a, b) => (a.cost ?? Infinity) - (b.cost ?? Infinity))[0];
     const referenceSell = [...list].sort((a, b) => (b.cost ?? -Infinity) - (a.cost ?? -Infinity))[0];
     if (buy === referenceSell || referenceSell.cost == null || buy.cost == null) continue;
+    if (!buy.sourceKey || !referenceSell.sourceKey || buy.sourceKey === referenceSell.sourceKey) continue;
     const grossSpread = referenceSell.cost - buy.cost;
     if (grossSpread <= 0) continue;
     results.push({ buy, referenceSell, grossSpread, grossRoiPercent: (grossSpread / buy.cost) * 100 });
