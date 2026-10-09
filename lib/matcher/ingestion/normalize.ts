@@ -3,7 +3,7 @@ import type { SourceProduct } from "./types";
 const IDENTIFIER_TYPES = new Set(["JAN", "EAN", "UPC", "MPN", "SKU"]);
 
 export function normalizeIdentifier(value: string) {
-  return value.normalize("NFKC").trim().toUpperCase().replace(/[\\s-]/g, "");
+  return value.normalize("NFKC").trim().toUpperCase().replace(/[\s-]/g, "");
 }
 
 export function normalizeSourceProduct(input: SourceProduct): SourceProduct {

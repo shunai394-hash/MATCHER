@@ -2,6 +2,7 @@ import { DecisionConsole } from "./decision-console";
 import { IdentityProof } from "./identity-proof";
 import { getLiveOpportunities } from "../lib/matcher/live-opportunities";
 import { ingestionConfiguration } from "../lib/matcher/ingestion/config";
+import { LiveDiscoveryConsole } from "./live-discovery-console";
 
 const pillars = [
   ["01", "Product Master", "内部商品IDを中心に、識別子・仕様・バリアントを統合"],
@@ -50,6 +51,8 @@ export default async function Home() {
           <p>候補を増やすのではなく、<em>今見る価値が高い機会だけを前に出す。</em></p>
         </div>
       </section>
+
+      <LiveDiscoveryConsole />
 
       <section className="journey" id="journey" aria-labelledby="journey-title">
         <div className="journey-head">

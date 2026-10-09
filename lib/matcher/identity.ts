@@ -81,7 +81,7 @@ function isValidCheckDigit(value: string, type: GlobalIdentifierType) {
   return (10 - (sum % 10)) % 10 === check;
 }
 
-function isValidGlobalIdentifier(value: string, type: "JAN" | "EAN" | "UPC") {
+export function isValidGlobalIdentifier(value: string, type: "JAN" | "EAN" | "UPC") {
   return isValidCheckDigit(value, type);
 }
 
@@ -114,6 +114,7 @@ export function matchProductIdentity(
 ): IdentityMatchResult {
   const evidence: IdentityEvidence[] = [];
   const hardBlockReasons: string[] = [];
+  let hasInvalidGlobalIdentifier = false;
   const candidateIds = identifierMap(candidate);
   const masterIds = identifierMap(master);
 
@@ -147,11 +148,12 @@ export function matchProductIdentity(
     const right = identifierValue(masterIds, type);
     if (left == null || right == null) {
       addPairEvidence(evidence, type, left, right, "Strong identifier is missing on one side; never infer it.");
+    } else if (!isValidGlobalIdentifier(left, type) || !isValidGlobalIdentifier(right, type)) {
+      hasInvalidGlobalIdentifier = true;
+      addPairEvidence(evidence, type, left, right, "Identifier format/check digit is invalid; treat it as untrusted evidence and REVIEW rather than hard-blocking on its value.");
     } else if (left !== right) {
-      addPairEvidence(evidence, type, left, right, "Strong identifier contradiction is a hard block.");
+      addPairEvidence(evidence, type, left, right, "Two valid strong identifiers contradict each other; this is a hard block.");
       hardBlockReasons.push(type + "_MISMATCH");
-    } else if (!isValidGlobalIdentifier(left, type)) {
-      addPairEvidence(evidence, type, left, right, "Identifier format/check digit is invalid; exact text is not sufficient for auto-link.");
     } else {
       addPairEvidence(evidence, type, left, right, "Strong identifier matches exactly and passes check-digit validation.");
     }
@@ -197,7 +199,7 @@ export function matchProductIdentity(
   }
   const mpnMatch = Boolean(candidateMpn && masterMpn && candidateMpn === masterMpn);
 
-  if (exactGlobal || (mpnMatch && brandMatch)) {
+  if (exactGlobal || (mpnMatch && brandMatch && !hasInvalidGlobalIdentifier)) {
     return { decision: "AUTO_LINK", matchMethod: "STRONG", hardBlockReasons: [], evidence };
   }
 
