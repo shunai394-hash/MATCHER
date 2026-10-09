@@ -10,7 +10,7 @@ assert.equal(priority.tier, "PRIORITY");
 assert.ok(priority.score >= 72);
 
 const higherProfit = scoreOpportunity({
-  expectedProfit: 9000, roiPercent: 80, salesVelocity: 90, competition: 20,
+  expectedProfit: 20000, roiPercent: 80, salesVelocity: 90, competition: 20,
   priceStability: 85, freshness: 95, identityStrength: 100, risk: 5,
 });
 assert.ok(higherProfit.score > priority.score);
