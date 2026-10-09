@@ -1,4 +1,4 @@
-import { rankPriceSpreads, calculateNetEconomics } from "../lib/matcher/ingestion/spread";
+import { rankPriceSpreads, calculateNetEconomics } from "../lib/matcher/ingestion/spread.ts";
 
 const products = [
   { externalId: "a", sourceKey: "source-a", productName: "Product A Black", identifiers: [{ type: "JAN" as const, value: "4901234567894" }], color: "Black", cost: 1000, currency: "JPY" },
