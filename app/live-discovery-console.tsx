@@ -80,6 +80,29 @@ const safeHttpUrl = (value: string | null | undefined) => {
   }
 };
 
+const apiErrorLabel = (code: string | undefined) => {
+  const labels: Record<string, string> = {
+    INGESTION_AUTH_NOT_CONFIGURED: "運用者認証が未設定です。Vercel Production に MATCHER_INGESTION_ADMIN_TOKEN を設定してください。",
+    INGESTION_AUTH_REQUIRED: "商品取込には運用者認証が必要です。先に認証してください。",
+    SUPABASE_SERVER_CREDENTIALS_NOT_CONFIGURED: "Supabaseサーバー接続情報が未設定です。Vercel Production の環境変数を確認してください。",
+    DATABASE_SCHEMA_MISMATCH: "本番DBのスキーマが不足しています。MATCHERのSupabase migrationsを適用してください。",
+    DATABASE_READ_FAILED: "保存済み商品をDBから読み取れませんでした。接続権限とDBログを確認してください。",
+    DATABASE_WRITE_FAILED: "商品を保存できませんでした。DB書込権限とエラー記録を確認してください。",
+    SCAN_TIMEOUT: "検索が制限時間を超えました。検索語を短くするか、時間をおいて再試行してください。",
+    INVALID_JSON: "リクエスト形式が不正です。JSONを確認してください。",
+    INVALID_BODY: "検索リクエストの形式が不正です。",
+    INVALID_QUERIES: "検索語は160文字以内で指定してください。",
+    INVALID_SOURCES: "仕入れ元の指定が不正です。",
+    NO_SOURCES: "利用可能な仕入れ元が選択されていません。",
+    MARKET_OBSERVATION_FEED_NOT_CONFIGURED: "市場観測フィードが未設定です。MATCHER_MARKET_OBSERVATION_FEED_URL を設定してください。",
+    MARKET_FEED_INVALID_JSON: "市場観測フィードが正しいJSONを返していません。",
+    MARKET_FEED_TIMEOUT: "市場観測フィードが時間内に応答しませんでした。",
+    SUPPLIER_SOURCE_NOT_CONFIGURED: "仕入れ元フィードが未設定です。MATCHER_SUPPLIER_FEED_URL を設定してください。",
+    DISCOVERY_LIST_FAILED: "保存済み商品一覧の取得に失敗しました。DBスキーマと権限を確認してください。",
+  };
+  return code ? labels[code] ?? `処理に失敗しました（${code}）。設定と取得時の警告を確認してください。` : "処理に失敗しました。設定と取得時の警告を確認してください。";
+};
+
 const yen = (value: number | null | undefined) =>
   value == null || !Number.isFinite(value) ? "未取得" : "¥" + Math.round(value).toLocaleString("ja-JP");
 
@@ -155,7 +178,7 @@ export function LiveDiscoveryConsole() {
       .then(({ response, payload }) => {
         if (!active) return;
         if (response.ok && payload.ok) setResult(payload);
-        else setError(payload.code ?? "保存済み商品を読み込めませんでした。");
+        else setError(apiErrorLabel(payload.code));
       })
       .catch(() => {
         if (active) setError("保存済み商品を読み込めませんでした。");
@@ -177,7 +200,7 @@ export function LiveDiscoveryConsole() {
       });
       const payload = (await response.json()) as ScanResult;
       setResult(payload);
-      if (!response.ok || !payload.ok) setError(payload.code ?? payload.errors?.join(" / ") ?? "商品検索に失敗しました。");
+      if (!response.ok || !payload.ok) setError(payload.code ? apiErrorLabel(payload.code) : payload.errors?.join(" / ") ?? "商品検索に失敗しました。");
     } catch {
       setError("検索APIに接続できませんでした。時間をおいて再試行してください。");
     } finally {
@@ -221,7 +244,7 @@ export function LiveDiscoveryConsole() {
       const response = await fetch("/api/ingestion/market", { method: "POST", cache: "no-store" });
       const payload = (await response.json()) as MarketIngestionResult;
       setMarketResult(payload);
-      if (!response.ok || !payload.ok) setMarketError(payload.code ?? "市場データを取り込めませんでした。");
+      if (!response.ok || !payload.ok) setMarketError(apiErrorLabel(payload.code));
     } catch {
       setMarketError("市場データAPIに接続できませんでした。時間をおいて再試行してください。");
     } finally {
