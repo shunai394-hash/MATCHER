@@ -27,6 +27,8 @@ const switchResults = [
   normalizeSourceProduct({ externalId: "case", productName: "Nintendo Switch 2 収納バッグ", cost: 5480, currency: "JPY" }),
   normalizeSourceProduct({ externalId: "pad", productName: "ホリ スプラトゥーン ワイヤレスホリパッド for Nintendo Switch 2", cost: 8980, currency: "JPY" }),
   normalizeSourceProduct({ externalId: "sd", productName: "Samsung microSD Express Card for Nintendo Switch 2", cost: 7970, currency: "JPY" }),
+  normalizeSourceProduct({ externalId: "old-oled", productName: "Switch2 有機ELモデル 従来スイッチ 本体のみ 付属品なし 選べるモデル Nintendo Switch", cost: 46800, currency: "JPY" }),
+  normalizeSourceProduct({ externalId: "partial", productName: "Nintendo Switch 2 液晶 本体のみ 箱イタミあり 日本語・国内専用", cost: 41800, currency: "JPY" }),
 ];
 const switchMainUnit = filterRelevantProducts("Nintendo Switch 2 本体", switchResults);
 if (switchMainUnit.length !== 1 || switchMainUnit[0].externalId !== "console") {
