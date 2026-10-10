@@ -6,7 +6,7 @@ import { discoveryQueries } from "../../../../lib/matcher/ingestion/query-seeds"
 import { validateSourceProduct } from "../../../../lib/matcher/ingestion/validate";
 import { persistSupplierDiscovery } from "../../../../lib/matcher/ingestion/persist";
 import { rankPriceSpreads } from "../../../../lib/matcher/ingestion/spread";
-import { filterRelevantProducts } from "../../../../lib/matcher/ingestion/relevance";
+import { classifyProductRelevance, filterRelevantProducts, filterRelevantProductsWithReasons } from "../../../../lib/matcher/ingestion/relevance";
 import type { SourceProduct } from "../../../../lib/matcher/ingestion/types";
 
 export const runtime = "nodejs";
@@ -21,14 +21,15 @@ export async function GET() {
 
   try {
     const supabase = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const [productsResult, suppliersResult, offersResult, snapshotsResult, identifiersResult] = await Promise.all([
-      supabase.from("supplier_product").select("id,supplier_id,supplier_product_id,product_name,brand,source_url,image_url,discovery_query,last_seen_at").order("last_seen_at", { ascending: false }).limit(200),
+    const [productsResult, suppliersResult, offersResult, snapshotsResult, identifiersResult, matchesResult] = await Promise.all([
+      supabase.from("supplier_product").select("id,supplier_id,supplier_product_id,product_name,brand,model_number,color,size,capacity,generation,set_count,condition,source_url,image_url,discovery_query,last_seen_at").order("last_seen_at", { ascending: false }).limit(200),
       supabase.from("supplier").select("id,name").limit(500),
       supabase.from("supplier_offer").select("id,supplier_product_id,orderability").limit(500),
       supabase.from("supplier_offer_snapshot").select("supplier_offer_id,supplier_cost,shipping_cost,inventory,observed_at").order("observed_at", { ascending: false }).limit(4000),
       supabase.from("supplier_product_identifier").select("supplier_product_id,identifier_type,identifier_value").limit(4000),
+      supabase.from("identity_match").select("supplier_product_id,master_product_id,decision,hard_block").limit(4000),
     ]);
-    const failedRead = [productsResult, suppliersResult, offersResult, snapshotsResult, identifiersResult].find((result) => result.error);
+    const failedRead = [productsResult, suppliersResult, offersResult, snapshotsResult, identifiersResult, matchesResult].find((result) => result.error);
     if (failedRead?.error) {
       const schemaCodes = new Set(["42P01", "42703", "PGRST204", "PGRST205"]);
       return NextResponse.json({
@@ -49,39 +50,101 @@ export async function GET() {
       list.push({ type: identifier.identifier_type, value: identifier.identifier_value });
       identifiers.set(identifier.supplier_product_id, list);
     }
+    const identityBySupplierProduct = new Map((matchesResult.data ?? []).map((match) => [match.supplier_product_id, match]));
+    const masterIds = [...new Set((matchesResult.data ?? []).filter((match) => match.decision === "AUTO_LINK" && !match.hard_block && match.master_product_id).map((match) => match.master_product_id as string))];
+    const mastersResult = masterIds.length
+      ? await supabase.from("master_product").select("id,product_name,brand").in("id", masterIds)
+      : { data: [], error: null };
+    if (mastersResult.error) return NextResponse.json({ ok: false, code: "MASTER_PRODUCT_READ_FAILED" }, { status: 502 });
+    const masters = new Map((mastersResult.data ?? []).map((master) => [master.id, master]));
 
-    const products = (productsResult.data ?? []).flatMap((product) => {
+    const sourceRows = (productsResult.data ?? []).flatMap((product) => {
       const offer = offers.get(product.id);
       if (!offer) return [];
       const snapshot = latestSnapshots.get(offer.id);
       return [{
+        id: product.id,
         source: suppliers.get(product.supplier_id) ?? "unknown-source",
         sourceKey: suppliers.get(product.supplier_id) ?? "unknown-source",
         externalId: product.supplier_product_id,
         productName: product.product_name,
         brand: product.brand,
-        identifiers: identifiers.get(product.id) ?? [],
+        modelNumber: product.model_number,
+        color: product.color,
+        size: product.size,
+        capacity: product.capacity,
+        generation: product.generation,
+        setCount: product.set_count,
+        condition: product.condition,
+        discoveryQuery: product.discovery_query ?? "",
+        identifiers: (identifiers.get(product.id) ?? []) as SourceProduct["identifiers"],
         cost: snapshot?.supplier_cost == null ? null : Number(snapshot.supplier_cost),
         shippingCost: snapshot?.shipping_cost == null ? null : Number(snapshot.shipping_cost),
         inventory: snapshot?.inventory ?? null,
-        orderability: offer.orderability,
+        orderability: offer.orderability as SourceProduct["orderability"],
         sourceUrl: product.source_url,
         imageUrl: product.image_url ?? null,
         observedAt: snapshot?.observed_at ?? product.last_seen_at,
+        identityDecision: identityBySupplierProduct.get(product.id)?.decision ?? "REVIEW",
+        masterProductId: identityBySupplierProduct.get(product.id)?.decision === "AUTO_LINK" && !identityBySupplierProduct.get(product.id)?.hard_block
+          ? identityBySupplierProduct.get(product.id)?.master_product_id ?? null
+          : null,
       }];
     });
-    const spreadProducts: SourceProduct[] = products.map((product) => ({
-      sourceKey: product.source,
+
+    const includedRows: typeof sourceRows = [];
+    const excludedRows: Array<(typeof sourceRows)[number] & { exclusionReason: string }> = [];
+    for (const product of sourceRows) {
+      const decision = classifyProductRelevance(product.discoveryQuery, product);
+      if (decision.relevant) includedRows.push(product);
+      else excludedRows.push({ ...product, exclusionReason: decision.reason ?? "NOT_RELEVANT" });
+    }
+
+    const grouped = new Map<string, typeof includedRows>();
+    for (const product of includedRows) {
+      const key = product.masterProductId ? `master:${product.masterProductId}` : `supplier-product:${product.id}`;
+      const group = grouped.get(key) ?? [];
+      group.push(product);
+      grouped.set(key, group);
+    }
+    const products = [...grouped.values()].map((group) => {
+      const sorted = [...group].sort((a, b) => {
+        if (a.cost == null) return 1;
+        if (b.cost == null) return -1;
+        return a.cost - b.cost;
+      });
+      const best = sorted[0];
+      const master = best.masterProductId ? masters.get(best.masterProductId) : null;
+      const uniqueIdentifiers = new Map<string, { type: string; value: string }>();
+      for (const offer of group) for (const identifier of offer.identifiers) uniqueIdentifiers.set(`${identifier.type}:${identifier.value}`, identifier);
+      return {
+        source: best.source,
+        externalId: best.externalId,
+        productName: master?.product_name ?? best.productName,
+        brand: master?.brand ?? best.brand,
+        identifiers: [...uniqueIdentifiers.values()],
+        cost: best.cost,
+        shippingCost: best.shippingCost,
+        inventory: best.inventory,
+        orderability: best.orderability,
+        sourceUrl: best.sourceUrl,
+        imageUrl: best.imageUrl ?? group.find((offer) => offer.imageUrl)?.imageUrl ?? null,
+        observedAt: best.observedAt,
+        offerCount: group.length,
+        identityDecision: group.every((offer) => offer.identityDecision === "AUTO_LINK") ? "AUTO_LINK" : "REVIEW",
+      };
+    });
+
+    const spreadProducts: SourceProduct[] = includedRows.map((product) => ({
+      sourceKey: product.sourceKey,
       externalId: product.externalId,
       productName: product.productName,
       brand: product.brand,
-      identifiers: product.identifiers
-        .filter((identifier) => identifier.type === "JAN")
-        .map((identifier) => ({ type: "JAN" as const, value: identifier.value })),
+      identifiers: product.identifiers.filter((identifier) => identifier.type === "JAN").map((identifier) => ({ type: "JAN" as const, value: identifier.value })),
       cost: product.cost,
       shippingCost: product.shippingCost,
       inventory: product.inventory,
-      orderability: product.orderability as SourceProduct["orderability"],
+      orderability: product.orderability,
       sourceUrl: product.sourceUrl,
     }));
     const spreads = rankPriceSpreads(spreadProducts).slice(0, 20).map((spread) => ({
@@ -93,7 +156,25 @@ export async function GET() {
       buySourceUrl: spread.buy.sourceUrl,
       referenceSourceUrl: spread.referenceSell.sourceUrl,
     }));
-    return NextResponse.json({ ok: true, mode: "stored", discovered: products.length, accepted: products.length, rejected: 0, persisted: products.length, products, spreadCandidates: spreads, errors: [] });
+    return NextResponse.json({
+      ok: true,
+      mode: "stored",
+      discovered: sourceRows.length,
+      accepted: includedRows.length,
+      rejected: excludedRows.length,
+      persisted: sourceRows.length,
+      displayed: products.length,
+      filteredOut: excludedRows.length,
+      products,
+      excludedProducts: excludedRows.map((product) => ({
+        source: product.source, externalId: product.externalId, productName: product.productName, brand: product.brand,
+        identifiers: product.identifiers, cost: product.cost, shippingCost: product.shippingCost, inventory: product.inventory,
+        orderability: product.orderability, sourceUrl: product.sourceUrl, imageUrl: product.imageUrl, observedAt: product.observedAt,
+        exclusionReason: product.exclusionReason,
+      })),
+      spreadCandidates: spreads,
+      errors: [],
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ ok: false, code: "DISCOVERY_LIST_FAILED" }, { status: 502 });
   }
@@ -172,7 +253,7 @@ export async function POST(request: Request) {
         }
       }
     }
-    const spreads = rankPriceSpreads(allProducts).slice(0, 20).map((spread) => ({
+    const spreads = rankPriceSpreads(relevantProducts).slice(0, 20).map((spread) => ({
       jan: spread.buy.identifiers?.find((x) => x.type === "JAN")?.value ?? null,
       buyPrice: spread.buy.cost,
       referenceSellPrice: spread.referenceSell.cost,
