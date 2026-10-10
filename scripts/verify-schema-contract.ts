@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 const schema = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
-const migration = ["20261011020000_ingestion_schema_contract.sql", "20261011030000_identity_evidence_contract.sql", "20261011040000_market_profit_contract.sql", "20261011050000_profit_snapshot_upsert_index.sql", "20261011060000_market_freshness_policy.sql"]
+const migration = ["20261011020000_ingestion_schema_contract.sql", "20261011030000_identity_evidence_contract.sql", "20261011040000_market_profit_contract.sql", "20261011050000_profit_snapshot_upsert_index.sql", "20261011060000_market_freshness_policy.sql", "20261011070000_discovery_query_context.sql"]
   .map((file) => readFileSync(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"))
   .join("\n");
 const runtimeTables = [
@@ -26,7 +26,7 @@ for (const table of runtimeTables) {
   }
 }
 const requiredColumns: Record<string, string[]> = {
-  supplier_product: ["product_name", "supplier_id", "supplier_product_id", "source_url", "image_url", "first_seen_at", "last_seen_at"],
+  supplier_product: ["product_name", "supplier_id", "supplier_product_id", "source_url", "image_url", "discovery_query", "first_seen_at", "last_seen_at"],
   supplier_offer: ["supplier_product_id", "currency", "orderability", "observed_at"],
   supplier_product_identifier: ["supplier_product_id", "identifier_type", "identifier_value"],
   supplier_offer_snapshot: ["supplier_offer_id", "supplier_cost", "shipping_cost", "inventory", "observed_at"],
