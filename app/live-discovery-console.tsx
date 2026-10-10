@@ -13,6 +13,7 @@ type DiscoveredProduct = {
   inventory: number | null;
   orderability: string;
   sourceUrl: string | null;
+  imageUrl?: string | null;
   observedAt?: string | null;
 };
 
@@ -204,6 +205,7 @@ export function LiveDiscoveryConsole() {
               const jan = product.identifiers.find((identifier) => identifier.type === "JAN")?.value;
               return (
                 <article className="live-product-item" key={product.source + ":" + product.externalId}>
+                  {safeHttpUrl(product.imageUrl) ? <img className="live-product-image" src={safeHttpUrl(product.imageUrl)!} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" /> : <div className="live-product-image live-product-image-placeholder" aria-hidden="true">商品画像なし</div>}
                   <div className="live-product-index">{String(product.externalId).slice(0, 12)}</div>
                   <div className="live-product-main">
                     <strong>{product.productName}</strong>
