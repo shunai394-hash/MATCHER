@@ -96,6 +96,7 @@ create table supplier_product (
   condition text,
   source_url text,
   image_url text,
+  discovery_query text,
   source_updated_at timestamptz,
   first_seen_at timestamptz not null default now(),
   last_seen_at timestamptz not null default now(),
