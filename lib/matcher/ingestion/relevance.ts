@@ -11,6 +11,8 @@ export function filterRelevantProducts(query: string, products: SourceProduct[])
   if (!asksForSwitch2MainUnit) return products;
 
   return products.filter((product) =>
-    SWITCH_2.test(product.productName) && !ACCESSORY_OR_SOFTWARE.test(product.productName),
+    SWITCH_2.test(product.productName) &&
+    CONSOLE_LISTING.test(product.productName) &&
+    !ACCESSORY_OR_SOFTWARE.test(product.productName),
   );
 }
