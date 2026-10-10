@@ -163,10 +163,12 @@ create table match_result (
 create table identity_match (
   id uuid primary key default gen_random_uuid(),
   supplier_product_id uuid not null unique references supplier_product(id) on delete cascade,
-  master_product_id uuid references master_product(id) on delete set null,
+  master_product_id uuid not null references master_product(id) on delete cascade,
   confidence numeric(5,4) not null default 0 check (confidence >= 0 and confidence <= 1),
   decision identity_decision not null default 'REVIEW',
   hard_block boolean not null default false,
+  hard_block_reasons jsonb not null default '[]'::jsonb,
+  evidence jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
 
