@@ -116,7 +116,7 @@ export async function GET() {
       const best = sorted[0];
       const master = best.masterProductId ? masters.get(best.masterProductId) : null;
       const uniqueIdentifiers = new Map<string, { type: string; value: string }>();
-      for (const offer of group) for (const identifier of offer.identifiers) uniqueIdentifiers.set(`${identifier.type}:${identifier.value}`, identifier);
+      for (const offer of group) for (const identifier of offer.identifiers ?? []) uniqueIdentifiers.set(`${identifier.type}:${identifier.value}`, identifier);
       return {
         source: best.source,
         externalId: best.externalId,
@@ -140,7 +140,7 @@ export async function GET() {
       externalId: product.externalId,
       productName: product.productName,
       brand: product.brand,
-      identifiers: product.identifiers.filter((identifier) => identifier.type === "JAN").map((identifier) => ({ type: "JAN" as const, value: identifier.value })),
+      identifiers: (product.identifiers ?? []).filter((identifier) => identifier.type === "JAN").map((identifier) => ({ type: "JAN" as const, value: identifier.value })),
       cost: product.cost,
       shippingCost: product.shippingCost,
       inventory: product.inventory,
