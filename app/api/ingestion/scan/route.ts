@@ -50,6 +50,7 @@ export async function GET() {
       const snapshot = latestSnapshots.get(offer.id);
       return [{
         source: suppliers.get(product.supplier_id) ?? "unknown-source",
+        sourceKey: suppliers.get(product.supplier_id) ?? "unknown-source",
         externalId: product.supplier_product_id,
         productName: product.product_name,
         brand: product.brand,
@@ -62,7 +63,30 @@ export async function GET() {
         observedAt: snapshot?.observed_at ?? product.last_seen_at,
       }];
     });
-    return NextResponse.json({ ok: true, mode: "stored", discovered: products.length, accepted: products.length, rejected: 0, persisted: products.length, products, spreadCandidates: [], errors: [] });
+    const spreadProducts: SourceProduct[] = products.map((product) => ({
+      sourceKey: product.source,
+      externalId: product.externalId,
+      productName: product.productName,
+      brand: product.brand,
+      identifiers: product.identifiers
+        .filter((identifier) => identifier.type === "JAN")
+        .map((identifier) => ({ type: "JAN" as const, value: identifier.value })),
+      cost: product.cost,
+      shippingCost: product.shippingCost,
+      inventory: product.inventory,
+      orderability: product.orderability as SourceProduct["orderability"],
+      sourceUrl: product.sourceUrl,
+    }));
+    const spreads = rankPriceSpreads(spreadProducts).slice(0, 20).map((spread) => ({
+      jan: spread.buy.identifiers?.find((x) => x.type === "JAN")?.value ?? null,
+      buyPrice: spread.buy.cost,
+      referenceSellPrice: spread.referenceSell.cost,
+      grossSpread: spread.grossSpread,
+      grossRoiPercent: Number(spread.grossRoiPercent.toFixed(2)),
+      buySourceUrl: spread.buy.sourceUrl,
+      referenceSourceUrl: spread.referenceSell.sourceUrl,
+    }));
+    return NextResponse.json({ ok: true, mode: "stored", discovered: products.length, accepted: products.length, rejected: 0, persisted: products.length, products, spreadCandidates: spreads, errors: [] });
   } catch {
     return NextResponse.json({ ok: false, code: "DISCOVERY_LIST_FAILED" }, { status: 502 });
   }
