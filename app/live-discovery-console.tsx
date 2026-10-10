@@ -26,6 +26,14 @@ type SpreadCandidate = {
   referenceSourceUrl: string | null;
 };
 
+type SourceConfiguration = {
+  ok: boolean;
+  sources?: {
+    yahoo?: { configured: boolean; missing: string[] };
+    rakuten?: { configured: boolean; missing: string[] };
+  };
+};
+
 type ScanResult = {
   ok: boolean;
   mode?: "stored" | "scan";
@@ -74,9 +82,22 @@ export function LiveDiscoveryConsole() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState("");
+  const [sourceConfig, setSourceConfig] = useState<SourceConfiguration | null>(null);
+  const [selectedSources, setSelectedSources] = useState<string[]>(["yahoo"]);
 
   useEffect(() => {
     let active = true;
+    fetch("/api/ingestion/status", { cache: "no-store" })
+      .then(async (response) => (await response.json()) as SourceConfiguration)
+      .then((payload) => {
+        if (!active) return;
+        setSourceConfig(payload);
+        setSelectedSources([
+          ...(payload.sources?.yahoo?.configured ? ["yahoo"] : []),
+          ...(payload.sources?.rakuten?.configured ? ["rakuten"] : []),
+        ]);
+      })
+      .catch(() => { if (active) setSourceConfig(null); });
     fetch("/api/ingestion/scan", { cache: "no-store" })
       .then(async (response) => ({ response, payload: (await response.json()) as ScanResult }))
       .then(({ response, payload }) => {
@@ -92,7 +113,7 @@ export function LiveDiscoveryConsole() {
 
   async function scan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (loading || !query.trim()) return;
+    if (loading || !query.trim() || !selectedSources.length) return;
     setLoading(true);
     setError("");
     setResult(null);
@@ -100,7 +121,7 @@ export function LiveDiscoveryConsole() {
       const response = await fetch("/api/ingestion/scan", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ queries: query.trim(), sources: ["yahoo"] }),
+        body: JSON.stringify({ queries: query.trim(), sources: selectedSources }),
       });
       const payload = (await response.json()) as ScanResult;
       setResult(payload);
@@ -118,7 +139,7 @@ export function LiveDiscoveryConsole() {
         <div>
           <p className="section-index">LIVE / SUPPLIER DISCOVERY</p>
           <h2 id="live-discovery-title">まず、<em>実在する商品</em>を取り込む。</h2>
-          <p>Yahoo!ショッピングの商品検索を実行し、商品名・JAN・仕入れ価格・販売元へのリンクを取得します。利益が未検証の商品を、利益商品とは表示しません。</p>
+          <p>接続済みの仕入れ元を横断検索し、商品名・JAN・仕入れ価格・販売元へのリンクを取得します。利益が未検証の商品を、利益商品とは表示しません。</p>
         </div>
         <span className="live-discovery-tag">REAL SOURCE · NO MOCK DATA</span>
       </div>
@@ -126,12 +147,26 @@ export function LiveDiscoveryConsole() {
         <label htmlFor="discovery-query">商品名・ブランド・型番</label>
         <div className="live-discovery-controls">
           <input id="discovery-query" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={100} placeholder="例：Anker モバイルバッテリー" />
-          <button type="submit" disabled={loading || !query.trim()}>{loading ? "検索中…" : "商品を検索する ↗"}</button>
+          <button type="submit" disabled={loading || !query.trim() || !selectedSources.length || !sourceConfig}>{loading ? "検索中…" : "商品を検索する ↗"}</button>
         </div>
+        <fieldset className="live-discovery-sources">
+          <legend>仕入れ元</legend>
+          <label>
+            <input type="checkbox" checked={selectedSources.includes("yahoo")} disabled={!sourceConfig?.sources?.yahoo?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "yahoo"] : current.filter((source) => source !== "yahoo"))} />
+            Yahoo!ショッピング
+          </label>
+          <label>
+            <input type="checkbox" checked={selectedSources.includes("rakuten")} disabled={!sourceConfig?.sources?.rakuten?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "rakuten"] : current.filter((source) => source !== "rakuten"))} />
+            楽天市場 {sourceConfig?.sources?.rakuten?.configured ? "" : "（API認証未設定）"}
+          </label>
+        </fieldset>
+        {sourceConfig && !sourceConfig.sources?.rakuten?.configured && (
+          <p>楽天市場を有効にするには、Vercel Production に {sourceConfig.sources?.rakuten?.missing?.join(" / ") || "楽天API認証情報"} を設定してください。秘密情報はチャットに貼らず、Vercelの環境変数へ直接入力してください。</p>
+        )}
         <p>検索は1クエリずつ実行し、外部APIへの過剰な連続アクセスを避けます。</p>
       </form>
 
-      {loading && <div className="live-discovery-feedback" role="status">Yahoo!ショッピングから実データを取得しています…</div>}
+      {loading && <div className="live-discovery-feedback" role="status">{selectedSources.map((source) => source === "yahoo" ? "Yahoo!ショッピング" : "楽天市場").join("・")} から実データを取得しています…</div>}
       {error && <div className="live-discovery-error" role="alert"><strong>検索結果を確認できません</strong><span>{error}</span></div>}
       {result && (
         <div className="live-discovery-results" aria-live="polite">
