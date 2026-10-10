@@ -150,6 +150,17 @@ create table supplier_offer_freshness (
   updated_at timestamptz not null default now()
 );
 
+create table freshness_policy (
+  id uuid primary key default gen_random_uuid(),
+  data_type text not null unique check (data_type in ('PRICE', 'INVENTORY', 'SHIPPING', 'MARKET')),
+  max_age_seconds integer not null check (max_age_seconds > 0),
+  updated_at timestamptz not null default now()
+);
+
+insert into freshness_policy(data_type, max_age_seconds)
+values ('PRICE', 86400), ('INVENTORY', 21600), ('SHIPPING', 604800), ('MARKET', 86400)
+on conflict (data_type) do nothing;
+
 create table match_result (
   id uuid primary key default gen_random_uuid(),
   supplier_product_id uuid not null references supplier_product(id) on delete cascade,
