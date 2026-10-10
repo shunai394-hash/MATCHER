@@ -20,8 +20,7 @@
     "next": "16.4.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "@supabase/ssr": "latest",
-    "@supabase/supabase-js": "latest"
+    "@supabase/supabase-js": "2.117.2"
   },
   "devDependencies": {
     "@types/node": "^22",
