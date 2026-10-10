@@ -246,6 +246,11 @@ create unique index idx_product_identifier_global_gtin
   on product_identifier(identifier_type, normalized_value)
   where identifier_type in ('JAN','EAN','UPC');
 create index idx_variant_master on product_variant(master_product_id);
+create unique index idx_supplier_name_unique on supplier(name);
+create unique index idx_supplier_product_identifier_unique on supplier_product_identifier(supplier_product_id, identifier_type, identifier_value);
+create unique index idx_supplier_offer_freshness_unique on supplier_offer_freshness(supplier_offer_id);
+create index idx_market_observation_product_observed on market_observation(master_product_id, observed_at desc);
+create index idx_identity_match_supplier_product on identity_match(supplier_product_id, created_at desc);
 create index idx_supplier_product_supplier on supplier_product(supplier_id);
 create index idx_supplier_offer_product on supplier_offer(supplier_product_id);
 create index idx_supplier_offer_observed on supplier_offer(observed_at desc);
@@ -272,6 +277,8 @@ create trigger product_variant_updated_at before update on product_variant
 for each row execute function set_updated_at();
 create trigger suppliers_updated_at before update on suppliers
 for each row execute function set_updated_at();
+create trigger supplier_updated_at before update on supplier
+for each row execute function set_updated_at();
 create trigger supplier_product_updated_at before update on supplier_product
 for each row execute function set_updated_at();
 
@@ -280,7 +287,13 @@ alter table product_identifier enable row level security;
 alter table product_variant enable row level security;
 alter table product_media enable row level security;
 alter table suppliers enable row level security;
+alter table supplier enable row level security;
 alter table supplier_product enable row level security;
+alter table supplier_product_identifier enable row level security;
+alter table supplier_offer_snapshot enable row level security;
+alter table supplier_offer_freshness enable row level security;
+alter table identity_match enable row level security;
+alter table market_observation enable row level security;
 alter table supplier_offer enable row level security;
 alter table match_result enable row level security;
 alter table match_evidence enable row level security;
