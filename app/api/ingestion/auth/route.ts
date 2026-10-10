@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { INGESTION_SESSION_COOKIE, hasIngestionSession, ingestionTokenConfigured, matchesIngestionToken } from "../../../../lib/matcher/ingestion/auth";
+import { INGESTION_SESSION_COOKIE, createIngestionSessionValue, hasIngestionSession, ingestionTokenConfigured, matchesIngestionToken } from "../../../../lib/matcher/ingestion/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, code: "INVALID_INGESTION_CREDENTIALS" }, { status: 401 });
   }
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(INGESTION_SESSION_COOKIE, String(token), {
+  response.cookies.set(INGESTION_SESSION_COOKIE, createIngestionSessionValue(String(token)), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
