@@ -269,7 +269,7 @@ create unique index idx_supplier_product_identifier_unique on supplier_product_i
 create unique index idx_supplier_offer_freshness_unique on supplier_offer_freshness(supplier_offer_id);
 create index idx_market_observation_product_observed on market_observation(master_product_id, observed_at desc);
 create unique index idx_market_observation_identity_window on market_observation(master_product_id, source, window_start, window_end);
-create unique index idx_profit_snapshot_offer_market on profit_snapshot(supplier_offer_id, market_observation_id) where market_observation_id is not null;
+create unique index idx_profit_snapshot_offer_market on profit_snapshot(supplier_offer_id, market_observation_id);
 create index idx_identity_match_supplier_product on identity_match(supplier_product_id, created_at desc);
 create index idx_supplier_product_supplier on supplier_product(supplier_id);
 create index idx_supplier_offer_product on supplier_offer(supplier_product_id);
