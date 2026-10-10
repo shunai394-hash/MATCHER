@@ -126,6 +126,11 @@ export function LiveDiscoveryConsole() {
             <div><strong>{result.persisted ?? 0}</strong><span>{result.mode === "stored" ? "保存済み件数" : "DB保存件数"}</span></div>
             <div><strong>{result.spreadCandidates?.length ?? 0}</strong><span>JAN一致の価格差候補</span></div>
           </div>
+          {result.spreadCandidates && result.spreadCandidates.length === 0 && (
+            <p className="live-discovery-feedback">
+              まだ価格差候補はありません。別ソース間で同じJANの商品が確認できた場合のみ候補を表示します。仕入れ価格だけで利益商品とは判定しません。
+            </p>
+          )}
           {result.spreadCandidates && result.spreadCandidates.length > 0 && (
             <div className="live-spread-list">
               <h3>JAN一致の価格差候補 <span>※手数料・送料未確定の粗利差</span></h3>
