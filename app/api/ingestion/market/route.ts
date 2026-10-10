@@ -37,7 +37,7 @@ function publicHttpsUrl(value: unknown): value is string {
   }
 }
 
-function validateItem(value: unknown): { item?: MarketFeedItem; error?: string } {
+export function validateMarketFeedItem(value: unknown): { item?: MarketFeedItem; error?: string } {
   if (!value || typeof value !== "object" || Array.isArray(value)) return { error: "INVALID_ITEM" };
   const row = value as Record<string, unknown>;
   const identifierType = row.identifierType;
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
 
     for (let index = 0; index < rows.length; index += 1) {
       if (controller.signal.aborted) throw new DOMException("Market feed timed out", "AbortError");
-      const validated = validateItem(rows[index]);
+      const validated = validateMarketFeedItem(rows[index]);
       if (!validated.item) {
         errors.push({ index, code: validated.error ?? "INVALID_ITEM" });
         continue;
