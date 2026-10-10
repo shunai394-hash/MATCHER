@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { hasIngestionSession, ingestionTokenConfigured } from "../../../../lib/matcher/ingestion/auth";
 import { createClient } from "@supabase/supabase-js";
 import { discoverShopping, type ShoppingSource } from "../../../../lib/matcher/ingestion/multi-source";
 import { discoveryQueries } from "../../../../lib/matcher/ingestion/query-seeds";
@@ -99,6 +100,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!ingestionTokenConfigured()) {
+    return NextResponse.json({ ok: false, code: "INGESTION_AUTH_NOT_CONFIGURED" }, { status: 503 });
+  }
+  if (!hasIngestionSession(request)) {
+    return NextResponse.json({ ok: false, code: "INGESTION_AUTH_REQUIRED" }, { status: 401 });
+  }
   let body: unknown;
   try {
     body = await request.json();
