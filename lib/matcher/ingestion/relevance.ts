@@ -17,11 +17,21 @@ const PRODUCT_GROUPS = [
   { key: "software", query: /ソフト|ゲームソフト|ゲーム|amiibo|game\s*software|video\s*game/i, title: /ソフト|ゲームソフト|ゲーム|amiibo|game\s*software|video\s*game/i },
   { key: "router", query: /ルーター|router|wifi\s*router/i, title: /ルーター|router|wifi\s*router/i },
   { key: "headphones", query: /イヤホン|ヘッドホン|ヘッドセット|earbuds|headphones|headset/i, title: /イヤホン|ヘッドホン|ヘッドセット|earbuds|headphones|headset/i },
+  { key: "cable", query: /ケーブル|usb.?c cable|charging cable|hdmi cable/i, title: /ケーブル|usb.?c cable|charging cable|hdmi cable/i },
+  { key: "bag", query: /収納バッグ|キャリングバッグ|pouch|carrying bag/i, title: /収納バッグ|キャリングバッグ|pouch|carrying bag/i },
+  { key: "dock", query: /ドック|dock|スタンド|stand/i, title: /ドック|dock|スタンド|stand/i },
+  { key: "laptop", query: /ノートpc|laptop|notebook|chromebook/i, title: /ノートpc|laptop|notebook|chromebook/i },
+  { key: "phone", query: /スマートフォン|スマホ|iphone|smartphone|android phone/i, title: /スマートフォン|スマホ|iphone|smartphone|android phone/i },
+  { key: "camera", query: /カメラ|camera|mirrorless|一眼/i, title: /カメラ|camera|mirrorless|一眼/i },
+  { key: "monitor", query: /モニター|monitor|display/i, title: /モニター|monitor|display/i },
+  { key: "storage-drive", query: /ssd|hdd|外付けストレージ|external drive/i, title: /ssd|hdd|外付けストレージ|external drive/i },
+  { key: "printer", query: /プリンター|printer/i, title: /プリンター|printer/i },
+  { key: "watch", query: /スマートウォッチ|smartwatch|apple watch/i, title: /スマートウォッチ|smartwatch|apple watch/i },
   { key: "lego", query: /lego|レゴ/i, title: /lego|レゴ/i },
 ] as const;
 
-const ACCESSORY_GROUPS = new Set(["charger", "case", "controller", "storage", "software"]);
-const MAIN_PRODUCT_MARKER = /本体|モバイルバッテリー|power\s*bank|充電器|charger|ルーター|router|イヤホン|ヘッドホン|headphones|lego|レゴ|ノートpc|laptop|スマートフォン|iphone|android/i;
+const ACCESSORY_GROUPS = new Set(["charger", "case", "controller", "storage", "software", "cable", "bag", "dock"]);
+const MAIN_PRODUCT_MARKER = /本体|nintendo\s*switch|switch\s*2|モバイルバッテリー|power\s*bank|充電器|charger|ルーター|router|イヤホン|ヘッドホン|headphones|lego|レゴ|ノートpc|laptop|スマートフォン|iphone|android|カメラ|camera|モニター|monitor|ssd|hdd|プリンター|printer|smartwatch/i;
 
 export type RelevanceDecision = { relevant: boolean; reason: string | null };
 
