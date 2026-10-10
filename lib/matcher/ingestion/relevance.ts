@@ -52,7 +52,7 @@ export function classifyProductRelevance(query: string, product: Pick<SourceProd
     return { relevant: false, reason: "ACCESSORY_OR_SOFTWARE" };
   }
 
-  if (CONDITION_FLAGS.test(title) && !CONDITION_INTENT.test(normalizedQuery)) {
+  if (CONDITION_FLAGS.test(title) && !CONDITION_INTENT.test(normalizedQuery) && (queryGroup !== null || asksForSwitch2MainUnit)) {
     return { relevant: false, reason: "CONDITION_NOT_REQUESTED" };
   }
 
