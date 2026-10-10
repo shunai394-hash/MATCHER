@@ -8,6 +8,8 @@ type YahooHit = {
   janCode?: string;
   price?: number;
   url?: string;
+  image?: { small?: string; medium?: string };
+  exImage?: { url?: string; width?: number; height?: number };
   inStock?: boolean;
   condition?: string;
   seller?: { sellerId?: string; name?: string; url?: string };
@@ -38,6 +40,7 @@ export async function searchYahooShopping(query: string, signal?: AbortSignal): 
   url.searchParams.set("sort", "-score");
   url.searchParams.set("condition", "new");
   url.searchParams.set("results", "50");
+  url.searchParams.set("image_size", "300");
   const response = await fetch(url, { signal, headers: { accept: "application/json" } });
   if (!response.ok) throw new Error(`YAHOO_SHOPPING_HTTP_${response.status}`);
   const body = (await response.json()) as YahooResponse;
@@ -67,6 +70,7 @@ export async function searchYahooShopping(query: string, signal?: AbortSignal): 
       currency: "JPY",
       condition: hit.condition ?? hit.Condition ?? null,
       sourceUrl: hit.url ?? hit.Url ?? sellerUrl ?? null,
+      imageUrl: hit.exImage?.url ?? hit.image?.medium ?? hit.image?.small ?? null,
     }];
   });
   if (body.hits.length > 0 && products.length === 0) throw new Error("YAHOO_SHOPPING_ITEMS_UNPARSEABLE");
