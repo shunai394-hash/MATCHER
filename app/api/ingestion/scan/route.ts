@@ -155,6 +155,7 @@ export async function POST(request: Request) {
       inventory: item.inventory ?? null,
       orderability: item.orderability ?? "UNKNOWN",
       sourceUrl: item.sourceUrl ?? null,
+      observedAt: item.observedAt ?? new Date().toISOString(),
     }));
     return NextResponse.json({ ok: true, queries, sources, discovered, accepted, rejected, persisted, displayed: products.length, filteredOut: Math.max(0, allProducts.length - relevantProducts.length), products, spreadCandidates: spreads, errors });
   } catch (error) {
