@@ -34,6 +34,7 @@ export async function persistSupplierDiscovery(sourceKey: string, item: SourcePr
       set_count: item.setCount,
       condition: item.condition,
       source_url: item.sourceUrl,
+      image_url: item.imageUrl ?? null,
       last_seen_at: item.observedAt,
     }, { onConflict: "supplier_id,supplier_product_id" })
     .select("id")
