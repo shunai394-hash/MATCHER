@@ -6,7 +6,7 @@ import { discoveryQueries } from "../../../../lib/matcher/ingestion/query-seeds"
 import { validateSourceProduct } from "../../../../lib/matcher/ingestion/validate";
 import { persistSupplierDiscovery } from "../../../../lib/matcher/ingestion/persist";
 import { rankPriceSpreads } from "../../../../lib/matcher/ingestion/spread";
-import { classifyProductRelevance, filterRelevantProducts, filterRelevantProductsWithReasons } from "../../../../lib/matcher/ingestion/relevance";
+import { classifyProductRelevance, filterRelevantProductsWithReasons } from "../../../../lib/matcher/ingestion/relevance";
 import type { SourceProduct } from "../../../../lib/matcher/ingestion/types";
 
 export const runtime = "nodejs";
@@ -212,6 +212,7 @@ export async function POST(request: Request) {
   let discovered = 0, accepted = 0, rejected = 0, persisted = 0;
   const allProducts: SourceProduct[] = [];
   const relevantProducts: SourceProduct[] = [];
+  const excludedProducts: Array<SourceProduct & { exclusionReason: string }> = [];
   const errors: string[] = [];
 
   try {
@@ -227,7 +228,9 @@ export async function POST(request: Request) {
       const result = await discoverShopping(query, sources, controller.signal);
       discovered += result.products.length;
       allProducts.push(...result.products);
-      relevantProducts.push(...filterRelevantProducts(query, result.products));
+      const relevance = filterRelevantProductsWithReasons(query, result.products);
+      relevantProducts.push(...relevance.included);
+      excludedProducts.push(...relevance.excluded.map(({ product, reason }) => ({ ...product, exclusionReason: reason })));
       errors.push(...result.errors.map((error) => `${query}:${error}`));
       const validItems = result.products.filter((item) => validateSourceProduct(item).length === 0);
       rejected += result.products.length - validItems.length;
@@ -276,7 +279,7 @@ export async function POST(request: Request) {
       imageUrl: item.imageUrl ?? null,
       observedAt: item.observedAt ?? new Date().toISOString(),
     }));
-    return NextResponse.json({ ok: true, queries, sources, discovered, accepted, rejected, persisted, displayed: products.length, filteredOut: Math.max(0, allProducts.length - relevantProducts.length), products, spreadCandidates: spreads, errors });
+    return NextResponse.json({ ok: true, queries, sources, discovered, accepted, rejected, persisted, displayed: products.length, filteredOut: excludedProducts.length, products, excludedProducts: excludedProducts.slice(0, 100).map((product) => ({ source: product.sourceKey ?? "unknown-source", externalId: product.externalId, productName: product.productName, brand: product.brand ?? null, identifiers: product.identifiers ?? [], cost: product.cost ?? null, shippingCost: product.shippingCost ?? null, inventory: product.inventory ?? null, orderability: product.orderability ?? "UNKNOWN", sourceUrl: product.sourceUrl ?? null, imageUrl: product.imageUrl ?? null, observedAt: product.observedAt ?? null, exclusionReason: product.exclusionReason })), spreadCandidates: spreads, errors });
   } catch (error) {
     const timedOut = controller.signal.aborted || (error instanceof Error && error.name === "AbortError");
     return NextResponse.json({ ok: false, code: timedOut ? "SCAN_TIMEOUT" : error instanceof Error ? error.message : "SCAN_FAILED", queries, sources, discovered, accepted, rejected, persisted, errors }, { status: timedOut ? 504 : 502 });
