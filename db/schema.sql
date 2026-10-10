@@ -118,7 +118,36 @@ create table supplier_offer (
   price_age_seconds integer check (price_age_seconds is null or price_age_seconds >= 0),
   inventory_age_seconds integer check (inventory_age_seconds is null or inventory_age_seconds >= 0),
   shipping_verified boolean not null default false,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  unique (supplier_product_id)
+);
+
+create table supplier_product_identifier (
+  id uuid primary key default gen_random_uuid(),
+  supplier_product_id uuid not null references supplier_product(id) on delete cascade,
+  identifier_type text not null,
+  identifier_value text not null,
+  created_at timestamptz not null default now(),
+  unique (supplier_product_id, identifier_type, identifier_value)
+);
+
+create table supplier_offer_snapshot (
+  id uuid primary key default gen_random_uuid(),
+  supplier_offer_id uuid not null references supplier_offer(id) on delete cascade,
+  supplier_cost numeric(14,2) check (supplier_cost is null or supplier_cost >= 0),
+  shipping_cost numeric(14,2) check (shipping_cost is null or shipping_cost >= 0),
+  inventory integer check (inventory is null or inventory >= 0),
+  shipping_confidence numeric(5,4),
+  observed_at timestamptz not null default now()
+);
+
+create table supplier_offer_freshness (
+  id uuid primary key default gen_random_uuid(),
+  supplier_offer_id uuid not null unique references supplier_offer(id) on delete cascade,
+  price_observed_at timestamptz,
+  inventory_observed_at timestamptz,
+  shipping_observed_at timestamptz,
+  updated_at timestamptz not null default now()
 );
 
 create table match_result (
@@ -128,6 +157,16 @@ create table match_result (
   confidence numeric(5,4) not null check (confidence >= 0 and confidence <= 1),
   decision identity_decision not null,
   hard_block_reasons jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table identity_match (
+  id uuid primary key default gen_random_uuid(),
+  supplier_product_id uuid not null unique references supplier_product(id) on delete cascade,
+  master_product_id uuid references master_product(id) on delete set null,
+  confidence numeric(5,4) not null default 0 check (confidence >= 0 and confidence <= 1),
+  decision identity_decision not null default 'REVIEW',
+  hard_block boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -155,6 +194,21 @@ create table profit_snapshot (
   expected_profit numeric(14,2),
   calculated_at timestamptz not null default now(),
   cost_complete boolean not null default false
+);
+
+create table market_observation (
+  id uuid primary key default gen_random_uuid(),
+  master_product_id uuid not null references master_product(id) on delete cascade,
+  source text not null,
+  window_start timestamptz,
+  window_end timestamptz,
+  sales_count integer,
+  active_listing_count integer,
+  median_sale_price numeric(14,2),
+  price_stddev numeric(14,2),
+  observed_at timestamptz not null default now(),
+  evidence_url text,
+  created_at timestamptz not null default now()
 );
 
 create table quality_gate_result (
