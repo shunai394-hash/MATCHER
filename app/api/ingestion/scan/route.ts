@@ -93,9 +93,24 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => ({}));
-  const queries = discoveryQueries(typeof body?.queries === "string" ? body.queries : undefined).slice(0, 10);
-  const sources = Array.isArray(body?.sources) ? body.sources.filter((x: unknown) => x === "yahoo" || x === "rakuten") : ["yahoo", "rakuten"];
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ ok: false, code: "INVALID_JSON", message: "リクエスト本文は正しいJSONで指定してください。" }, { status: 400 });
+  }
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ ok: false, code: "INVALID_BODY", message: "JSONオブジェクトが必要です。" }, { status: 400 });
+  }
+  const input = body as { queries?: unknown; sources?: unknown };
+  if (input.queries !== undefined && (typeof input.queries !== "string" || input.queries.length > 160)) {
+    return NextResponse.json({ ok: false, code: "INVALID_QUERIES", message: "検索語は160文字以内で指定してください。" }, { status: 400 });
+  }
+  if (input.sources !== undefined && (!Array.isArray(input.sources) || input.sources.length === 0 || input.sources.some((source) => source !== "yahoo" && source !== "rakuten"))) {
+    return NextResponse.json({ ok: false, code: "INVALID_SOURCES", message: "sources は yahoo / rakuten の配列で指定してください。" }, { status: 400 });
+  }
+  const queries = discoveryQueries(typeof input.queries === "string" ? input.queries.trim() : undefined).slice(0, 10);
+  const sources = input.sources === undefined ? ["yahoo", "rakuten"] : [...new Set(input.sources as ("yahoo" | "rakuten")[])];
   if (!sources.length) return NextResponse.json({ ok: false, code: "NO_SOURCES" }, { status: 400 });
 
   const controller = new AbortController();
@@ -114,6 +129,7 @@ export async function POST(request: Request) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
       queryIndex++;
+      if (controller.signal.aborted) throw new DOMException("Scan timed out", "AbortError");
       const result = await discoverShopping(query, sources, controller.signal);
       discovered += result.products.length;
       allProducts.push(...result.products);
@@ -127,6 +143,7 @@ export async function POST(request: Request) {
       // operations per product caused 50-item scans to hit the function timeout.
       const batchSize = 5;
       for (let offset = 0; offset < validItems.length; offset += batchSize) {
+        if (controller.signal.aborted) throw new DOMException("Scan timed out", "AbortError");
         const batch = validItems.slice(offset, offset + batchSize);
         const outcomes = await Promise.all(batch.map(async (item) => {
           try {
@@ -167,7 +184,8 @@ export async function POST(request: Request) {
     }));
     return NextResponse.json({ ok: true, queries, sources, discovered, accepted, rejected, persisted, displayed: products.length, filteredOut: Math.max(0, allProducts.length - relevantProducts.length), products, spreadCandidates: spreads, errors });
   } catch (error) {
-    return NextResponse.json({ ok: false, code: error instanceof Error ? error.message : "SCAN_FAILED", queries, sources, discovered, accepted, rejected, persisted, errors }, { status: 502 });
+    const timedOut = controller.signal.aborted || (error instanceof Error && error.name === "AbortError");
+    return NextResponse.json({ ok: false, code: timedOut ? "SCAN_TIMEOUT" : error instanceof Error ? error.message : "SCAN_FAILED", queries, sources, discovered, accepted, rejected, persisted, errors }, { status: timedOut ? 504 : 502 });
   } finally {
     clearTimeout(timeout);
   }
