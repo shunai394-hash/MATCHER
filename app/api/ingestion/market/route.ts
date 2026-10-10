@@ -100,7 +100,7 @@ export async function POST(request: Request) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
   try {
-    const response = await fetch(feedUrl, { cache: "no-store", signal: controller.signal, headers: { accept: "application/json" } });
+    const response = await fetch(feedUrl, { cache: "no-store", redirect: "error", signal: controller.signal, headers: { accept: "application/json" } });
     if (!response.ok) return NextResponse.json({ ok: false, code: "MARKET_FEED_HTTP_ERROR", status: response.status }, { status: 502 });
     const body = await response.text();
     if (body.length > 5_000_000) return NextResponse.json({ ok: false, code: "MARKET_FEED_TOO_LARGE" }, { status: 413 });
