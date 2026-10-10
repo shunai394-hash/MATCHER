@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -13,7 +14,7 @@ export default function ErrorPage({ reset }: { error: Error & { digest?: string 
       <h1>処理を完了できませんでした</h1>
       <p>一時的な問題が発生しました。もう一度お試しください。</p>
       <button type="button" onClick={() => reset()}>もう一度試す</button>
-      <a href="/">トップページへ戻る</a>
+      <Link href="/">トップページへ戻る</Link>
     </main>
   );
 }
