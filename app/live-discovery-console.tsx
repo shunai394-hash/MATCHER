@@ -13,6 +13,7 @@ type DiscoveredProduct = {
   inventory: number | null;
   orderability: string;
   sourceUrl: string | null;
+  observedAt?: string | null;
 };
 
 type SpreadCandidate = {
@@ -54,6 +55,19 @@ const safeHttpUrl = (value: string | null | undefined) => {
 
 const yen = (value: number | null | undefined) =>
   value == null || !Number.isFinite(value) ? "未取得" : "¥" + Math.round(value).toLocaleString("ja-JP");
+
+const freshnessLabel = (value: string | null | undefined) => {
+  if (!value) return "鮮度不明";
+  const observedAt = Date.parse(value);
+  if (!Number.isFinite(observedAt)) return "鮮度不明";
+  const ageMs = Date.now() - observedAt;
+  if (ageMs < -60_000) return "時刻異常・要確認";
+  if (ageMs > 24 * 60 * 60 * 1000) return "24時間超・要再確認";
+  if (ageMs > 6 * 60 * 60 * 1000) return `約${Math.floor(ageMs / (60 * 60 * 1000))}時間前`;
+  if (ageMs > 60 * 60 * 1000) return `約${Math.floor(ageMs / (60 * 60 * 1000))}時間前`;
+  if (ageMs > 60 * 1000) return `約${Math.floor(ageMs / (60 * 1000))}分前`;
+  return "直近取得";
+};
 
 export function LiveDiscoveryConsole() {
   const [query, setQuery] = useState("Nintendo Switch 2 本体");
@@ -154,7 +168,7 @@ export function LiveDiscoveryConsole() {
                   <div className="live-product-main">
                     <strong>{product.productName}</strong>
                     <span>{product.brand ?? "ブランド未取得"} · JAN {jan ?? "未取得"}</span>
-                    <small>{product.source} · 在庫 {product.inventory == null ? "未確認" : product.inventory} · {product.orderability === "ORDERABLE" ? "注文可" : "注文可否未確認"}</small>
+                    <small>{product.source} · 価格データ {freshnessLabel(product.observedAt)} · 在庫 {product.inventory == null ? "未確認" : product.inventory} · {product.orderability === "ORDERABLE" ? "注文可" : "注文可否未確認"}</small>
                   </div>
                   <div className="live-product-price"><strong>{yen(product.cost)}</strong><span>送料 {yen(product.shippingCost)}</span></div>
                   {safeHttpUrl(product.sourceUrl) && <a href={safeHttpUrl(product.sourceUrl)!} target="_blank" rel="noreferrer">販売ページ ↗</a>}
