@@ -1,4 +1,4 @@
-import { isValidGlobalIdentifier, normalizeIdentifier } from "../identity";
+import { isValidGlobalIdentifier, normalizeIdentifier } from "../identity.ts";
 
 type MarketFeedItem = {
   identifierType: "JAN" | "EAN" | "UPC";
