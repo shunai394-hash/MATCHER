@@ -186,6 +186,7 @@ create table match_evidence (
 create table profit_snapshot (
   id uuid primary key default gen_random_uuid(),
   supplier_offer_id uuid not null references supplier_offer(id) on delete cascade,
+  market_observation_id uuid,
   sale_price numeric(14,2) not null check (sale_price >= 0),
   supplier_cost numeric(14,2),
   shipping_cost numeric(14,2),
@@ -211,6 +212,21 @@ create table market_observation (
   observed_at timestamptz not null default now(),
   evidence_url text,
   created_at timestamptz not null default now()
+);
+
+alter table profit_snapshot add constraint profit_snapshot_market_observation_fk
+  foreign key (market_observation_id) references market_observation(id) on delete set null;
+
+create table profit_fee_policy (
+  id uuid primary key default gen_random_uuid(),
+  marketplace text not null unique,
+  marketplace_fee_rate numeric(8,6) not null check (marketplace_fee_rate >= 0 and marketplace_fee_rate <= 1),
+  payment_fee_rate numeric(8,6) not null check (payment_fee_rate >= 0 and payment_fee_rate <= 1),
+  fixed_fee numeric(14,2) not null default 0 check (fixed_fee >= 0),
+  tax_rate numeric(8,6) not null default 0 check (tax_rate >= 0 and tax_rate <= 1),
+  evidence_url text not null,
+  active boolean not null default true,
+  updated_at timestamptz not null default now()
 );
 
 create table quality_gate_result (
@@ -252,6 +268,8 @@ create unique index idx_supplier_name_unique on supplier(name);
 create unique index idx_supplier_product_identifier_unique on supplier_product_identifier(supplier_product_id, identifier_type, identifier_value);
 create unique index idx_supplier_offer_freshness_unique on supplier_offer_freshness(supplier_offer_id);
 create index idx_market_observation_product_observed on market_observation(master_product_id, observed_at desc);
+create unique index idx_market_observation_identity_window on market_observation(master_product_id, source, window_start, window_end);
+create unique index idx_profit_snapshot_offer_market on profit_snapshot(supplier_offer_id, market_observation_id) where market_observation_id is not null;
 create index idx_identity_match_supplier_product on identity_match(supplier_product_id, created_at desc);
 create index idx_supplier_product_supplier on supplier_product(supplier_id);
 create index idx_supplier_offer_product on supplier_offer(supplier_product_id);
@@ -296,6 +314,7 @@ alter table supplier_offer_snapshot enable row level security;
 alter table supplier_offer_freshness enable row level security;
 alter table identity_match enable row level security;
 alter table market_observation enable row level security;
+alter table profit_fee_policy enable row level security;
 alter table supplier_offer enable row level security;
 alter table match_result enable row level security;
 alter table match_evidence enable row level security;
