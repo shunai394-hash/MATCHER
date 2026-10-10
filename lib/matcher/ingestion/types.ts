@@ -18,6 +18,7 @@ export type SourceProduct = {
   orderability?: "ORDERABLE" | "OUT_OF_STOCK" | "UNKNOWN" | "BLOCKED";
   currency?: string;
   sourceUrl?: string | null;
+  imageUrl?: string | null;
   observedAt?: string;
 };
 

@@ -54,6 +54,8 @@ try {
       janCode: "4901234567894",
       price: 4980,
       url: "https://store.shopping.yahoo.co.jp/example/item.html",
+      image: { small: "https://item-shopping.c.yimg.jp/i/c/example_1", medium: "https://item-shopping.c.yimg.jp/i/g/example_1" },
+      exImage: { url: "https://item-shopping.c.yimg.jp/i/l/example_1", width: 300, height: 300 },
       inStock: true,
       condition: "new",
       brand: { name: "Example" },
@@ -71,8 +73,10 @@ try {
     throw new Error("YAHOO_V3_PRICE_OR_JAN_NOT_PARSED");
   }
   if (yahooItems[0].orderability !== "ORDERABLE") throw new Error("YAHOO_V3_STOCK_NOT_PARSED");
+  if (yahooItems[0].imageUrl !== "https://item-shopping.c.yimg.jp/i/l/example_1") throw new Error("YAHOO_V3_IMAGE_URL_NOT_PARSED");
   const requestUrl = requestedUrls[0] ? new URL(requestedUrls[0]) : null;
   if (requestUrl?.searchParams.get("sort") !== "-score") throw new Error("YAHOO_SEARCH_MUST_PRIORITIZE_RELEVANCE");
+  if (requestUrl?.searchParams.get("image_size") !== "300") throw new Error("YAHOO_SEARCH_MUST_REQUEST_PRODUCT_IMAGES");
 } finally {
   globalThis.fetch = originalFetch;
   if (previousAppId === undefined) delete process.env.MATCHER_YAHOO_SHOPPING_APP_ID;
