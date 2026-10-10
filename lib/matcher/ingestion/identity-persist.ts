@@ -86,7 +86,6 @@ export async function persistIdentityMatch(
   };
 
   let masterProductId = await findMasterByIdentifier();
-  let createdMaster = false;
   if (!masterProductId) {
     const created = await supabase.from("master_product").insert({
       brand: item.brand ?? null,
@@ -100,7 +99,6 @@ export async function persistIdentityMatch(
     }).select("id").single();
     if (created.error || !created.data?.id) throw new Error(`MASTER_PRODUCT_CREATE_FAILED:${created.error?.message ?? "MISSING_ID"}`);
     masterProductId = created.data.id as string;
-    createdMaster = true;
 
     const identifierInsert = await supabase.from("product_identifier").insert({
       master_product_id: masterProductId,
@@ -115,7 +113,6 @@ export async function persistIdentityMatch(
       await supabase.from("master_product").delete().eq("id", masterProductId);
       if (!existingMasterId) throw new Error(`MASTER_IDENTIFIER_CREATE_FAILED:${identifierInsert.error.message}`);
       masterProductId = existingMasterId;
-      createdMaster = false;
     } else {
       for (const extra of item.identifiers ?? []) {
         const extraValue = normalizeIdentifier(extra.value);
