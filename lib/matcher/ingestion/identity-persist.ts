@@ -116,6 +116,22 @@ export async function persistIdentityMatch(
       if (!existingMasterId) throw new Error(`MASTER_IDENTIFIER_CREATE_FAILED:${identifierInsert.error.message}`);
       masterProductId = existingMasterId;
       createdMaster = false;
+    } else {
+      for (const extra of item.identifiers ?? []) {
+        const extraValue = normalizeIdentifier(extra.value);
+        if (!extraValue || (extra.type === identifier.type && extraValue === normalizedValue)) continue;
+        const extraInsert = await supabase.from("product_identifier").insert({
+          master_product_id: masterProductId,
+          identifier_type: extra.type,
+          identifier_value: extra.value,
+          normalized_value: extraValue,
+          source: sourceKey,
+          is_primary: false,
+        });
+        if (extraInsert.error && extraInsert.error.code !== "23505") {
+          throw new Error(`MASTER_IDENTIFIER_CREATE_FAILED:${extraInsert.error.message}`);
+        }
+      }
     }
   }
 
@@ -161,8 +177,30 @@ export async function persistIdentityMatch(
   const masterIdentifiers = supportedIdentifiers(masterIdentifiersResult.data ?? []);
   const master = masterResult.data as { id: string; brand: string | null; product_name: string; model_number: string | null };
   const candidate = candidateIdentity(item);
+  const crossMasterConflicts: IdentityMatchResult["evidence"] = [];
+  const crossMasterBlockReasons: string[] = [];
+  for (const candidateIdentifier of item.identifiers ?? []) {
+    if (candidateIdentifier.type !== "JAN" && candidateIdentifier.type !== "EAN" && candidateIdentifier.type !== "UPC") continue;
+    const candidateValue = normalizeIdentifier(candidateIdentifier.value);
+    if (!candidateValue) continue;
+    const owner = await supabase.from("product_identifier").select("master_product_id")
+      .eq("identifier_type", candidateIdentifier.type).eq("normalized_value", candidateValue).maybeSingle();
+    if (owner.error) throw new Error(`GLOBAL_IDENTIFIER_LOOKUP_FAILED:${owner.error.message}`);
+    if (owner.data?.master_product_id && owner.data.master_product_id !== masterProductId) {
+      crossMasterBlockReasons.push(candidateIdentifier.type + "_MISMATCH");
+      crossMasterConflicts.push({
+        field: candidateIdentifier.type,
+        candidate: candidateValue,
+        master: "IDENTIFIER_ASSIGNED_TO_DIFFERENT_MASTER",
+        result: "MISMATCH",
+        reason: "A global identifier is already assigned to a different master product.",
+      });
+    }
+  }
   let result: IdentityMatchResult;
-  if (variants.length > 1 && !variants.some((variant) => variant.variant_key === key)) {
+  if (crossMasterBlockReasons.length > 0) {
+    result = { decision: "BLOCK", matchMethod: "NONE", hardBlockReasons: [...new Set(crossMasterBlockReasons)], evidence: crossMasterConflicts };
+  } else if (variants.length > 1 && !variants.some((variant) => variant.variant_key === key)) {
     const attempts = variants.map((variant) => matchProductIdentity(candidate, masterWithVariant(master, masterIdentifiers, variant)));
     if (attempts.length > 0 && attempts.every((attempt) => attempt.decision === "BLOCK")) {
       result = {
@@ -188,6 +226,28 @@ export async function persistIdentityMatch(
   } else {
     const variant = variants.length === 1 ? variants[0] : variants.find((value) => value.variant_key === key) ?? null;
     result = matchProductIdentity(candidate, masterWithVariant(master, masterIdentifiers, variant));
+  }
+
+  if (result.decision === "AUTO_LINK") {
+    for (const candidateIdentifier of item.identifiers ?? []) {
+      const normalized = normalizeIdentifier(candidateIdentifier.value);
+      if (!normalized) continue;
+      const exists = masterIdentifiers.some((masterIdentifier) =>
+        masterIdentifier.type === candidateIdentifier.type && normalizeIdentifier(masterIdentifier.value) === normalized
+      );
+      if (exists) continue;
+      const added = await supabase.from("product_identifier").insert({
+        master_product_id: masterProductId,
+        identifier_type: candidateIdentifier.type,
+        identifier_value: candidateIdentifier.value,
+        normalized_value: normalized,
+        source: sourceKey,
+        is_primary: false,
+      });
+      if (added.error && added.error.code !== "23505") {
+        throw new Error(`MASTER_IDENTIFIER_UPDATE_FAILED:${added.error.message}`);
+      }
+    }
   }
 
   const stored = await supabase.from("identity_match").upsert({
