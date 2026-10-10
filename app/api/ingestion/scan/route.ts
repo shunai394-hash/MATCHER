@@ -106,7 +106,14 @@ export async function POST(request: Request) {
   const errors: string[] = [];
 
   try {
+    let queryIndex = 0;
     for (const query of queries) {
+      // Yahoo documents a 1-query/second usage limit. Pace multi-query scans
+      // instead of firing requests back-to-back and risking temporary blocks.
+      if (queryIndex > 0 && sources.includes("yahoo")) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      queryIndex++;
       const result = await discoverShopping(query, sources, controller.signal);
       discovered += result.products.length;
       allProducts.push(...result.products);
