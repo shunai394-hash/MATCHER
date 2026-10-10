@@ -37,6 +37,9 @@ jobs:
       - run: npm run verify:ingestion
       - run: npm run verify:spread
       - run: npm run verify:ingestion-contract
+      - run: npm run verify:ingestion-auth
+      - run: npm run verify:market-feed
+      - run: npm run verify:schema-contract
       - run: npm run lint
       - run: npm run build
       - name: Install PostgreSQL client
@@ -79,8 +82,8 @@ jobs:
           psql -h 127.0.0.1 -U matcher -d matcher -v ON_ERROR_STOP=1 <<'SQL'
           do $matcher_schema_check$
           begin
-            if (select count(*) from freshness_policy) <> 3 then
-              raise exception 'freshness_policy must contain exactly 3 default metrics';
+            if (select count(*) from freshness_policy) <> 4 then
+              raise exception 'freshness_policy must contain exactly 4 default metrics';
             end if;
             if to_regclass('public.supplier_product_identifier') is null then
               raise exception 'supplier_product_identifier missing';
