@@ -1,3 +1,5 @@
+import { isValidGlobalIdentifier, normalizeIdentifier } from "../identity";
+
 type MarketFeedItem = {
   identifierType: "JAN" | "EAN" | "UPC";
   identifierValue: string;
