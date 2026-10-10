@@ -13,7 +13,8 @@
     "verify:ingestion": "node --experimental-strip-types scripts/verify-ingestion.ts",
     "verify:spread": "node --experimental-strip-types scripts/verify-spread.ts",
     "verify:ingestion-contract": "node --experimental-strip-types scripts/verify-ingestion-contract.ts",
-    "verify:ingestion-auth": "node --experimental-strip-types scripts/verify-ingestion-auth.ts"
+    "verify:ingestion-auth": "node --experimental-strip-types scripts/verify-ingestion-auth.ts",
+    "verify:schema-contract": "node --experimental-strip-types scripts/verify-schema-contract.ts"
   },
   "dependencies": {
     "next": "16.4.0",
