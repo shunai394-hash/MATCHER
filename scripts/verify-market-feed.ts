@@ -1,4 +1,4 @@
-import { validateMarketFeedItem } from "../app/api/ingestion/market/route.ts";
+import { validateMarketFeedItem } from "../lib/matcher/ingestion/market-feed.ts";
 
 const valid = {
   identifierType: "JAN",
