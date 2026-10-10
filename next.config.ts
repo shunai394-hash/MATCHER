@@ -11,6 +11,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: {
+    unoptimized: true,
+    remotePatterns: [
+      { protocol: "https", hostname: "item-shopping.c.yimg.jp" },
+      { protocol: "https", hostname: "**.yimg.jp" },
+      { protocol: "https", hostname: "**.rakuten.co.jp" },
+    ],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
