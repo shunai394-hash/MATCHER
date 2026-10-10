@@ -16,7 +16,11 @@ type DiscoveredProduct = {
   sourceUrl: string | null;
   imageUrl?: string | null;
   observedAt?: string | null;
+  offerCount?: number;
+  identityDecision?: string;
 };
+
+type ExcludedProduct = DiscoveredProduct & { exclusionReason: string };
 
 type SpreadCandidate = {
   jan: string | null;
@@ -60,6 +64,7 @@ type ScanResult = {
   rejected?: number;
   persisted?: number;
   products?: DiscoveredProduct[];
+  excludedProducts?: ExcludedProduct[];
   spreadCandidates?: SpreadCandidate[];
   errors?: string[];
   code?: string;
@@ -77,6 +82,17 @@ const safeHttpUrl = (value: string | null | undefined) => {
 
 const yen = (value: number | null | undefined) =>
   value == null || !Number.isFinite(value) ? "未取得" : "¥" + Math.round(value).toLocaleString("ja-JP");
+
+const relevanceReasonLabel = (reason: string) => ({
+  CATEGORY_MISMATCH: "検索した商品カテゴリと一致しません",
+  MODEL_OR_VARIANT_MISMATCH: "モデル・バリアントが検索条件と一致しません",
+  NOT_A_SWITCH_2_MAIN_UNIT: "Switch 2本体ではありません",
+  INCOMPLETE_OR_UNVERIFIED_CONDITION: "付属品不足または状態未確認です",
+  ACCESSORY_OR_SOFTWARE: "付属品・ソフトウェアです",
+  ACCESSORY_NOT_REQUESTED: "付属品は今回の検索対象ではありません",
+  CONDITION_NOT_REQUESTED: "商品の状態が検索条件と一致しません",
+  NOT_RELEVANT: "検索条件との関連性が確認できません",
+} as Record<string, string>)[reason] ?? "検索条件との一致を確認できません";
 
 const freshnessLabel = (value: string | null | undefined) => {
   if (!value) return "鮮度不明";
@@ -326,14 +342,28 @@ export function LiveDiscoveryConsole() {
                   <div className="live-product-main">
                     <strong>{product.productName}</strong>
                     <span>{product.brand ?? "ブランド未取得"} · JAN {jan ?? "未取得"}</span>
-                    <small>{product.source} · 価格データ {freshnessLabel(product.observedAt)} · 在庫 {product.inventory == null ? "未確認" : product.inventory} · {product.orderability === "ORDERABLE" ? "注文可" : "注文可否未確認"}</small>
+                    <small>{product.source}{(product.offerCount ?? 1) > 1 ? ` · ${product.offerCount}オファーを集約` : ""} · 同定 {product.identityDecision ?? "REVIEW"} · 価格データ {freshnessLabel(product.observedAt)} · 在庫 {product.inventory == null ? "未確認" : product.inventory} · {product.orderability === "ORDERABLE" ? "注文可" : "注文可否未確認"}</small>
                   </div>
                   <div className="live-product-price"><strong>{yen(product.cost)}</strong><span>送料 {yen(product.shippingCost)}</span></div>
                   {safeHttpUrl(product.sourceUrl) && <a href={safeHttpUrl(product.sourceUrl)!} target="_blank" rel="noreferrer">販売ページ ↗</a>}
                 </article>
               );
-            }) : <p className="live-discovery-feedback">{result.mode === "stored" ? "保存済みの商品はまだありません。検索すると、取得・保存された商品がここに表示されます。" : result.errors?.length ? "商品を取得できない仕入れ元があります。下の警告を確認し、接続状態や認証設定を見直してから再試行してください。" : "この検索語に一致する商品はありませんでした。型番・JAN・短い商品名でもう一度お試しください。"}</p>}
+            }) : <p className="live-discovery-feedback">{result.mode === "stored" && (result.filteredOut ?? 0) > 0 ? "保存済み商品はありますが、検索条件と一致しない候補は下の除外リストに分けました。" : result.mode === "stored" ? "保存済みの商品はまだありません。検索すると、取得・保存された商品がここに表示されます。" : result.errors?.length ? "商品を取得できない仕入れ元があります。下の警告を確認し、接続状態や認証設定を見直してから再試行してください。" : "この検索語に一致する商品はありませんでした。型番・JAN・短い商品名でもう一度お試しください。"}</p>}
           </div>
+          {!!result.excludedProducts?.length && (
+            <details className="live-excluded-products">
+              <summary>検索条件と一致しない商品を確認（{result.excludedProducts.length}件）</summary>
+              <div>
+                {result.excludedProducts.slice(0, 30).map((product) => (
+                  <article key={product.source + ":" + product.externalId}>
+                    <strong>{product.productName}</strong>
+                    <span>{product.source} · {relevanceReasonLabel(product.exclusionReason)}</span>
+                    {safeHttpUrl(product.sourceUrl) && <a href={safeHttpUrl(product.sourceUrl)!} target="_blank" rel="noreferrer">商品ページ ↗</a>}
+                  </article>
+                ))}
+              </div>
+            </details>
+          )}
           <p className="live-discovery-disclaimer">重要：Yahoo!の商品価格だけでは売価・需要・在庫・送料・手数料が揃いません。JAN一致の他市場データと全コストが揃うまで、純利益や購入推奨は確定しません。</p>
           {result.errors && result.errors.length > 0 && <details className="live-discovery-errors"><summary>取得時の警告 {result.errors.length}件</summary><ul>{result.errors.slice(0, 10).map((message, index) => <li key={index}>{message}</li>)}</ul></details>}
         </div>
