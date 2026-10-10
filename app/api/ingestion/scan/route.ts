@@ -256,6 +256,7 @@ export async function POST(request: Request) {
         }
       }
     }
+    if (controller.signal.aborted) throw new DOMException("Scan timed out", "AbortError");
     const spreads = rankPriceSpreads(relevantProducts).slice(0, 20).map((spread) => ({
       jan: spread.buy.identifiers?.find((x) => x.type === "JAN")?.value ?? null,
       buyPrice: spread.buy.cost,
