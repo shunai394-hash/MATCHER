@@ -31,7 +31,6 @@ const PRODUCT_GROUPS = [
 ] as const;
 
 const ACCESSORY_GROUPS = new Set(["charger", "case", "controller", "storage", "software", "cable", "bag", "dock"]);
-const MAIN_PRODUCT_MARKER = /本体|nintendo\s*switch|switch\s*2|モバイルバッテリー|power\s*bank|充電器|charger|ルーター|router|イヤホン|ヘッドホン|headphones|lego|レゴ|ノートpc|laptop|スマートフォン|iphone|android|カメラ|camera|モニター|monitor|ssd|hdd|プリンター|printer|smartwatch/i;
 
 export type RelevanceDecision = { relevant: boolean; reason: string | null };
 
@@ -58,7 +57,7 @@ export function classifyProductRelevance(query: string, product: Pick<SourceProd
     return { relevant: false, reason: "CATEGORY_MISMATCH" };
   }
 
-  if (!queryGroup && !normalizedQuery && titleGroup && ACCESSORY_GROUPS.has(titleGroup) && !MAIN_PRODUCT_MARKER.test(title)) {
+  if (!queryGroup && !normalizedQuery && titleGroup && ACCESSORY_GROUPS.has(titleGroup)) {
     return { relevant: false, reason: "ACCESSORY_OR_SOFTWARE" };
   }
 
