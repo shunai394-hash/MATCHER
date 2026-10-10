@@ -40,16 +40,17 @@ create index if not exists idx_identity_hard_block_match
 
 create table if not exists freshness_policy (
   id uuid primary key default gen_random_uuid(),
-  metric text not null unique check (metric in ('PRICE','INVENTORY','SHIPPING')),
+  data_type text not null unique check (data_type in ('PRICE','INVENTORY','SHIPPING','MARKET')),
   max_age_seconds integer not null check (max_age_seconds > 0),
   updated_at timestamptz not null default now()
 );
 
-insert into freshness_policy(metric, max_age_seconds)
+insert into freshness_policy(data_type, max_age_seconds)
 values
   ('PRICE', 86400),
   ('INVENTORY', 21600),
-  ('SHIPPING', 604800)
+  ('SHIPPING', 604800),
+  ('MARKET', 86400)
 on conflict (metric) do nothing;
 
 create table if not exists supplier_offer_observation (
