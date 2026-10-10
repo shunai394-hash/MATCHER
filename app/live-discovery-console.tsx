@@ -30,10 +30,22 @@ type SpreadCandidate = {
 
 type SourceConfiguration = {
   ok: boolean;
+  marketFeed?: { configured: boolean; missing: string[] };
+  feePolicy?: { configured: boolean; status: "CONFIGURED" | "MISSING" | "UNAVAILABLE" };
   sources?: {
     yahoo?: { configured: boolean; missing: string[] };
     rakuten?: { configured: boolean; missing: string[] };
   };
+};
+
+type MarketIngestionResult = {
+  ok: boolean;
+  code?: string;
+  discovered?: number;
+  marketObservationsPersisted?: number;
+  profitSnapshotsPersisted?: number;
+  skippedForMissingCostsOrPolicy?: number;
+  errors?: Array<{ index: number; code: string }>;
 };
 
 type ScanResult = {
@@ -91,6 +103,9 @@ export function LiveDiscoveryConsole() {
   const [error, setError] = useState("");
   const [sourceConfig, setSourceConfig] = useState<SourceConfiguration | null>(null);
   const [selectedSources, setSelectedSources] = useState<string[]>(["yahoo"]);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketResult, setMarketResult] = useState<MarketIngestionResult | null>(null);
+  const [marketError, setMarketError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -183,6 +198,21 @@ export function LiveDiscoveryConsole() {
     setAuthenticated(false);
   }
 
+  async function refreshMarketEvidence() {
+    setMarketLoading(true);
+    setMarketError("");
+    try {
+      const response = await fetch("/api/ingestion/market", { method: "POST", cache: "no-store" });
+      const payload = (await response.json()) as MarketIngestionResult;
+      setMarketResult(payload);
+      if (!response.ok || !payload.ok) setMarketError(payload.code ?? "市場データを取り込めませんでした。");
+    } catch {
+      setMarketError("市場データAPIに接続できませんでした。時間をおいて再試行してください。");
+    } finally {
+      setMarketLoading(false);
+    }
+  }
+
   return (
     <section className="live-discovery" aria-labelledby="live-discovery-title" id="live-discovery">
       <div className="live-discovery-heading">
@@ -213,6 +243,23 @@ export function LiveDiscoveryConsole() {
         </form>
       )}
       {authenticated && <div className="live-discovery-feedback live-discovery-auth-state"><span>運用者認証済み</span><button type="button" onClick={logout}>ログアウト</button></div>}
+      {authenticated && (
+        <section className="live-market-actions" aria-labelledby="live-market-actions-title">
+          <div>
+            <h3 id="live-market-actions-title">市場根拠・利益再計算</h3>
+            <p>販売実績の根拠と、出典付きの手数料ポリシーが揃った場合だけ利益スナップショットを保存します。</p>
+          </div>
+          {!sourceConfig?.marketFeed?.configured && <p role="status">市場観測フィード未設定：Vercel Production に MATCHER_MARKET_OBSERVATION_FEED_URL を設定してください。</p>}
+          {sourceConfig?.feePolicy?.status === "MISSING" && <p role="status">販売手数料ポリシーが未登録です。出典URL付きの手数料率が登録されるまで利益は計算しません。</p>}
+          {sourceConfig?.feePolicy?.status === "UNAVAILABLE" && <p role="status">手数料ポリシーのDB状態を確認できません。Supabase接続とマイグレーションを確認してください。</p>}
+          <button type="button" onClick={refreshMarketEvidence} disabled={marketLoading || !sourceConfig?.marketFeed?.configured}>
+            {marketLoading ? "市場根拠を取り込み中…" : "市場根拠を取得・利益を再計算"}
+          </button>
+          {marketError && <p className="live-discovery-error" role="alert">{marketError}</p>}
+          {marketResult && <p role="status">市場観測保存 {marketResult.marketObservationsPersisted ?? 0}件 / 利益計算 {marketResult.profitSnapshotsPersisted ?? 0}件 / コスト・手数料不足で保留 {marketResult.skippedForMissingCostsOrPolicy ?? 0}件</p>}
+          {!!marketResult?.errors?.length && <details><summary>取込時の警告 {marketResult.errors.length}件</summary><ul>{marketResult.errors.slice(0, 10).map((item) => <li key={item.index}>行 {item.index + 1}: {item.code}</li>)}</ul></details>}
+        </section>
+      )}
       <form className="live-discovery-form" onSubmit={scan}>
         <label htmlFor="discovery-query">商品名・ブランド・型番</label>
         <div className="live-discovery-controls">
