@@ -31,6 +31,8 @@ type ScanResult = {
   queries?: string[];
   sources?: string[];
   discovered?: number;
+  displayed?: number;
+  filteredOut?: number;
   accepted?: number;
   rejected?: number;
   persisted?: number;
@@ -136,6 +138,7 @@ export function LiveDiscoveryConsole() {
               ))}
             </div>
           )}
+          {(result.filteredOut ?? 0) > 0 && <p className="live-discovery-feedback">{result.filteredOut}件の付属品・周辺商品は今回の「本体」検索結果から除外しました。仕入れ元データは保持しています。</p>}
           <div className="live-product-list">
             <h3>取得した商品 <span>{result.products?.length ?? 0}件表示</span></h3>
             {result.products && result.products.length > 0 ? result.products.map((product) => {

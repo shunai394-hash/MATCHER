@@ -5,6 +5,7 @@ import { discoveryQueries } from "../../../../lib/matcher/ingestion/query-seeds"
 import { validateSourceProduct } from "../../../../lib/matcher/ingestion/validate";
 import { persistSupplierDiscovery } from "../../../../lib/matcher/ingestion/persist";
 import { rankPriceSpreads } from "../../../../lib/matcher/ingestion/spread";
+import { filterRelevantProducts } from "../../../../lib/matcher/ingestion/relevance";
 import type { SourceProduct } from "../../../../lib/matcher/ingestion/types";
 
 export const runtime = "nodejs";
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
   const timeout = setTimeout(() => controller.abort(), 55000);
   let discovered = 0, accepted = 0, rejected = 0, persisted = 0;
   const allProducts: SourceProduct[] = [];
+  const relevantProducts: SourceProduct[] = [];
   const errors: string[] = [];
 
   try {
@@ -84,6 +86,7 @@ export async function POST(request: Request) {
       const result = await discoverShopping(query, sources, controller.signal);
       discovered += result.products.length;
       allProducts.push(...result.products);
+      relevantProducts.push(...filterRelevantProducts(query, result.products));
       errors.push(...result.errors.map((error) => `${query}:${error}`));
       const validItems = result.products.filter((item) => validateSourceProduct(item).length === 0);
       rejected += result.products.length - validItems.length;
@@ -117,7 +120,7 @@ export async function POST(request: Request) {
       buySourceUrl: spread.buy.sourceUrl,
       referenceSourceUrl: spread.referenceSell.sourceUrl,
     }));
-    const products = allProducts.slice(0, 80).map((item) => ({
+    const products = relevantProducts.slice(0, 80).map((item) => ({
       source: item.sourceKey ?? "unknown-source",
       externalId: item.externalId,
       productName: item.productName,
@@ -129,7 +132,7 @@ export async function POST(request: Request) {
       orderability: item.orderability ?? "UNKNOWN",
       sourceUrl: item.sourceUrl ?? null,
     }));
-    return NextResponse.json({ ok: true, queries, sources, discovered, accepted, rejected, persisted, products, spreadCandidates: spreads, errors });
+    return NextResponse.json({ ok: true, queries, sources, discovered, accepted, rejected, persisted, displayed: products.length, filteredOut: Math.max(0, allProducts.length - relevantProducts.length), products, spreadCandidates: spreads, errors });
   } catch (error) {
     return NextResponse.json({ ok: false, code: error instanceof Error ? error.message : "SCAN_FAILED", queries, sources, discovered, accepted, rejected, persisted, errors }, { status: 502 });
   } finally {
