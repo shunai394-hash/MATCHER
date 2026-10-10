@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { discoverShopping } from "../../../../lib/matcher/ingestion/multi-source";
+import { discoverShopping, type ShoppingSource } from "../../../../lib/matcher/ingestion/multi-source";
 import { discoveryQueries } from "../../../../lib/matcher/ingestion/query-seeds";
 import { validateSourceProduct } from "../../../../lib/matcher/ingestion/validate";
 import { persistSupplierDiscovery } from "../../../../lib/matcher/ingestion/persist";
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, code: "INVALID_SOURCES", message: "sources は yahoo / rakuten の配列で指定してください。" }, { status: 400 });
   }
   const queries = discoveryQueries(typeof input.queries === "string" ? input.queries.trim() : undefined).slice(0, 10);
-  const sources = input.sources === undefined ? ["yahoo", "rakuten"] : [...new Set(input.sources as ("yahoo" | "rakuten")[])];
+  const sources: ShoppingSource[] = input.sources === undefined ? ["yahoo", "rakuten"] : [...new Set(input.sources as ShoppingSource[])];
   if (!sources.length) return NextResponse.json({ ok: false, code: "NO_SOURCES" }, { status: 400 });
 
   const controller = new AbortController();
