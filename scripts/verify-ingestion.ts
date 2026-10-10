@@ -1,6 +1,7 @@
 import { normalizeSourceProduct } from "../lib/matcher/ingestion/normalize.ts";
 import { validateSourceProduct } from "../lib/matcher/ingestion/validate.ts";
 import { searchYahooShopping } from "../lib/matcher/ingestion/yahoo-shopping.ts";
+import { filterRelevantProducts } from "../lib/matcher/ingestion/relevance.ts";
 
 const valid = normalizeSourceProduct({
   externalId: "  sku-1 ",
@@ -19,6 +20,21 @@ if (valid.externalId !== "sku-1" || valid.productName !== "Example Product" || v
 
 const invalid = validateSourceProduct({ ...valid, inventory: -1 });
 if (!invalid.includes("INVENTORY_INVALID")) throw new Error("VALIDATION_REGRESSION");
+
+
+const switchResults = [
+  normalizeSourceProduct({ externalId: "console", productName: "Nintendo Switch 2 国内版 本体", cost: 58050, currency: "JPY" }),
+  normalizeSourceProduct({ externalId: "case", productName: "Nintendo Switch 2 収納バッグ", cost: 5480, currency: "JPY" }),
+  normalizeSourceProduct({ externalId: "pad", productName: "ホリ スプラトゥーン ワイヤレスホリパッド for Nintendo Switch 2", cost: 8980, currency: "JPY" }),
+  normalizeSourceProduct({ externalId: "sd", productName: "Samsung microSD Express Card for Nintendo Switch 2", cost: 7970, currency: "JPY" }),
+];
+const switchMainUnit = filterRelevantProducts("Nintendo Switch 2 本体", switchResults);
+if (switchMainUnit.length !== 1 || switchMainUnit[0].externalId !== "console") {
+  throw new Error("SWITCH_2_MAIN_UNIT_QUERY_MUST_EXCLUDE_ACCESSORIES");
+}
+if (filterRelevantProducts("Nintendo Switch 2", switchResults).length !== switchResults.length) {
+  throw new Error("GENERIC_QUERY_MUST_NOT_DROP_RELATED_PRODUCTS");
+}
 
 const originalFetch = globalThis.fetch;
 const requestedUrls: string[] = [];
