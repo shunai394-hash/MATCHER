@@ -15,6 +15,11 @@ create table master_product (
   manufacturer text,
   model_number text,
   status product_status not null default 'ACTIVE',
+  approval_status text,
+  origin text,
+  origin_supplier_product_id uuid,
+  reviewed_at timestamptz,
+  reviewed_by text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -65,16 +70,35 @@ create table suppliers (
   updated_at timestamptz not null default now()
 );
 
+create table supplier (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  status text not null default 'ACTIVE',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table supplier_product (
   id uuid primary key default gen_random_uuid(),
-  supplier_id uuid not null references suppliers(id) on delete cascade,
+  supplier_id uuid not null references supplier(id) on delete cascade,
   supplier_product_id text not null,
   supplier_sku text,
+  product_name text,
   title text,
   brand text,
+  manufacturer text,
   model_number text,
+  color text,
+  size text,
+  capacity text,
+  generation text,
+  set_count integer check (set_count is null or set_count > 0),
+  condition text,
   source_url text,
+  image_url text,
   source_updated_at timestamptz,
+  first_seen_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
   fetched_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
