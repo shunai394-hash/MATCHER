@@ -34,6 +34,8 @@ type Freshness = {
   shipping_observed_at: string | null;
 };
 
+type FreshnessPolicy = { data_type: "PRICE" | "INVENTORY" | "SHIPPING" | "MARKET"; max_age_seconds: number };
+
 type Profit = {
   supplier_offer_id: string;
   sale_price: number | string;
@@ -123,23 +125,24 @@ function latestBy<T>(rows: T[], key: (row: T) => string, date: (row: T) => strin
   return out;
 }
 
-function freshnessScore(row: Freshness): number {
+function freshnessScore(row: Freshness, policy: Record<"PRICE" | "INVENTORY" | "SHIPPING", number>): number {
   const now = Date.now();
-  const price = time(row.price_observed_at);
-  const inventory = time(row.inventory_observed_at);
-  const shipping = time(row.shipping_observed_at);
-  if (price === null || inventory === null || shipping === null || price > now || inventory > now || shipping > now) return 0;
-
-  const priceScore = Math.max(0, Math.min(100, 100 * (1 - (now - price) / (24 * 60 * 60 * 1000))));
-  const inventoryScore = Math.max(0, Math.min(100, 100 * (1 - (now - inventory) / (30 * 60 * 1000))));
-  const shippingScore = Math.max(0, Math.min(100, 100 * (1 - (now - shipping) / (24 * 60 * 60 * 1000))));
-  return Math.round(Math.min(priceScore, inventoryScore, shippingScore));
+  const score = (value: string | null, maxAgeSeconds: number) => {
+    const observed = time(value);
+    if (observed === null || observed > now || maxAgeSeconds <= 0) return 0;
+    return Math.max(0, Math.min(100, 100 * (1 - (now - observed) / (maxAgeSeconds * 1000))));
+  };
+  return Math.round(Math.min(
+    score(row.price_observed_at, policy.PRICE),
+    score(row.inventory_observed_at, policy.INVENTORY),
+    score(row.shipping_observed_at, policy.SHIPPING),
+  ));
 }
 
-function marketFreshness(observedAt: string): number {
+function marketFreshness(observedAt: string, maxAgeSeconds: number): number {
   const t = time(observedAt);
-  if (t === null || t > Date.now()) return 0;
-  return Math.max(0, Math.min(100, 100 * (1 - (Date.now() - t) / (24 * 60 * 60 * 1000))));
+  if (t === null || t > Date.now() || maxAgeSeconds <= 0) return 0;
+  return Math.max(0, Math.min(100, 100 * (1 - (Date.now() - t) / (maxAgeSeconds * 1000))));
 }
 
 export function marketScores(row: Market) {
@@ -180,7 +183,7 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
   });
 
   try {
-    const [offersResult, productsResult, suppliersResult, snapshotsResult, freshnessResult, profitsResult, matchesResult, marketResult] =
+    const [offersResult, productsResult, suppliersResult, snapshotsResult, freshnessResult, profitsResult, matchesResult, marketResult, freshnessPolicyResult] =
       await Promise.all([
         supabase.from("supplier_offer").select("id,supplier_product_id,currency,orderability").limit(2000),
         supabase.from("supplier_product").select("id,supplier_id,product_name,brand,model_number").limit(2000),
@@ -190,11 +193,29 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
         supabase.from("profit_snapshot").select("supplier_offer_id,sale_price,supplier_cost,shipping_cost,payment_fee,marketplace_fee,tax,other_cost,expected_profit,calculated_at").order("calculated_at", { ascending: false }).limit(4000),
         supabase.from("identity_match").select("supplier_product_id,master_product_id,confidence,decision,hard_block,created_at").order("created_at", { ascending: false }).limit(4000),
         supabase.from("market_observation").select("master_product_id,source,window_start,window_end,sales_count,active_listing_count,median_sale_price,price_stddev,observed_at,evidence_url").order("observed_at", { ascending: false }).limit(4000),
+        supabase.from("freshness_policy").select("data_type,max_age_seconds").limit(10),
       ]);
 
-    const error = [offersResult, productsResult, suppliersResult, snapshotsResult, freshnessResult, profitsResult, matchesResult, marketResult]
+    const error = [offersResult, productsResult, suppliersResult, snapshotsResult, freshnessResult, profitsResult, matchesResult, marketResult, freshnessPolicyResult]
       .find((r) => r.error)?.error;
     if (error) throw new Error(error.message);
+
+    const freshnessPolicyRows = (freshnessPolicyResult.data ?? []) as FreshnessPolicy[];
+    const freshnessPolicyMap = new Map(freshnessPolicyRows.map((row) => [row.data_type, Number(row.max_age_seconds)]));
+    const requiredPolicyTypes = ["PRICE", "INVENTORY", "SHIPPING", "MARKET"] as const;
+    if (requiredPolicyTypes.some((type) => !Number.isFinite(freshnessPolicyMap.get(type)) || (freshnessPolicyMap.get(type) ?? 0) <= 0)) {
+      return {
+        status: "UNAVAILABLE",
+        opportunities: [],
+        message: "Freshness policy is missing or invalid; live opportunities are paused until policy data is repaired.",
+      };
+    }
+    const freshnessPolicy = {
+      PRICE: freshnessPolicyMap.get("PRICE")!,
+      INVENTORY: freshnessPolicyMap.get("INVENTORY")!,
+      SHIPPING: freshnessPolicyMap.get("SHIPPING")!,
+      MARKET: freshnessPolicyMap.get("MARKET")!,
+    };
 
     const offers = (offersResult.data ?? []) as Offer[];
     if (offers.length === 0) {
@@ -225,7 +246,7 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
       if (match.decision !== "AUTO_LINK" || match.hard_block) continue;
 
       const market = markets.get(match.master_product_id);
-      if (!market || marketFreshness(market.observed_at) < 70) continue;
+      if (!market || market.sales_count <= 0 || marketFreshness(market.observed_at, freshnessPolicy.MARKET) < 70) continue;
 
       const sale = finite(profit.sale_price);
       const buy = finite(profit.supplier_cost ?? snapshot.supplier_cost);
@@ -244,7 +265,7 @@ export async function getLiveOpportunities(limit = 20): Promise<LiveOpportunityF
 
       const supplierFreshness = freshness.get(offer.id);
       if (!supplierFreshness) continue;
-      const fresh = Math.min(freshnessScore(supplierFreshness), Math.round(marketFreshness(market.observed_at)));
+      const fresh = Math.min(freshnessScore(supplierFreshness, freshnessPolicy), Math.round(marketFreshness(market.observed_at, freshnessPolicy.MARKET)));
       if (fresh < 70) continue;
 
       const roiPercent = (expectedProfit / acquisitionCost) * 100;

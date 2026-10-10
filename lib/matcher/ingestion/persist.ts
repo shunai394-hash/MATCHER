@@ -1,15 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
 import type { SourceProduct } from "./types";
+import { persistIdentityMatch } from "./identity-persist";
 
-function db() {
+function db(signal?: AbortSignal) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("SUPABASE_SERVER_CREDENTIALS_NOT_CONFIGURED");
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: (input, init) => fetch(input, { ...init, signal: signal ?? init?.signal }) } });
 }
 
-export async function persistSupplierDiscovery(sourceKey: string, item: SourceProduct) {
-  const supabase = db();
+export async function persistSupplierDiscovery(sourceKey: string, item: SourceProduct, signal?: AbortSignal, discoveryQuery?: string) {
+  const supabase = db(signal);
 
   const supplier = await supabase
     .from("supplier")
@@ -34,6 +35,8 @@ export async function persistSupplierDiscovery(sourceKey: string, item: SourcePr
       set_count: item.setCount,
       condition: item.condition,
       source_url: item.sourceUrl,
+      image_url: item.imageUrl ?? null,
+      discovery_query: discoveryQuery ?? null,
       last_seen_at: item.observedAt,
     }, { onConflict: "supplier_id,supplier_product_id" })
     .select("id")
@@ -79,5 +82,13 @@ export async function persistSupplierDiscovery(sourceKey: string, item: SourcePr
   }, { onConflict: "supplier_offer_id" });
   if (freshness.error) throw new Error(`FRESHNESS_UPSERT_FAILED:${freshness.error.message}`);
 
-  return { supplierId: supplier.data.id, supplierProductId: product.data.id, supplierOfferId: offer.data.id };
+  const identity = await persistIdentityMatch(supabase, product.data.id, sourceKey, item);
+  return {
+    supplierId: supplier.data.id,
+    supplierProductId: product.data.id,
+    supplierOfferId: offer.data.id,
+    masterProductId: identity?.masterProductId ?? null,
+    identityDecision: identity?.result.decision ?? "REVIEW",
+    identityHardBlockReasons: identity?.result.hardBlockReasons ?? [],
+  };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
 
 type DiscoveredProduct = {
@@ -15,7 +16,11 @@ type DiscoveredProduct = {
   sourceUrl: string | null;
   imageUrl?: string | null;
   observedAt?: string | null;
+  offerCount?: number;
+  identityDecision?: string;
 };
+
+type ExcludedProduct = DiscoveredProduct & { exclusionReason: string };
 
 type SpreadCandidate = {
   jan: string | null;
@@ -29,10 +34,22 @@ type SpreadCandidate = {
 
 type SourceConfiguration = {
   ok: boolean;
+  marketFeed?: { configured: boolean; missing: string[] };
+  feePolicy?: { configured: boolean; status: "CONFIGURED" | "MISSING" | "UNAVAILABLE" };
   sources?: {
     yahoo?: { configured: boolean; missing: string[] };
     rakuten?: { configured: boolean; missing: string[] };
   };
+};
+
+type MarketIngestionResult = {
+  ok: boolean;
+  code?: string;
+  discovered?: number;
+  marketObservationsPersisted?: number;
+  profitSnapshotsPersisted?: number;
+  skippedForMissingCostsOrPolicy?: number;
+  errors?: Array<{ index: number; code: string }>;
 };
 
 type ScanResult = {
@@ -47,6 +64,7 @@ type ScanResult = {
   rejected?: number;
   persisted?: number;
   products?: DiscoveredProduct[];
+  excludedProducts?: ExcludedProduct[];
   spreadCandidates?: SpreadCandidate[];
   errors?: string[];
   code?: string;
@@ -62,8 +80,42 @@ const safeHttpUrl = (value: string | null | undefined) => {
   }
 };
 
+const apiErrorLabel = (code: string | undefined) => {
+  const labels: Record<string, string> = {
+    INGESTION_AUTH_NOT_CONFIGURED: "運用者認証が未設定です。Vercel Production に MATCHER_INGESTION_ADMIN_TOKEN を設定してください。",
+    INGESTION_AUTH_REQUIRED: "商品取込には運用者認証が必要です。先に認証してください。",
+    SUPABASE_SERVER_CREDENTIALS_NOT_CONFIGURED: "Supabaseサーバー接続情報が未設定です。Vercel Production の環境変数を確認してください。",
+    DATABASE_SCHEMA_MISMATCH: "本番DBのスキーマが不足しています。MATCHERのSupabase migrationsを適用してください。",
+    DATABASE_READ_FAILED: "保存済み商品をDBから読み取れませんでした。接続権限とDBログを確認してください。",
+    DATABASE_WRITE_FAILED: "商品を保存できませんでした。DB書込権限とエラー記録を確認してください。",
+    SCAN_TIMEOUT: "検索が制限時間を超えました。検索語を短くするか、時間をおいて再試行してください。",
+    INVALID_JSON: "リクエスト形式が不正です。JSONを確認してください。",
+    INVALID_BODY: "検索リクエストの形式が不正です。",
+    INVALID_QUERIES: "検索語は160文字以内で指定してください。",
+    INVALID_SOURCES: "仕入れ元の指定が不正です。",
+    NO_SOURCES: "利用可能な仕入れ元が選択されていません。",
+    MARKET_OBSERVATION_FEED_NOT_CONFIGURED: "市場観測フィードが未設定です。MATCHER_MARKET_OBSERVATION_FEED_URL を設定してください。",
+    MARKET_FEED_INVALID_JSON: "市場観測フィードが正しいJSONを返していません。",
+    MARKET_FEED_TIMEOUT: "市場観測フィードが時間内に応答しませんでした。",
+    SUPPLIER_SOURCE_NOT_CONFIGURED: "仕入れ元フィードが未設定です。MATCHER_SUPPLIER_FEED_URL を設定してください。",
+    DISCOVERY_LIST_FAILED: "保存済み商品一覧の取得に失敗しました。DBスキーマと権限を確認してください。",
+  };
+  return code ? labels[code] ?? `処理に失敗しました（${code}）。設定と取得時の警告を確認してください。` : "処理に失敗しました。設定と取得時の警告を確認してください。";
+};
+
 const yen = (value: number | null | undefined) =>
   value == null || !Number.isFinite(value) ? "未取得" : "¥" + Math.round(value).toLocaleString("ja-JP");
+
+const relevanceReasonLabel = (reason: string) => ({
+  CATEGORY_MISMATCH: "検索した商品カテゴリと一致しません",
+  MODEL_OR_VARIANT_MISMATCH: "モデル・バリアントが検索条件と一致しません",
+  NOT_A_SWITCH_2_MAIN_UNIT: "Switch 2本体ではありません",
+  INCOMPLETE_OR_UNVERIFIED_CONDITION: "付属品不足または状態未確認です",
+  ACCESSORY_OR_SOFTWARE: "付属品・ソフトウェアです",
+  ACCESSORY_NOT_REQUESTED: "付属品は今回の検索対象ではありません",
+  CONDITION_NOT_REQUESTED: "商品の状態が検索条件と一致しません",
+  NOT_RELEVANT: "検索条件との関連性が確認できません",
+} as Record<string, string>)[reason] ?? "検索条件との一致を確認できません";
 
 const freshnessLabel = (value: string | null | undefined) => {
   if (!value) return "鮮度不明";
@@ -80,14 +132,36 @@ const freshnessLabel = (value: string | null | undefined) => {
 
 export function LiveDiscoveryConsole() {
   const [query, setQuery] = useState("Nintendo Switch 2 本体");
+  const [authConfigured, setAuthConfigured] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [loginToken, setLoginToken] = useState("");
+  const [authError, setAuthError] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState("");
   const [sourceConfig, setSourceConfig] = useState<SourceConfiguration | null>(null);
   const [selectedSources, setSelectedSources] = useState<string[]>(["yahoo"]);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketResult, setMarketResult] = useState<MarketIngestionResult | null>(null);
+  const [marketError, setMarketError] = useState("");
 
   useEffect(() => {
     let active = true;
+    fetch("/api/ingestion/auth", { cache: "no-store" })
+      .then(async (response) => (await response.json()) as { configured: boolean; authenticated: boolean })
+      .then((payload) => {
+        if (!active) return;
+        setAuthConfigured(payload.configured);
+        setAuthenticated(payload.authenticated);
+        setAuthChecking(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setAuthConfigured(false);
+        setAuthenticated(false);
+        setAuthChecking(false);
+      });
     fetch("/api/ingestion/status", { cache: "no-store" })
       .then(async (response) => (await response.json()) as SourceConfiguration)
       .then((payload) => {
@@ -104,7 +178,7 @@ export function LiveDiscoveryConsole() {
       .then(({ response, payload }) => {
         if (!active) return;
         if (response.ok && payload.ok) setResult(payload);
-        else setError(payload.code ?? "保存済み商品を読み込めませんでした。");
+        else setError(apiErrorLabel(payload.code));
       })
       .catch(() => {
         if (active) setError("保存済み商品を読み込めませんでした。");
@@ -126,11 +200,55 @@ export function LiveDiscoveryConsole() {
       });
       const payload = (await response.json()) as ScanResult;
       setResult(payload);
-      if (!response.ok || !payload.ok) setError(payload.code ?? payload.errors?.join(" / ") ?? "商品検索に失敗しました。");
+      if (!response.ok || !payload.ok) setError(payload.code ? apiErrorLabel(payload.code) : payload.errors?.join(" / ") ?? "商品検索に失敗しました。");
     } catch {
       setError("検索APIに接続できませんでした。時間をおいて再試行してください。");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function login(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!loginToken || !authConfigured) return;
+    setAuthError("");
+    try {
+      const response = await fetch("/api/ingestion/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: loginToken }),
+      });
+      const payload = (await response.json()) as { ok?: boolean; code?: string };
+      if (!response.ok || !payload.ok) {
+        setAuthError(payload.code === "INGESTION_AUTH_NOT_CONFIGURED"
+          ? "サーバー側の運用者キーが未設定です。Vercel Production の環境変数を確認してください。"
+          : "運用者キーが一致しません。Vercel Production の MATCHER_INGESTION_ADMIN_TOKEN と同じ値を入力してください。");
+        return;
+      }
+      setAuthenticated(true);
+      setLoginToken("");
+    } catch {
+      setAuthError("認証APIに接続できませんでした。時間をおいて再試行してください。");
+    }
+  }
+
+  async function logout() {
+    await fetch("/api/ingestion/auth", { method: "DELETE" }).catch(() => undefined);
+    setAuthenticated(false);
+  }
+
+  async function refreshMarketEvidence() {
+    setMarketLoading(true);
+    setMarketError("");
+    try {
+      const response = await fetch("/api/ingestion/market", { method: "POST", cache: "no-store" });
+      const payload = (await response.json()) as MarketIngestionResult;
+      setMarketResult(payload);
+      if (!response.ok || !payload.ok) setMarketError(apiErrorLabel(payload.code));
+    } catch {
+      setMarketError("市場データAPIに接続できませんでした。時間をおいて再試行してください。");
+    } finally {
+      setMarketLoading(false);
     }
   }
 
@@ -144,20 +262,57 @@ export function LiveDiscoveryConsole() {
         </div>
         <span className="live-discovery-tag">REAL SOURCE · NO MOCK DATA</span>
       </div>
+      {!authenticated && (
+        <form className="live-discovery-form live-discovery-auth" onSubmit={login}>
+          <label htmlFor="ingestion-admin-token">運用者認証</label>
+          {authChecking ? (
+            <p role="status">認証状態を確認しています…</p>
+          ) : !authConfigured ? (
+            <p role="alert">取込APIは安全のため停止中です。Vercel Production に MATCHER_INGESTION_ADMIN_TOKEN を32文字以上で設定し、再デプロイしてください。</p>
+          ) : (
+            <>
+              <div className="live-discovery-controls">
+                <input id="ingestion-admin-token" type="password" autoComplete="current-password" value={loginToken} onChange={(event) => setLoginToken(event.target.value)} placeholder="Vercelに設定した運用者キー" />
+                <button type="submit" disabled={!loginToken.trim()}>認証して検索を有効化</button>
+              </div>
+              <p>取込・データベース書込は認証済み運用者のみ実行できます。キーはこの画面には保存しません。</p>
+            </>
+          )}
+          {authError && <p className="live-discovery-error" role="alert">{authError}</p>}
+        </form>
+      )}
+      {authenticated && <div className="live-discovery-feedback live-discovery-auth-state"><span>運用者認証済み</span><button type="button" onClick={logout}>ログアウト</button></div>}
+      {authenticated && (
+        <section className="live-market-actions" aria-labelledby="live-market-actions-title">
+          <div>
+            <h3 id="live-market-actions-title">市場根拠・利益再計算</h3>
+            <p>販売実績の根拠と、出典付きの手数料ポリシーが揃った場合だけ利益スナップショットを保存します。</p>
+          </div>
+          {!sourceConfig?.marketFeed?.configured && <p role="status">市場観測フィード未設定：Vercel Production に MATCHER_MARKET_OBSERVATION_FEED_URL を設定してください。</p>}
+          {sourceConfig?.feePolicy?.status === "MISSING" && <p role="status">販売手数料ポリシーが未登録です。出典URL付きの手数料率が登録されるまで利益は計算しません。</p>}
+          {sourceConfig?.feePolicy?.status === "UNAVAILABLE" && <p role="status">手数料ポリシーのDB状態を確認できません。Supabase接続とマイグレーションを確認してください。</p>}
+          <button type="button" onClick={refreshMarketEvidence} disabled={marketLoading || !sourceConfig?.marketFeed?.configured}>
+            {marketLoading ? "市場根拠を取り込み中…" : "市場根拠を取得・利益を再計算"}
+          </button>
+          {marketError && <p className="live-discovery-error" role="alert">{marketError}</p>}
+          {marketResult && <p role="status">市場観測保存 {marketResult.marketObservationsPersisted ?? 0}件 / 利益計算 {marketResult.profitSnapshotsPersisted ?? 0}件 / コスト・手数料不足で保留 {marketResult.skippedForMissingCostsOrPolicy ?? 0}件</p>}
+          {!!marketResult?.errors?.length && <details><summary>取込時の警告 {marketResult.errors.length}件</summary><ul>{marketResult.errors.slice(0, 10).map((item) => <li key={item.index}>行 {item.index + 1}: {item.code}</li>)}</ul></details>}
+        </section>
+      )}
       <form className="live-discovery-form" onSubmit={scan}>
         <label htmlFor="discovery-query">商品名・ブランド・型番</label>
         <div className="live-discovery-controls">
           <input id="discovery-query" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={100} placeholder="例：Anker モバイルバッテリー" />
-          <button type="submit" disabled={loading || !query.trim() || !selectedSources.length || !sourceConfig}>{loading ? "検索中…" : "商品を検索する ↗"}</button>
+          <button type="submit" disabled={!authenticated || loading || !query.trim() || !selectedSources.length || !sourceConfig}>{loading ? "検索中…" : "商品を検索する ↗"}</button>
         </div>
         <fieldset className="live-discovery-sources">
           <legend>仕入れ元</legend>
           <label>
-            <input type="checkbox" checked={selectedSources.includes("yahoo")} disabled={!sourceConfig?.sources?.yahoo?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "yahoo"] : current.filter((source) => source !== "yahoo"))} />
+            <input type="checkbox" checked={selectedSources.includes("yahoo")} disabled={!authenticated || !sourceConfig?.sources?.yahoo?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "yahoo"] : current.filter((source) => source !== "yahoo"))} />
             Yahoo!ショッピング
           </label>
           <label>
-            <input type="checkbox" checked={selectedSources.includes("rakuten")} disabled={!sourceConfig?.sources?.rakuten?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "rakuten"] : current.filter((source) => source !== "rakuten"))} />
+            <input type="checkbox" checked={selectedSources.includes("rakuten")} disabled={!authenticated || !sourceConfig?.sources?.rakuten?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "rakuten"] : current.filter((source) => source !== "rakuten"))} />
             楽天市場 {sourceConfig?.sources?.rakuten?.configured ? "" : "（API認証未設定）"}
           </label>
         </fieldset>
@@ -205,19 +360,33 @@ export function LiveDiscoveryConsole() {
               const jan = product.identifiers.find((identifier) => identifier.type === "JAN")?.value;
               return (
                 <article className="live-product-item" key={product.source + ":" + product.externalId}>
-                  {safeHttpUrl(product.imageUrl) ? <img className="live-product-image" src={safeHttpUrl(product.imageUrl)!} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" /> : result.mode === "scan" ? <div className="live-product-image live-product-image-placeholder" aria-hidden="true">商品画像なし</div> : null}
+                  {safeHttpUrl(product.imageUrl) ? <Image className="live-product-image" src={safeHttpUrl(product.imageUrl)!} alt="" width={76} height={76} loading="lazy" unoptimized referrerPolicy="no-referrer" /> : result.mode === "scan" ? <div className="live-product-image live-product-image-placeholder" aria-hidden="true">商品画像なし</div> : null}
                   <div className="live-product-index">{String(product.externalId).slice(0, 12)}</div>
                   <div className="live-product-main">
                     <strong>{product.productName}</strong>
                     <span>{product.brand ?? "ブランド未取得"} · JAN {jan ?? "未取得"}</span>
-                    <small>{product.source} · 価格データ {freshnessLabel(product.observedAt)} · 在庫 {product.inventory == null ? "未確認" : product.inventory} · {product.orderability === "ORDERABLE" ? "注文可" : "注文可否未確認"}</small>
+                    <small>{product.source}{(product.offerCount ?? 1) > 1 ? ` · ${product.offerCount}オファーを集約` : ""} · 同定 {product.identityDecision ?? "REVIEW"} · 価格データ {freshnessLabel(product.observedAt)} · 在庫 {product.inventory == null ? "未確認" : product.inventory} · {product.orderability === "ORDERABLE" ? "注文可" : "注文可否未確認"}</small>
                   </div>
                   <div className="live-product-price"><strong>{yen(product.cost)}</strong><span>送料 {yen(product.shippingCost)}</span></div>
                   {safeHttpUrl(product.sourceUrl) && <a href={safeHttpUrl(product.sourceUrl)!} target="_blank" rel="noreferrer">販売ページ ↗</a>}
                 </article>
               );
-            }) : <p className="live-discovery-feedback">{result.mode === "stored" ? "保存済みの商品はまだありません。検索すると、取得・保存された商品がここに表示されます。" : "この検索では商品を取得できませんでした。検索語を変えて再試行してください。"}</p>}
+            }) : <p className="live-discovery-feedback">{result.mode === "stored" && (result.filteredOut ?? 0) > 0 ? "保存済み商品はありますが、検索条件と一致しない候補は下の除外リストに分けました。" : result.mode === "stored" ? "保存済みの商品はまだありません。検索すると、取得・保存された商品がここに表示されます。" : result.errors?.length ? "商品を取得できない仕入れ元があります。下の警告を確認し、接続状態や認証設定を見直してから再試行してください。" : "この検索語に一致する商品はありませんでした。型番・JAN・短い商品名でもう一度お試しください。"}</p>}
           </div>
+          {!!result.excludedProducts?.length && (
+            <details className="live-excluded-products">
+              <summary>検索条件と一致しない商品を確認（{result.excludedProducts.length}件）</summary>
+              <div>
+                {result.excludedProducts.slice(0, 30).map((product) => (
+                  <article key={product.source + ":" + product.externalId}>
+                    <strong>{product.productName}</strong>
+                    <span>{product.source} · {relevanceReasonLabel(product.exclusionReason)}</span>
+                    {safeHttpUrl(product.sourceUrl) && <a href={safeHttpUrl(product.sourceUrl)!} target="_blank" rel="noreferrer">商品ページ ↗</a>}
+                  </article>
+                ))}
+              </div>
+            </details>
+          )}
           <p className="live-discovery-disclaimer">重要：Yahoo!の商品価格だけでは売価・需要・在庫・送料・手数料が揃いません。JAN一致の他市場データと全コストが揃うまで、純利益や購入推奨は確定しません。</p>
           {result.errors && result.errors.length > 0 && <details className="live-discovery-errors"><summary>取得時の警告 {result.errors.length}件</summary><ul>{result.errors.slice(0, 10).map((message, index) => <li key={index}>{message}</li>)}</ul></details>}
         </div>
