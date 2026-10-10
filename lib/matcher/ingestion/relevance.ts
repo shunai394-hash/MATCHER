@@ -2,6 +2,7 @@ import type { SourceProduct } from "./types";
 
 const ACCESSORY_OR_SOFTWARE = /ケース|カバー|保護フィルム|ガラスフィルム|acアダプター|アダプター|充電器|コントローラー|ホリパッド|micro\s?sd|sdカード|収納バッグ|キャリング|スタンド|ソフト|ゲーム|amiibo|ハンドル|ケーブル|joy[-\s]?con|ジョイコン|ドック/i;
 const SWITCH_2 = /nintendo\s*switch\s*2|switch\s*2|switch2|スイッチ\s*2/i;
+const CONSOLE_LISTING = /本体|国内版|日本語版|マリオカート.{0,12}セット|スプラトゥーン.{0,12}セット|BEE-S-KB6/i;
 
 // Narrow only explicit "main unit" searches. Keep all source records persisted,
 // but don't present accessories/software as if they were the requested console.
