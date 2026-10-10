@@ -27,8 +27,13 @@ export async function GET() {
       supabase.from("supplier_offer_snapshot").select("supplier_offer_id,supplier_cost,shipping_cost,inventory,observed_at").order("observed_at", { ascending: false }).limit(4000),
       supabase.from("supplier_product_identifier").select("supplier_product_id,identifier_type,identifier_value").limit(4000),
     ]);
-    if ([productsResult, suppliersResult, offersResult, snapshotsResult, identifiersResult].some((result) => result.error)) {
-      return NextResponse.json({ ok: false, code: "DISCOVERY_LIST_FAILED" }, { status: 502 });
+    const failedRead = [productsResult, suppliersResult, offersResult, snapshotsResult, identifiersResult].find((result) => result.error);
+    if (failedRead?.error) {
+      const schemaCodes = new Set(["42P01", "42703", "PGRST204", "PGRST205"]);
+      return NextResponse.json({
+        ok: false,
+        code: schemaCodes.has(failedRead.error.code ?? "") ? "DATABASE_SCHEMA_MISMATCH" : "DATABASE_READ_FAILED",
+      }, { status: 502 });
     }
 
     const suppliers = new Map((suppliersResult.data ?? []).map((item) => [item.id, item.name]));
@@ -148,7 +153,7 @@ export async function POST(request: Request) {
         const batch = validItems.slice(offset, offset + batchSize);
         const outcomes = await Promise.all(batch.map(async (item) => {
           try {
-            await persistSupplierDiscovery(item.sourceKey ?? "shopping-source", item);
+            await persistSupplierDiscovery(item.sourceKey ?? "shopping-source", item, controller.signal);
             return { ok: true as const };
           } catch (error) {
             return { ok: false as const, message: error instanceof Error ? error.message : "UNKNOWN" };
