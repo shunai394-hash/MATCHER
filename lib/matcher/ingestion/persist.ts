@@ -9,7 +9,7 @@ function db(signal?: AbortSignal) {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: (input, init) => fetch(input, { ...init, signal: signal ?? init?.signal }) } });
 }
 
-export async function persistSupplierDiscovery(sourceKey: string, item: SourceProduct, signal?: AbortSignal) {
+export async function persistSupplierDiscovery(sourceKey: string, item: SourceProduct, signal?: AbortSignal, discoveryQuery?: string) {
   const supabase = db(signal);
 
   const supplier = await supabase
@@ -36,6 +36,7 @@ export async function persistSupplierDiscovery(sourceKey: string, item: SourcePr
       condition: item.condition,
       source_url: item.sourceUrl,
       image_url: item.imageUrl ?? null,
+      discovery_query: discoveryQuery ?? null,
       last_seen_at: item.observedAt,
     }, { onConflict: "supplier_id,supplier_product_id" })
     .select("id")
