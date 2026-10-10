@@ -186,7 +186,12 @@ export function LiveDiscoveryConsole() {
               {result.spreadCandidates.map((spread, index) => (
                 <article className="live-spread-item" key={spread.jan ?? index}>
                   <div><small>JAN {spread.jan ?? "不明"}</small><strong>{yen(spread.grossSpread)} <em>価格差</em></strong></div>
-                  <div><span>仕入れ {yen(spread.buyPrice)}</span><span>比較価格 {yen(spread.referenceSellPrice)}</span></div>
+                  <div>
+                    <span>仕入れ {yen(spread.buyPrice)}</span>
+                    {safeHttpUrl(spread.buySourceUrl) && <a href={safeHttpUrl(spread.buySourceUrl)!} target="_blank" rel="noreferrer">仕入れページ ↗</a>}
+                    <span>比較価格 {yen(spread.referenceSellPrice)}</span>
+                    {safeHttpUrl(spread.referenceSourceUrl) && <a href={safeHttpUrl(spread.referenceSourceUrl)!} target="_blank" rel="noreferrer">比較ページ ↗</a>}
+                  </div>
                   <small>粗ROI {spread.grossRoiPercent}% · 最終利益ではありません</small>
                 </article>
               ))}
