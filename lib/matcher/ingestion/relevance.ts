@@ -52,11 +52,6 @@ export function classifyProductRelevance(query: string, product: Pick<SourceProd
     return { relevant: false, reason: "ACCESSORY_OR_SOFTWARE" };
   }
 
-  if (!queryGroup && normalizedQuery && titleGroup && ACCESSORY_GROUPS.has(titleGroup) &&
-      !MAIN_PRODUCT_MARKER.test(normalizedQuery) && !MAIN_PRODUCT_MARKER.test(title)) {
-    return { relevant: false, reason: "ACCESSORY_NOT_REQUESTED" };
-  }
-
   if (CONDITION_FLAGS.test(title) && !CONDITION_INTENT.test(normalizedQuery)) {
     return { relevant: false, reason: "CONDITION_NOT_REQUESTED" };
   }
