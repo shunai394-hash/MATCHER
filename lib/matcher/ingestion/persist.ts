@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { SourceProduct } from "./types";
+import { persistIdentityMatch } from "./identity-persist";
 
 function db(signal?: AbortSignal) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -80,5 +81,13 @@ export async function persistSupplierDiscovery(sourceKey: string, item: SourcePr
   }, { onConflict: "supplier_offer_id" });
   if (freshness.error) throw new Error(`FRESHNESS_UPSERT_FAILED:${freshness.error.message}`);
 
-  return { supplierId: supplier.data.id, supplierProductId: product.data.id, supplierOfferId: offer.data.id };
+  const identity = await persistIdentityMatch(supabase, product.data.id, sourceKey, item);
+  return {
+    supplierId: supplier.data.id,
+    supplierProductId: product.data.id,
+    supplierOfferId: offer.data.id,
+    masterProductId: identity?.masterProductId ?? null,
+    identityDecision: identity?.result.decision ?? "REVIEW",
+    identityHardBlockReasons: identity?.result.hardBlockReasons ?? [],
+  };
 }
