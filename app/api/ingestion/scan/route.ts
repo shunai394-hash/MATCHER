@@ -22,7 +22,7 @@ export async function GET() {
   try {
     const supabase = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const [productsResult, suppliersResult, offersResult, snapshotsResult, identifiersResult] = await Promise.all([
-      supabase.from("supplier_product").select("id,supplier_id,supplier_product_id,product_name,brand,source_url,image_url,last_seen_at").order("last_seen_at", { ascending: false }).limit(200),
+      supabase.from("supplier_product").select("id,supplier_id,supplier_product_id,product_name,brand,source_url,image_url,discovery_query,last_seen_at").order("last_seen_at", { ascending: false }).limit(200),
       supabase.from("supplier").select("id,name").limit(500),
       supabase.from("supplier_offer").select("id,supplier_product_id,orderability").limit(500),
       supabase.from("supplier_offer_snapshot").select("supplier_offer_id,supplier_cost,shipping_cost,inventory,observed_at").order("observed_at", { ascending: false }).limit(4000),
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
         const batch = validItems.slice(offset, offset + batchSize);
         const outcomes = await Promise.all(batch.map(async (item) => {
           try {
-            await persistSupplierDiscovery(item.sourceKey ?? "shopping-source", item, controller.signal);
+            await persistSupplierDiscovery(item.sourceKey ?? "shopping-source", item, controller.signal, query);
             return { ok: true as const };
           } catch (error) {
             return { ok: false as const, message: error instanceof Error ? error.message : "UNKNOWN" };
