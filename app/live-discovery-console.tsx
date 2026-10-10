@@ -216,7 +216,7 @@ export function LiveDiscoveryConsole() {
                   {safeHttpUrl(product.sourceUrl) && <a href={safeHttpUrl(product.sourceUrl)!} target="_blank" rel="noreferrer">販売ページ ↗</a>}
                 </article>
               );
-            }) : <p className="live-discovery-feedback">{result.mode === "stored" ? "保存済みの商品はまだありません。検索すると、取得・保存された商品がここに表示されます。" : "この検索では商品を取得できませんでした。検索語を変えて再試行してください。"}</p>}
+            }) : <p className="live-discovery-feedback">{result.mode === "stored" ? "保存済みの商品はまだありません。検索すると、取得・保存された商品がここに表示されます。" : result.errors?.length ? "商品を取得できない仕入れ元があります。下の警告を確認し、接続状態や認証設定を見直してから再試行してください。" : "この検索語に一致する商品はありませんでした。型番・JAN・短い商品名でもう一度お試しください。"}</p>}
           </div>
           <p className="live-discovery-disclaimer">重要：Yahoo!の商品価格だけでは売価・需要・在庫・送料・手数料が揃いません。JAN一致の他市場データと全コストが揃うまで、純利益や購入推奨は確定しません。</p>
           {result.errors && result.errors.length > 0 && <details className="live-discovery-errors"><summary>取得時の警告 {result.errors.length}件</summary><ul>{result.errors.slice(0, 10).map((message, index) => <li key={index}>{message}</li>)}</ul></details>}
