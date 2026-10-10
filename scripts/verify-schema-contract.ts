@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 
 const schema = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
-const migration = ["20261011020000_ingestion_schema_contract.sql", "20261011030000_identity_evidence_contract.sql", "20261011040000_market_profit_contract.sql", "20261011050000_profit_snapshot_upsert_index.sql"]
+const migration = ["20261011020000_ingestion_schema_contract.sql", "20261011030000_identity_evidence_contract.sql", "20261011040000_market_profit_contract.sql", "20261011050000_profit_snapshot_upsert_index.sql", "20261011060000_market_freshness_policy.sql"]
   .map((file) => readFileSync(new URL(`../supabase/migrations/${file}`, import.meta.url), "utf8"))
   .join("\n");
 const runtimeTables = [
@@ -15,6 +15,7 @@ const runtimeTables = [
   "market_observation",
   "profit_snapshot",
   "profit_fee_policy",
+  "freshness_policy",
 ];
 for (const table of runtimeTables) {
   if (!new RegExp(`create table(?: if not exists)? ${table}\\s*\\(`, "i").test(schema)) {
@@ -34,6 +35,7 @@ const requiredColumns: Record<string, string[]> = {
   market_observation: ["master_product_id", "source", "sales_count", "active_listing_count", "median_sale_price", "observed_at", "evidence_url"],
   profit_snapshot: ["supplier_offer_id", "market_observation_id", "sale_price", "supplier_cost", "shipping_cost", "payment_fee", "marketplace_fee", "tax", "expected_profit"],
   profit_fee_policy: ["marketplace", "marketplace_fee_rate", "payment_fee_rate", "fixed_fee", "tax_rate", "evidence_url", "active"],
+  freshness_policy: ["data_type", "max_age_seconds"],
 };
 for (const [table, columns] of Object.entries(requiredColumns)) {
   const block = schema.match(new RegExp(`create table ${table}\\s*\\(([\\s\\S]*?)\\n\\);`, "i"))?.[1];
