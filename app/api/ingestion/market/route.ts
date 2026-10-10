@@ -51,7 +51,7 @@ function validateItem(value: unknown): { item?: MarketFeedItem; error?: string }
   const end = Date.parse(row.windowEnd);
   const observed = Date.parse(row.observedAt);
   if (![start, end, observed].every(Number.isFinite) || end <= start || observed > Date.now() + 60_000) return { error: "INVALID_OBSERVATION_DATES" };
-  if (!Number.isInteger(row.salesCount) || Number(row.salesCount) < 0) return { error: "INVALID_SALES_COUNT" };
+  if (!Number.isInteger(row.salesCount) || Number(row.salesCount) <= 0) return { error: "NO_SALES_EVIDENCE" };
   if (!Number.isInteger(row.activeListingCount) || Number(row.activeListingCount) < 0) return { error: "INVALID_LISTING_COUNT" };
   if (typeof row.medianSalePrice !== "number" || !Number.isFinite(row.medianSalePrice) || row.medianSalePrice <= 0) return { error: "INVALID_MEDIAN_SALE_PRICE" };
   if (typeof row.priceStddev !== "number" || !Number.isFinite(row.priceStddev) || row.priceStddev < 0) return { error: "INVALID_PRICE_STDDEV" };
