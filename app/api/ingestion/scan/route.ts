@@ -21,7 +21,7 @@ export async function GET() {
   try {
     const supabase = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const [productsResult, suppliersResult, offersResult, snapshotsResult, identifiersResult] = await Promise.all([
-      supabase.from("supplier_product").select("id,supplier_id,supplier_product_id,product_name,brand,source_url,last_seen_at").order("last_seen_at", { ascending: false }).limit(200),
+      supabase.from("supplier_product").select("id,supplier_id,supplier_product_id,product_name,brand,source_url,image_url,last_seen_at").order("last_seen_at", { ascending: false }).limit(200),
       supabase.from("supplier").select("id,name").limit(500),
       supabase.from("supplier_offer").select("id,supplier_product_id,orderability").limit(500),
       supabase.from("supplier_offer_snapshot").select("supplier_offer_id,supplier_cost,shipping_cost,inventory,observed_at").order("observed_at", { ascending: false }).limit(4000),
@@ -60,6 +60,7 @@ export async function GET() {
         inventory: snapshot?.inventory ?? null,
         orderability: offer.orderability,
         sourceUrl: product.source_url,
+        imageUrl: product.image_url ?? null,
         observedAt: snapshot?.observed_at ?? product.last_seen_at,
       }];
     });
