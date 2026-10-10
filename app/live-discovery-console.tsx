@@ -81,6 +81,11 @@ const freshnessLabel = (value: string | null | undefined) => {
 
 export function LiveDiscoveryConsole() {
   const [query, setQuery] = useState("Nintendo Switch 2 本体");
+  const [authConfigured, setAuthConfigured] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [loginToken, setLoginToken] = useState("");
+  const [authError, setAuthError] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState("");
@@ -89,6 +94,20 @@ export function LiveDiscoveryConsole() {
 
   useEffect(() => {
     let active = true;
+    fetch("/api/ingestion/auth", { cache: "no-store" })
+      .then(async (response) => (await response.json()) as { configured: boolean; authenticated: boolean })
+      .then((payload) => {
+        if (!active) return;
+        setAuthConfigured(payload.configured);
+        setAuthenticated(payload.authenticated);
+        setAuthChecking(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setAuthConfigured(false);
+        setAuthenticated(false);
+        setAuthChecking(false);
+      });
     fetch("/api/ingestion/status", { cache: "no-store" })
       .then(async (response) => (await response.json()) as SourceConfiguration)
       .then((payload) => {
@@ -135,6 +154,35 @@ export function LiveDiscoveryConsole() {
     }
   }
 
+  async function login(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!loginToken || !authConfigured) return;
+    setAuthError("");
+    try {
+      const response = await fetch("/api/ingestion/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: loginToken }),
+      });
+      const payload = (await response.json()) as { ok?: boolean; code?: string };
+      if (!response.ok || !payload.ok) {
+        setAuthError(payload.code === "INGESTION_AUTH_NOT_CONFIGURED"
+          ? "サーバー側の運用者キーが未設定です。Vercel Production の環境変数を確認してください。"
+          : "運用者キーが一致しません。Vercel Production の MATCHER_INGESTION_ADMIN_TOKEN と同じ値を入力してください。");
+        return;
+      }
+      setAuthenticated(true);
+      setLoginToken("");
+    } catch {
+      setAuthError("認証APIに接続できませんでした。時間をおいて再試行してください。");
+    }
+  }
+
+  async function logout() {
+    await fetch("/api/ingestion/auth", { method: "DELETE" }).catch(() => undefined);
+    setAuthenticated(false);
+  }
+
   return (
     <section className="live-discovery" aria-labelledby="live-discovery-title" id="live-discovery">
       <div className="live-discovery-heading">
@@ -145,20 +193,40 @@ export function LiveDiscoveryConsole() {
         </div>
         <span className="live-discovery-tag">REAL SOURCE · NO MOCK DATA</span>
       </div>
+      {!authenticated && (
+        <form className="live-discovery-form live-discovery-auth" onSubmit={login}>
+          <label htmlFor="ingestion-admin-token">運用者認証</label>
+          {authChecking ? (
+            <p role="status">認証状態を確認しています…</p>
+          ) : !authConfigured ? (
+            <p role="alert">取込APIは安全のため停止中です。Vercel Production に MATCHER_INGESTION_ADMIN_TOKEN を32文字以上で設定し、再デプロイしてください。</p>
+          ) : (
+            <>
+              <div className="live-discovery-controls">
+                <input id="ingestion-admin-token" type="password" autoComplete="current-password" value={loginToken} onChange={(event) => setLoginToken(event.target.value)} placeholder="Vercelに設定した運用者キー" />
+                <button type="submit" disabled={!loginToken.trim()}>認証して検索を有効化</button>
+              </div>
+              <p>取込・データベース書込は認証済み運用者のみ実行できます。キーはこの画面には保存しません。</p>
+            </>
+          )}
+          {authError && <p className="live-discovery-error" role="alert">{authError}</p>}
+        </form>
+      )}
+      {authenticated && <div className="live-discovery-feedback live-discovery-auth-state"><span>運用者認証済み</span><button type="button" onClick={logout}>ログアウト</button></div>}
       <form className="live-discovery-form" onSubmit={scan}>
         <label htmlFor="discovery-query">商品名・ブランド・型番</label>
         <div className="live-discovery-controls">
           <input id="discovery-query" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={100} placeholder="例：Anker モバイルバッテリー" />
-          <button type="submit" disabled={loading || !query.trim() || !selectedSources.length || !sourceConfig}>{loading ? "検索中…" : "商品を検索する ↗"}</button>
+          <button type="submit" disabled={!authenticated || loading || !query.trim() || !selectedSources.length || !sourceConfig}>{loading ? "検索中…" : "商品を検索する ↗"}</button>
         </div>
         <fieldset className="live-discovery-sources">
           <legend>仕入れ元</legend>
           <label>
-            <input type="checkbox" checked={selectedSources.includes("yahoo")} disabled={!sourceConfig?.sources?.yahoo?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "yahoo"] : current.filter((source) => source !== "yahoo"))} />
+            <input type="checkbox" checked={selectedSources.includes("yahoo")} disabled={!authenticated || !sourceConfig?.sources?.yahoo?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "yahoo"] : current.filter((source) => source !== "yahoo"))} />
             Yahoo!ショッピング
           </label>
           <label>
-            <input type="checkbox" checked={selectedSources.includes("rakuten")} disabled={!sourceConfig?.sources?.rakuten?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "rakuten"] : current.filter((source) => source !== "rakuten"))} />
+            <input type="checkbox" checked={selectedSources.includes("rakuten")} disabled={!authenticated || !sourceConfig?.sources?.rakuten?.configured} onChange={(event) => setSelectedSources((current) => event.target.checked ? [...current, "rakuten"] : current.filter((source) => source !== "rakuten"))} />
             楽天市場 {sourceConfig?.sources?.rakuten?.configured ? "" : "（API認証未設定）"}
           </label>
         </fieldset>
