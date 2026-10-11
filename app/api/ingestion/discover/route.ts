@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { configuredSupplierAdapter } from "../../../../lib/matcher/ingestion/config";
 import { validateSourceProduct } from "../../../../lib/matcher/ingestion/validate";
 import { persistSupplierDiscovery } from "../../../../lib/matcher/ingestion/persist";
+import { guardIngestionRequest } from "../../../../lib/matcher/ingestion/request-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +10,9 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const adapter = configuredSupplierAdapter();
   if (!adapter) return NextResponse.json({ ok: false, code: "SUPPLIER_SOURCE_NOT_CONFIGURED" }, { status: 503 });
+
+  const guard = guardIngestionRequest(request);
+  if (!guard.ok) return NextResponse.json({ ok: false, code: guard.code }, { status: guard.status });
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
@@ -24,5 +28,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, code: message }, { status: 502 });
   } finally {
     clearTimeout(timeout);
+    guard.release();
   }
 }
