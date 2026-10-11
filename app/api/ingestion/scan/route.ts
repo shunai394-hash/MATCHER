@@ -7,6 +7,7 @@ import { persistSupplierDiscovery } from "../../../../lib/matcher/ingestion/pers
 import { rankPriceSpreads } from "../../../../lib/matcher/ingestion/spread";
 import { filterRelevantProducts } from "../../../../lib/matcher/ingestion/relevance";
 import type { SourceProduct } from "../../../../lib/matcher/ingestion/types";
+import { guardIngestionRequest } from "../../../../lib/matcher/ingestion/request-guard";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,6 +99,9 @@ export async function POST(request: Request) {
   const sources = Array.isArray(body?.sources) ? body.sources.filter((x: unknown) => x === "yahoo" || x === "rakuten") : ["yahoo", "rakuten"];
   if (!sources.length) return NextResponse.json({ ok: false, code: "NO_SOURCES" }, { status: 400 });
 
+  const guard = guardIngestionRequest(request);
+  if (!guard.ok) return NextResponse.json({ ok: false, code: guard.code }, { status: guard.status });
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 55000);
   let discovered = 0, accepted = 0, rejected = 0, persisted = 0;
@@ -170,5 +174,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, code: error instanceof Error ? error.message : "SCAN_FAILED", queries, sources, discovered, accepted, rejected, persisted, errors }, { status: 502 });
   } finally {
     clearTimeout(timeout);
+    guard.release();
   }
 }
