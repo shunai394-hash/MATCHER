@@ -95,7 +95,7 @@ const fits = [
 // Only rows that can be read reliably from the supplied package photo are stated.
 // Anything else is marked as unconfirmed rather than guessed.
 const productInfo: { term: string; detail: string; pending?: boolean }[] = [
-  { term: "商品名", detail: "BEAUTY FORMULA（ビューティーフォーミュラ）チョコレート風味" },
+  { term: "商品名", detail: "BEAUTY FORMULA" },
   { term: "名称", detail: "プロテインパウダー（粉末たんぱく食品）" },
   { term: "内容量", detail: "300g（約15食分／1食20g）" },
   { term: "1食20gあたり", detail: "たんぱく質16g／エネルギー104kcal／HMB-Ca 300mg" },
@@ -178,8 +178,8 @@ export default function SoyPlusLanding() {
       <a className={styles.skip} href="#main">本文へスキップ</a>
 
       <header className={styles.header}>
-        <a className={styles.brand} href="#top" aria-label="SOY+ ページ上部へ">
-          SOY<span>+</span>
+        <a className={styles.brand} href="#top" aria-label="BEAUTY FORMULA ページ上部へ">
+          BEAUTY FORMULA
         </a>
         <nav aria-label="ページ内メニュー" className={styles.nav}>
           <a href="#evidence">特徴</a>
@@ -468,7 +468,7 @@ export default function SoyPlusLanding() {
 
       <footer className={styles.footer}>
         <p className={styles.footerBrand}>
-          SOY<span>+</span> BEAUTY FORMULA
+          BEAUTY FORMULA
         </p>
         <nav aria-label="フッター">
           <a href="#evidence">特徴</a>
