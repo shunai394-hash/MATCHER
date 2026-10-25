@@ -21,7 +21,7 @@ const scenes = {
 // Price, stock and shipping are never shown here because they change on the store side.
 const PURCHASE_URL = process.env.NEXT_PUBLIC_SOY_PURCHASE_URL || "https://www.amazon.co.jp/dp/B0HNWHHBXJ";
 const PURCHASE_STORE = PURCHASE_URL.includes("amazon.co.jp") ? "Amazon" : "販売ページ";
-const PRODUCT_NAME = "BEAUTY FORMULA ソイ&コラーゲンプロテイン チョコレート風味 300g";
+const PRODUCT_NAME = "BEAUTY FORMULA";
 const PRODUCT_ALT =
   "BEAUTY FORMULA チョコレート風味のピンク色パッケージ（表面と裏面）とチョコレートドリンク。パッケージ表面に「たんぱく質16g・104kcal・HMB-Ca 300mg（1食20gあたり）」「8PN配合」「300g 約15食分」と表示";
 
@@ -33,11 +33,11 @@ const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "SOY+ BEAUTY FORMULA チョコレート風味 300g｜ソイ&コラーゲンプロテイン",
+  title: "BEAUTY FORMULA｜美容プロテイン・チョコ風味",
   description:
     "40代からの美容習慣に。1食20gあたりたんぱく質16g・104kcal・HMB-Ca 300mg、8PN配合のチョコレート風味プロテイン（300g・約15食分）。特徴・飲み方・購入前の確認事項をまとめています。",
   openGraph: {
-    title: "SOY+ BEAUTY FORMULA チョコレート風味 300g",
+    title: "BEAUTY FORMULA｜美容プロテイン・チョコ風味",
     description: "1食20gあたりたんぱく質16g・104kcal・HMB-Ca 300mg。8PN配合のチョコレート風味プロテイン。",
     images: [{ url: "/images/soy-plus/beauty-formula-chocolate-set.webp", width: 1254, height: 1254, alt: PRODUCT_ALT }],
     locale: "ja_JP",
@@ -197,8 +197,8 @@ export default function SoyPlusLanding() {
             <p className={styles.eyebrow}>40代からの美容習慣に</p>
             <h1 id="hero-title" className={styles.heroTitle}>
               <span className={styles.heroBrand}>BEAUTY FORMULA</span>
-              <span className={styles.heroName}>ソイ&amp;コラーゲンプロテイン</span>
-              <span className={styles.heroFlavor}>チョコレート風味 300g</span>
+              <span className={styles.heroName}>美容プロテイン</span>
+              <span className={styles.heroFlavor}>チョコ風味 300g</span>
             </h1>
             <p className={styles.heroLead}>
               1食20gで、たんぱく質16g・104kcal。HMB-Ca 300mgと8種類の美容サポート成分（8PN）を配合した、デザート感覚で続けやすいプロテインです。
