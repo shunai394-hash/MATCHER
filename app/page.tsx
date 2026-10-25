@@ -1,46 +1,496 @@
-"use client";
-import { useState } from "react";
+import type { Metadata } from "next";
+import Image from "next/image";
+import productImage from "../public/images/soy-plus/beauty-formula-chocolate-set.webp";
+import { SceneImage } from "./soy-scene-image";
+import styles from "./soy-lp.module.css";
 
-const product = "https://www.amazon.co.jp/dp/B0HNWHHBXJ";
-const routines = [
- { id:"beauty", title:"美容習慣を見直したい", lead:"毎日の栄養を、ひとつずつ丁寧に。", body:"忙しい日々でも、自分をいたわる時間をつくりたい方へ。まずは食事全体のバランスを大切にしながら、続けやすい習慣を考えてみませんか。", tags:["毎日の栄養補給","続けやすさ","成分表示を確認"] },
- { id:"active", title:"運動と栄養を意識したい", lead:"動く日も、休む日も。", body:"運動習慣とあわせて、たんぱく質を含む食事を意識したい方へ。普段の食事や活動量に合わせて取り入れ方を検討できます。", tags:["たんぱく質","運動習慣","食事との組み合わせ"] },
- { id:"forty", title:"40代からの習慣づくり", lead:"これからの自分に、できることから。", body:"年齢を重ねても、自分らしい毎日を大切にしたい方へ。特別なことを増やすより、食事・運動・休養を見直すきっかけに。", tags:["毎日のリズム","食生活を見直す","無理なく続ける"] }
+// Lifestyle photos generated with Higgsfield. They never show the product itself; the
+// product always appears from the supplied package photo above. Served through the
+// Next.js image optimizer (see images.remotePatterns in next.config.ts).
+const HIGGSFIELD_CDN = "https://d8j0ntlcm91z4.cloudfront.net/user_3L5iapCiBz1VMC05NhTNVQsVbou";
+const scenes = {
+  morning: `${HIGGSFIELD_CDN}/hf_20261025_101156_a3d661e6-1043-4865-98ef-3f978615818a.png`,
+  shake: `${HIGGSFIELD_CDN}/hf_20261025_101157_e8b9e0bb-20fb-49f2-8e0f-a57b7417aad9.png`,
+  scoop: `${HIGGSFIELD_CDN}/hf_20261025_101156_939180fe-90cb-4472-83a6-7d702822d18f.png`,
+  stretch: `${HIGGSFIELD_CDN}/hf_20261025_101156_61762265-f503-4999-8d71-f35d805cff75.png`,
+  window: `${HIGGSFIELD_CDN}/hf_20261025_101157_91185dfc-1517-4ac3-8154-d111dda48920.png`,
+} as const;
+
+// Every buy button goes to one destination. Set NEXT_PUBLIC_SOY_PURCHASE_URL to the
+// store's own product page or cart URL; it falls back to the Amazon listing.
+// Price, stock and shipping are never shown here because they change on the store side.
+const PURCHASE_URL = process.env.NEXT_PUBLIC_SOY_PURCHASE_URL || "https://www.amazon.co.jp/dp/B0HNWHHBXJ";
+const PURCHASE_STORE = PURCHASE_URL.includes("amazon.co.jp") ? "Amazon" : "販売ページ";
+const PRODUCT_NAME = "BEAUTY FORMULA ソイ&コラーゲンプロテイン チョコレート風味 300g";
+const PRODUCT_ALT =
+  "BEAUTY FORMULA チョコレート風味のピンク色パッケージ（表面と裏面）とチョコレートドリンク。パッケージ表面に「たんぱく質16g・104kcal・HMB-Ca 300mg（1食20gあたり）」「8PN配合」「300g 約15食分」と表示";
+
+const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: "SOY+ BEAUTY FORMULA チョコレート風味 300g｜ソイ&コラーゲンプロテイン",
+  description:
+    "40代からの美容習慣に。1食20gあたりたんぱく質16g・104kcal・HMB-Ca 300mg、8PN配合のチョコレート風味プロテイン（300g・約15食分）。特徴・飲み方・購入前の確認事項をまとめています。",
+  openGraph: {
+    title: "SOY+ BEAUTY FORMULA チョコレート風味 300g",
+    description: "1食20gあたりたんぱく質16g・104kcal・HMB-Ca 300mg。8PN配合のチョコレート風味プロテイン。",
+    images: [{ url: "/images/soy-plus/beauty-formula-chocolate-set.webp", width: 1254, height: 1254, alt: PRODUCT_ALT }],
+    locale: "ja_JP",
+    type: "website",
+  },
+};
+
+const specs = [
+  { label: "たんぱく質", value: "16", unit: "g" },
+  { label: "エネルギー", value: "104", unit: "kcal" },
+  { label: "HMB-Ca", value: "300", unit: "mg" },
+  { label: "美容サポート成分", value: "8PN", unit: "配合" },
+] as const;
+
+const worries = [
+  "プロテインの種類が多すぎて、どれが自分向きなのかわからない",
+  "カロリーや成分量を見比べても、何を基準にすればいいのか迷う",
+  "続けられる味なのか、毎日どう飲めばいいのかが想像できない",
+] as const;
+
+const evidence = [
+  {
+    no: "01",
+    title: "たんぱく質 16g",
+    note: "1食20gあたり",
+    body: "たんぱく質は筋肉や肌・髪など、からだをつくるもとになる栄養素。1食20gで16gを摂れるので、朝食や間食など不足しがちな場面にプラスしやすい量です。",
+  },
+  {
+    no: "02",
+    title: "104kcal",
+    note: "1食20gあたり",
+    body: "1食あたりのエネルギーは104kcal。カロリーを気にしながら、食事全体の中でたんぱく質を足したい方が量を把握しやすい表示です。",
+  },
+  {
+    no: "03",
+    title: "HMB-Ca 300mg",
+    note: "1食20gあたり",
+    body: "HMB-Ca（HMBカルシウム）は、必須アミノ酸のひとつロイシンが体内で代謝されてできる成分「HMB」をカルシウム塩にしたもの。1食あたり300mgを配合しています。",
+  },
+  {
+    no: "04",
+    title: "8PN配合",
+    note: "8種類の美容サポート成分",
+    body: "パッケージに「8種類の美容サポート成分」として表示されています。8種類の成分名と配合量は、販売ページまたはお手元のパッケージの原材料表示でご確認ください。",
+  },
+] as const;
+
+const fits = [
+  { title: "40代からの美容習慣を見直したい方", body: "スキンケアだけでなく、毎日の食事から栄養のとり方を見直したい方に。" },
+  { title: "朝食や間食のたんぱく質が気になる方", body: "忙しい朝やおやつの時間に、手軽にたんぱく質をプラスしたい方に。" },
+  { title: "運動習慣をつくっている方", body: "ウォーキングやヨガ、トレーニングなど、からだを動かす毎日の栄養補給に。" },
+  { title: "おいしく続けたい方", body: "チョコレート風味なので、デザート感覚で取り入れたい方に。" },
+] as const;
+
+// Only rows that can be read reliably from the supplied package photo are stated.
+// Anything else is marked as unconfirmed rather than guessed.
+const productInfo: { term: string; detail: string; pending?: boolean }[] = [
+  { term: "商品名", detail: "BEAUTY FORMULA（ビューティーフォーミュラ）チョコレート風味" },
+  { term: "名称", detail: "プロテインパウダー（粉末たんぱく食品）" },
+  { term: "内容量", detail: "300g（約15食分／1食20g）" },
+  { term: "1食20gあたり", detail: "たんぱく質16g／エネルギー104kcal／HMB-Ca 300mg" },
+  { term: "召し上がり方", detail: "付属スプーンすりきり約2杯を、200〜300mlのお水等に溶かしてお召し上がりください。" },
+  { term: "原産国表示", detail: "MADE IN JAPAN" },
+  {
+    term: "原材料名・栄養成分（全項目）",
+    detail: "パッケージ裏面に記載。掲載画像の解像度では正確に判読できないため、本ページでは転記していません。",
+    pending: true,
+  },
+  {
+    term: "アレルギー物質",
+    detail:
+      "パッケージ画像では「乳成分・大豆・ゼラチン」の表示が見えますが、正式情報での確認前のため参考情報です。アレルギーのある方は必ず実物の表示をご確認ください。",
+    pending: true,
+  },
+  { term: "賞味期限・保存方法", detail: "パッケージに記載（賞味期限は製造ロットにより異なります）。", pending: true },
+  { term: "販売者・製造所", detail: "パッケージおよび販売ページに記載。", pending: true },
 ];
-const facts = [
- {n:"01", title:"たんぱく質", amount:"16g", note:"1食20gあたり", body:"商品画像に表示されたたんぱく質量です。日々の食事全体と合わせて、摂取量をご確認ください。"},
- {n:"02", title:"エネルギー", amount:"104kcal", note:"1食20gあたり", body:"1食あたりのエネルギー表示。実際の摂取量は、製品の正式な栄養成分表示をご確認ください。"},
- {n:"03", title:"HMB-Ca", amount:"300mg", note:"1食20gあたり", body:"パッケージ画像に記載された配合量です。成分の働きや体感を保証するものではありません。"},
- {n:"04", title:"8PN配合", amount:"8種類", note:"美容サポート成分の表示", body:"画像上の表示に基づく案内です。原材料名・配合内容は購入前に商品パッケージの正式表示をご確認ください。"}
-];
+
+const steps = [
+  { title: "スプーン約2杯をはかる", body: "付属スプーンで、すりきり約2杯をすくいます。" },
+  { title: "200〜300mlのお水等に", body: "シェイカーやグラスに、お水等200〜300mlを用意します。" },
+  { title: "よく溶かして、いただきます", body: "粉が残らないようによく混ぜたら、できあがりです。" },
+] as const;
+
 const faq = [
- ["どのような商品ですか？","商品画像では、チョコレート風味の粉末プロテインとして案内されています。内容量は300g、約15食分と表示されています。"],
- ["1食あたりの目安は？","商品画像には1食20gあたり、たんぱく質16g・104kcal・HMB-Ca 300mgと表示されています。正確な召し上がり方は商品パッケージの表示を優先してください。"],
- ["どうやって飲みますか？","商品画像の背面には、付属スプーンすりきり約2杯を水など200〜300mlに溶かす旨の案内が見えます。お手元の商品に記載された飲み方をご確認ください。"],
- ["価格・在庫・配送日は？","販売状況により変わるため、Amazonの商品ページで最新の価格・在庫・配送予定をご確認ください。"],
- ["原材料や注意事項はどこで確認できますか？","購入前に、商品パッケージと販売ページに掲載された原材料・アレルゲン・栄養成分・注意事項を確認してください。"]
-];
-export default function Home() {
- const [routine,setRoutine]=useState("beauty");
- const selected=routines.find(x=>x.id===routine) || routines[0];
- return <main className="soy-lp" id="top">
-  <div className="soy-announce">SOY+ BEAUTY FORMULA <span>／</span> CHOCOLATE FLAVOR</div>
-  <header className="soy-header"><a className="soy-brand" href="#top">SOY<span>+</span></a><nav aria-label="ページ内メニュー"><a href="#features">商品特徴</a><a href="#ingredients">成分表示</a><a href="#howto">飲み方</a><a href="#faq">FAQ</a></nav><a className="soy-header-cta" href={product} target="_blank" rel="noreferrer">販売ページへ ↗</a></header>
-  <section className="soy-hero">
-   <div className="soy-hero-copy"><p className="soy-eyebrow">40代からの美容習慣に</p><h1>美しく、<br/><em>健康的に。</em></h1><p className="soy-hero-sub">カラダの中から、キレイをつくるプロテイン</p><p className="soy-hero-description">美容も、毎日の栄養も、自分らしい習慣から。<br/>チョコレート風味の「BEAUTY FORMULA」を、<br className="desktop-only"/>いつもの暮らしに取り入れる選択肢に。</p><div className="soy-hero-actions"><a className="soy-btn soy-btn-primary" href={product} target="_blank" rel="noreferrer">商品ページで価格を確認 <span>↗</span></a><a className="soy-underlink" href="#features">商品特徴を詳しく見る ↓</a></div><p className="soy-hero-caution">価格・在庫・配送条件は販売ページでご確認ください。</p></div>
-   <div className="soy-hero-image"><img src="/soy-plus-chocolate-product.png" alt="SOY+ BEAUTY FORMULA チョコレート風味のピンク色パッケージとシェイクの商品イメージ"/><span className="soy-image-caption">BEAUTY FORMULA / CHOCOLATE FLAVOR</span></div>
-   <div className="soy-hero-bottom"><span>300g <i>／</i> 約15食分</span><span>商品画像に表示された情報を掲載</span></div>
-  </section>
-  <section className="soy-proof-strip" aria-label="商品画像に表示された主な情報">{facts.map(f=><div key={f.n}><span className="soy-proof-number">{f.n}</span><div><strong>{f.amount}</strong><small>{f.title} <i>{f.note}</i></small></div></div>)}</section>
-  <section className="soy-intro" id="features"><div className="soy-section-top"><span>01 / ABOUT BEAUTY FORMULA</span><span>商品を知る</span></div><div className="soy-intro-grid"><h2>毎日の自分を、<br/><em>少しずついたわる。</em></h2><div><p>続けるために大切なのは、商品の特徴を知り、自分の生活に合うかを確かめること。SOY+ BEAUTY FORMULAは、チョコレート風味・300g入りのプロテインとして紹介されています。</p><p>成分の量や召し上がり方、原材料・注意事項を購入前に確認して、自分に合った選択を。</p></div></div></section>
-  <section className="soy-features"><div className="soy-section-top"><span>02 / AT A GLANCE</span><span>パッケージ表示から</span></div><h2>選ぶ前に知っておきたい、<br/><em>4つのポイント。</em></h2><div className="soy-feature-grid">{facts.map(f=><article key={f.n} className="soy-feature-card"><span>{f.n} / PRODUCT INFO</span><h3>{f.title}</h3><strong>{f.amount}</strong><small>{f.note}</small><p>{f.body}</p></article>)}</div><p className="soy-smallprint">※数値・表現はアップロードされた商品画像から読み取れる範囲に基づきます。実際の商品に記載された最新の表示を必ずご確認ください。</p></section>
-  <section className="soy-routine"><div className="soy-section-top"><span>03 / YOUR ROUTINE</span><span>あなたの暮らしに合わせて</span></div><div className="soy-routine-heading"><h2>あなたが大切にしたいのは、<br/><em>どんな習慣ですか？</em></h2><p>気になる目的を選ぶと、取り入れる前に考えたいポイントを確認できます。</p></div><div className="soy-routine-tabs" role="tablist" aria-label="習慣を選択">{routines.map(r=><button key={r.id} role="tab" aria-selected={routine===r.id} aria-controls="soy-routine-panel" onClick={()=>setRoutine(r.id)} className={routine===r.id?"active":""}>{r.title}<span>{routine===r.id?"−":"＋"}</span></button>)}</div><div className="soy-routine-panel" id="soy-routine-panel" role="tabpanel"><p>YOUR ROUTINE / 0{routines.findIndex(r=>r.id===routine)+1}</p><h3>{selected.lead}</h3><div><p>{selected.body}</p><ul>{selected.tags.map(t=><li key={t}>{t}</li>)}</ul></div></div><p className="soy-smallprint">※本商品が特定の美容効果・健康効果をもたらすことを保証するものではありません。食事全体のバランスを大切にしてください。</p></section>
-  <section className="soy-ingredients" id="ingredients"><div className="soy-section-top"><span>04 / CHECK THE LABEL</span><span>購入前に成分を確認</span></div><div className="soy-ingredients-head"><h2>気になる成分は、<br/><em>正式な表示で確認。</em></h2><p>商品画像の裏面には原材料名・栄養成分表示などが掲載されています。小さな文字を推測で読み替えず、販売ページやお手元のパッケージで詳細をご確認ください。</p></div><div className="soy-label-list"><article><span>01</span><div><h3>原材料・アレルゲン</h3><p>原材料の一覧と、アレルギーに関する表示を確認しましょう。</p></div><b>CHECK</b></article><article><span>02</span><div><h3>栄養成分・1食量</h3><p>1食あたりの目安量と栄養成分を確認し、食事全体とのバランスを考えましょう。</p></div><b>CHECK</b></article><article><span>03</span><div><h3>召し上がり方・注意事項</h3><p>使用量、溶かし方、保存方法、注意事項は製品パッケージの指示に従ってください。</p></div><b>CHECK</b></article></div><a className="soy-underlink" href={product} target="_blank" rel="noreferrer">販売ページで商品情報を確認 ↗</a></section>
-  <section className="soy-howto" id="howto"><div className="soy-howto-visual"><img src="/soy-plus-chocolate-product.png" alt="チョコレート風味のSOY+ BEAUTY FORMULA 商品画像"/></div><div className="soy-howto-copy"><p className="soy-eyebrow">05 / HOW TO ENJOY</p><h2>いつもの時間に、<br/><em>取り入れやすく。</em></h2><p>商品画像の背面には、付属スプーンすりきり約2杯を水など200〜300mlに溶かす飲み方が記載されています。正確な量や作り方は、購入した商品のパッケージ表示に従ってください。</p><div className="soy-howto-step"><span>STEP 01</span><b>パッケージの目安量を確認</b></div><div className="soy-howto-step"><span>STEP 02</span><b>水などに溶かして飲む</b></div><div className="soy-howto-step"><span>STEP 03</span><b>食事・運動・休養と組み合わせる</b></div><p className="soy-smallprint">※画像から読み取れる情報をもとにした案内です。実際の製品表示を優先してください。</p></div></section>
-  <section className="soy-buy-band"><div><p className="soy-eyebrow">READY TO CHECK?</p><h2>購入前に、商品情報を<br/><em>しっかり確認。</em></h2><p>価格・在庫・配送予定・正式な成分表示は販売ページでご確認ください。</p></div><a className="soy-btn soy-btn-primary" href={product} target="_blank" rel="noreferrer">Amazonの商品ページへ ↗</a></section>
-  <section className="soy-faq" id="faq"><div className="soy-section-top"><span>06 / FAQ</span><span>購入前によくある確認事項</span></div><h2>気になることに、<br/><em>購入前に答えます。</em></h2><div className="soy-faq-list">{faq.map(([q,a],i)=><details key={q}><summary><span>Q{String(i+1).padStart(2,"0")}</span><b>{q}</b><i>＋</i></summary><p>{a}</p></details>)}</div></section>
-  <section className="soy-final"><p className="soy-eyebrow">A SMALL STEP FOR YOUR DAILY ROUTINE</p><h2>自分のための習慣を、<br/><em>今日から考えよう。</em></h2><p>まずは商品情報を確認して、自分に合うかどうかを確かめてください。</p><a className="soy-btn soy-btn-light" href={product} target="_blank" rel="noreferrer">商品ページで価格・在庫を確認 ↗</a><small>注文・決済は販売ページで行います。</small></section>
-  <div className="soy-sticky"><div><b>SOY+</b><span>BEAUTY FORMULA / チョコレート風味</span></div><a href={product} target="_blank" rel="noreferrer">商品情報・価格を見る ↗</a></div>
-  <footer className="soy-footer"><a className="soy-brand" href="#top">SOY<span>+</span></a><span>BEAUTY FORMULA / CHOCOLATE FLAVOR</span><a href="#top">ページ上部へ ↑</a></footer><p className="soy-legal">本ページは商品情報を確認するための案内です。効果・効能を保証するものではありません。原材料・アレルゲン・栄養成分・使用方法・注意事項は、販売ページおよび実際の商品パッケージの正式表示をご確認ください。</p>
- </main>;
+  {
+    q: "どのような商品ですか？",
+    a: "チョコレート風味の粉末プロテイン（名称：プロテインパウダー〈粉末たんぱく食品〉）です。内容量は300g、1食20gで約15食分です。",
+  },
+  {
+    q: "1日にどれくらい飲めばよいですか？",
+    a: "パッケージには「付属スプーンすりきり約2杯を、200〜300mlのお水等に溶かして」と記載されています。1日あたりの目安量は、お手元のパッケージの表示に従ってください。",
+  },
+  {
+    q: "水以外でも溶かせますか？",
+    a: "パッケージには「お水等に溶かして」と記載されています。水以外の飲み物での飲み方は、パッケージの表示または販売事業者にご確認ください。",
+  },
+  {
+    q: "飲むだけでキレイになったり、やせたりしますか？",
+    a: "本品は食品であり、特定の美容効果や体重の変化を保証するものではありません。主食・主菜・副菜を基本とした食事のバランスに加え、運動や休養とあわせて毎日の習慣にお役立てください。",
+  },
+  {
+    q: "アレルギーが心配です。",
+    a: "アレルギー物質を含む原材料は、必ず実物のパッケージと販売ページの表示でご確認ください。不安な場合は、医師にご相談のうえご利用ください。",
+  },
+  {
+    q: "価格・送料・お届け日は？",
+    a: "価格・送料・在庫・お届け予定は変動するため、本ページでは掲載していません。販売ページで最新の情報をご確認ください。",
+  },
+  {
+    q: "返品・交換や問い合わせ先は？",
+    a: "ご注文・お支払い・配送・返品は、購入手続きを行う販売ページの条件に準じます。販売事業者の情報（特定商取引法に基づく表記を含む）は販売ページでご確認ください。",
+  },
+] as const;
+
+function BuyLink({ className, children }: { className: string; children: React.ReactNode }) {
+  return (
+    <a className={className} href={PURCHASE_URL} target="_blank" rel="noopener noreferrer">
+      {children}
+      <span aria-hidden="true" className={styles.external}>↗</span>
+      <span className={styles.srOnly}>（{PURCHASE_STORE}の商品ページを新しいタブで開きます）</span>
+    </a>
+  );
+}
+
+function Scene({ src, alt, sizes }: { src: string; alt: string; sizes: string }) {
+  return (
+    <figure className={styles.scene}>
+      <SceneImage src={src} alt={alt} sizes={sizes} fill />
+      <figcaption>イメージ</figcaption>
+    </figure>
+  );
+}
+
+export default function SoyPlusLanding() {
+  return (
+    <div className={styles.root}>
+      <a className={styles.skip} href="#main">本文へスキップ</a>
+
+      <header className={styles.header}>
+        <a className={styles.brand} href="#top" aria-label="SOY+ ページ上部へ">
+          SOY<span>+</span>
+        </a>
+        <nav aria-label="ページ内メニュー" className={styles.nav}>
+          <a href="#evidence">特徴</a>
+          <a href="#howto">飲み方</a>
+          <a href="#info">商品情報</a>
+          <a href="#faq">よくある質問</a>
+        </nav>
+        <BuyLink className={styles.headerCta}>{PURCHASE_STORE}で見る</BuyLink>
+      </header>
+
+      <main id="main">
+        {/* Hero: who it is for, what it is, and the numbers that decide it */}
+        <section className={styles.hero} id="top" aria-labelledby="hero-title">
+          <div className={styles.heroCopy}>
+            <p className={styles.eyebrow}>40代からの美容習慣に</p>
+            <h1 id="hero-title" className={styles.heroTitle}>
+              <span className={styles.heroBrand}>BEAUTY FORMULA</span>
+              <span className={styles.heroName}>ソイ&amp;コラーゲンプロテイン</span>
+              <span className={styles.heroFlavor}>チョコレート風味 300g</span>
+            </h1>
+            <p className={styles.heroLead}>
+              1食20gで、たんぱく質16g・104kcal。HMB-Ca 300mgと8種類の美容サポート成分（8PN）を配合した、デザート感覚で続けやすいプロテインです。
+            </p>
+            <ul className={styles.heroSpecs} aria-label="1食20gあたりの主な表示">
+              {specs.map((s) => (
+                <li key={s.label}>
+                  <b>
+                    {s.value}
+                    <small>{s.unit}</small>
+                  </b>
+                  <span>{s.label}</span>
+                </li>
+              ))}
+            </ul>
+            <p className={styles.heroNote}>※1食20gあたり（8PNを除く）。300g・約15食分。</p>
+            <div className={styles.heroActions}>
+              <BuyLink className={styles.btnPrimary}>{PURCHASE_STORE}で価格・在庫を確認</BuyLink>
+              <a className={styles.btnGhost} href="#problem">
+                くわしく見る <span aria-hidden="true">↓</span>
+              </a>
+            </div>
+          </div>
+          <figure className={styles.heroVisual}>
+            <Image
+              src={productImage}
+              alt={PRODUCT_ALT}
+              placeholder="blur"
+              preload
+              sizes="(max-width: 860px) 100vw, 52vw"
+              className={styles.heroImage}
+            />
+          </figure>
+        </section>
+
+        {/* P: Problem / A: Affinity */}
+        <section className={styles.problem} id="problem" aria-labelledby="problem-title">
+          <div className={styles.split}>
+            <Scene
+              src={scenes.morning}
+              alt="朝のキッチンでスマートフォンを手にする女性の手元。食べかけのトーストとコーヒー"
+              sizes="(max-width: 860px) 100vw, 50vw"
+            />
+            <div className={styles.splitCopy}>
+              <p className={styles.kicker}>YOUR STORY</p>
+              <h2 id="problem-title" className={styles.h2}>
+                きれいでいたい。
+                <br />
+                <em>でも、何を選べばいいの？</em>
+              </h2>
+              <ul className={styles.worries}>
+                {worries.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+              <p className={styles.body}>
+                毎日を忙しく過ごしながら、自分のことも大切にしたい。そう思うからこそ、選ぶ前に迷うのは自然なことです。
+                大切なのは、数値と飲み方を確かめて、自分の暮らしに合うかどうかで選ぶこと。このページでは、そのための情報をすべてパッケージの表示からまとめました。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* S: Solution / B: Benefit */}
+        <section className={styles.solution} aria-labelledby="solution-title">
+          <div className={`${styles.split} ${styles.splitReverse}`}>
+            <Scene
+              src={scenes.shake}
+              alt="朝食のテーブルに置かれたチョコレート色のドリンクと、いちご、板チョコレート"
+              sizes="(max-width: 860px) 100vw, 50vw"
+            />
+            <div className={styles.splitCopy}>
+              <p className={styles.kicker}>SOLUTION</p>
+              <h2 id="solution-title" className={styles.h2}>
+                いつもの朝に、
+                <br />
+                <em>チョコレートの一杯を。</em>
+              </h2>
+              <p className={styles.body}>
+                BEAUTY FORMULAは、40代からの美容習慣に向けたチョコレート風味の粉末プロテイン。付属スプーン約2杯をお水などに溶かすだけで、1食20gあたりたんぱく質16gを摂ることができます。
+              </p>
+              <p className={styles.body}>
+                甘いものが欲しくなる時間や、慌ただしい朝の一杯に。特別なことを増やすのではなく、いつもの食事にひとさじ足す。それが、無理なく続けられる習慣づくりの第一歩です。
+              </p>
+              <dl className={styles.facts}>
+                <div><dt>風味</dt><dd>チョコレート</dd></div>
+                <div><dt>内容量</dt><dd>300g</dd></div>
+                <div><dt>1食</dt><dd>20g</dd></div>
+                <div><dt>目安</dt><dd>約15食分</dd></div>
+              </dl>
+            </div>
+          </div>
+        </section>
+
+        {/* E: Evidence — only what the package states */}
+        <section className={styles.evidence} id="evidence" aria-labelledby="evidence-title">
+          <div className={styles.container}>
+            <p className={styles.kicker}>EVIDENCE</p>
+            <h2 id="evidence-title" className={styles.h2}>
+              選ぶ理由は、
+              <br />
+              <em>パッケージの数値で確かめる。</em>
+            </h2>
+            <div className={styles.evidenceLayout}>
+              <figure className={styles.evidenceVisual}>
+                <Image src={productImage} alt="" sizes="(max-width: 860px) 90vw, 420px" />
+                <figcaption>パッケージ表面の表示（1食20gあたり）</figcaption>
+              </figure>
+              <ol className={styles.evidenceGrid}>
+                {evidence.map((f) => (
+                  <li key={f.no} className={styles.evidenceCard}>
+                    <span className={styles.evidenceNo} aria-hidden="true">{f.no}</span>
+                    <h3>{f.title}</h3>
+                    <p className={styles.evidenceNote}>{f.note}</p>
+                    <p>{f.body}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <p className={styles.small}>
+              ※数値はパッケージ表面の表示（1食20gあたり）です。本品は食品であり、特定の効果・効能を保証するものではありません。
+            </p>
+          </div>
+        </section>
+
+        {/* C: Contents — how to drink */}
+        <section className={styles.howto} id="howto" aria-labelledby="howto-title">
+          <div className={`${styles.split} ${styles.splitReverse}`}>
+            <Scene
+              src={scenes.scoop}
+              alt="ココア色のパウダーが入った計量スプーン、水の入ったグラスとシェイカー"
+              sizes="(max-width: 860px) 100vw, 50vw"
+            />
+            <div className={styles.splitCopy}>
+              <p className={styles.kicker}>HOW TO</p>
+              <h2 id="howto-title" className={styles.h2}>
+                かんたん、
+                <br />
+                <em>3ステップ。</em>
+              </h2>
+              <ol className={styles.steps}>
+                {steps.map((s, i) => (
+                  <li key={s.title}>
+                    <span className={styles.stepNo} aria-hidden="true">{i + 1}</span>
+                    <div>
+                      <h3>{s.title}</h3>
+                      <p>{s.body}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <p className={styles.small}>
+                ※パッケージ記載の召し上がり方に基づきます。1日の摂取目安量は、お手元のパッケージの表示に従ってください。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* N: Narrow — who it suits */}
+        <section className={styles.fit} aria-labelledby="fit-title">
+          <div className={styles.split}>
+            <Scene
+              src={scenes.stretch}
+              alt="朝の光が差し込む部屋で、ピンクのヨガマットのそばに立つ女性の足元"
+              sizes="(max-width: 860px) 100vw, 50vw"
+            />
+            <div className={styles.splitCopy}>
+              <p className={styles.kicker}>FOR YOU</p>
+              <h2 id="fit-title" className={styles.h2}>
+                こんな方の
+                <br />
+                <em>毎日の習慣に。</em>
+              </h2>
+              <ul className={styles.fitList}>
+                {fits.map((l) => (
+                  <li key={l.title}>
+                    <h3>{l.title}</h3>
+                    <p>{l.body}</p>
+                  </li>
+                ))}
+              </ul>
+              <p className={styles.small}>※食生活は、主食、主菜、副菜を基本に、食事のバランスを。</p>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.info} id="info" aria-labelledby="info-title">
+          <div className={styles.containerNarrow}>
+            <p className={styles.kicker}>PRODUCT INFORMATION</p>
+            <h2 id="info-title" className={styles.h2}>商品情報・ご注意</h2>
+            <dl className={styles.infoTable}>
+              {productInfo.map((row) => (
+                <div key={row.term}>
+                  <dt>{row.term}</dt>
+                  <dd>
+                    {row.pending && <span className={styles.badge}>要確認</span>}
+                    {row.detail}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <div className={styles.caution}>
+              <h3>ご購入・お召し上がりの前に</h3>
+              <ul>
+                <li>原材料名・アレルギー物質・栄養成分表示は、必ず実物のパッケージと販売ページでご確認ください。</li>
+                <li>食物アレルギーのある方、妊娠・授乳中の方、治療中・通院中の方は、医師にご相談のうえご利用ください。</li>
+                <li>体質や体調に合わないと感じた場合は、ご利用をお控えください。</li>
+                <li>本品は食品です。疾病の診断・治療・予防を目的としたものではありません。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* O: Offer */}
+        <section className={styles.offer} id="purchase" aria-labelledby="offer-title">
+          <div className={styles.offerInner}>
+            <div className={styles.offerImage}>
+              <Image src={productImage} alt="" sizes="(max-width: 860px) 80vw, 420px" />
+            </div>
+            <div>
+              <p className={styles.kicker}>HOW TO BUY</p>
+              <h2 id="offer-title" className={styles.h2}>ご購入はこちら</h2>
+              <p className={styles.offerName}>{PRODUCT_NAME}</p>
+              <ul className={styles.offerList}>
+                <li>内容量300g・1食20gで約15食分</li>
+                <li>ご注文・お支払い・配送は、{PURCHASE_STORE}の購入手続きで行います。</li>
+                <li>価格・送料・在庫・お届け予定は変動するため、商品ページで最新の情報をご確認ください。</li>
+              </ul>
+              <BuyLink className={styles.btnPrimary}>{PURCHASE_STORE}の商品ページへ</BuyLink>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.faq} id="faq" aria-labelledby="faq-title">
+          <div className={styles.containerNarrow}>
+            <p className={styles.kicker}>FAQ</p>
+            <h2 id="faq-title" className={styles.h2}>よくあるご質問</h2>
+            <div className={styles.faqList}>
+              {faq.map((item, i) => (
+                <details key={item.q} className={styles.faqItem}>
+                  <summary>
+                    <span aria-hidden="true">Q{i + 1}</span>
+                    {item.q}
+                  </summary>
+                  <p>{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* A: Action */}
+        <section className={styles.final} aria-labelledby="final-title">
+          <SceneImage src={scenes.window} alt="" fill sizes="100vw" className={styles.finalBg} />
+          <div className={styles.finalCopy}>
+            <p className={styles.finalEyebrow}>40代からの美容習慣に</p>
+            <h2 id="final-title" className={styles.finalTitle}>
+              毎日の一杯から、
+              <br />
+              自分をいたわる習慣を。
+            </h2>
+            <p>{PRODUCT_NAME}（約15食分）</p>
+            <BuyLink className={styles.btnPrimary}>{PURCHASE_STORE}で価格・在庫を確認</BuyLink>
+          </div>
+        </section>
+      </main>
+
+      <footer className={styles.footer}>
+        <p className={styles.footerBrand}>
+          SOY<span>+</span> BEAUTY FORMULA
+        </p>
+        <nav aria-label="フッター">
+          <a href="#evidence">特徴</a>
+          <a href="#howto">飲み方</a>
+          <a href="#info">商品情報</a>
+          <a href="#faq">よくある質問</a>
+          <a href="#top">ページ上部へ</a>
+        </nav>
+        <p className={styles.legal}>
+          本ページは商品のご案内ページです。ご注文は販売ページで承り、特定商取引法に基づく表記・返品条件・お問い合わせ先は販売ページに記載の販売事業者情報をご確認ください。
+          掲載している数値はパッケージ表面の表示に基づきます。本品は食品であり、効果・効能を保証するものではありません。
+          商品写真以外の写真はイメージです。
+        </p>
+      </footer>
+
+      <div className={styles.sticky}>
+        <p>
+          <b>BEAUTY FORMULA</b>
+          <span>チョコレート風味 300g</span>
+        </p>
+        <BuyLink className={styles.stickyBtn}>{PURCHASE_STORE}で見る</BuyLink>
+      </div>
+    </div>
+  );
 }
