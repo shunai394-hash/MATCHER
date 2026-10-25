@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MATCHER — 商品を正しく見つけ、仕入れ判断を速くする",
-  description: "商品同定、サプライヤー照合、利益計算、安全性確認を一つの判断フローにまとめるMATCHER。",
+  title: "SOY+ — 今日の自分に、必要な栄養を。",
+  description: "たんぱく質とコラーゲンを毎日の習慣に。目的に合わせて選びやすいソイコラーゲンの成分情報をご紹介します.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
