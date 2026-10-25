@@ -372,7 +372,7 @@ h2 { font-size:17px; margin:0 0 12px; }
 .store-faq-grid h3{font-size:14px;margin:0 0 12px}
 .store-faq-grid p{font-size:12px;line-height:1.9;color:#686d61;margin:0}
 .store-faq>.store-button{display:inline-block;text-align:center}
-.store-sticky-buy{position:fixed;z-index:50;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px max(5%,calc((100vw - 1120px)/2));background:rgba(250,249,244,.97);border-top:1px solid #d8dbcf;box-shadow:0 -5px 24px rgba(36,42,31,.08);backdrop-filter:blur(12px)}
+.store-sticky-buy{position:fixed;z-index:50;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px max(5%,calc((100vw - 1120px)/2)) calc(10px + env(safe-area-inset-bottom));background:rgba(250,249,244,.97);border-top:1px solid #d8dbcf;box-shadow:0 -5px 24px rgba(36,42,31,.08);backdrop-filter:blur(12px)}
 .store-sticky-buy>div{display:flex;align-items:center;gap:12px;color:#33392d}
 .store-sticky-buy b{font-size:20px;letter-spacing:-.06em}
 .store-sticky-buy span{font-size:10px;color:#6c7166}
