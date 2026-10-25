@@ -45,7 +45,7 @@
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
-.brand { font-family: Georgia, var(--serif); font-size: 26px; font-weight: 700; letter-spacing: -.04em; text-decoration: none; color: var(--cocoa) !important; }
+.brand { font-family: Georgia, var(--serif); font-size: 26px; line-height: 1.2; white-space: nowrap; font-weight: 700; letter-spacing: -.04em; text-decoration: none; color: var(--cocoa) !important; }
 .brand span { color: var(--rose); }
 .nav { display: flex; gap: 26px; margin-left: auto; }
 .nav a { font-size: 14px; color: var(--muted); text-decoration: none; padding: 6px 0; }
@@ -266,6 +266,12 @@
   .final .btnPrimary { width: 100%; }
   .sticky span { display: none; }
   .stickyBtn { padding: 0 18px; }
+}
+
+@media (max-width: 374px) {
+  .header { gap: 8px; }
+  .brand { font-size: 17px; }
+  .headerCta { padding: 0 12px; font-size: 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
