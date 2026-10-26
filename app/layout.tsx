@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const SITE_URL = "https://matcher-seven.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  alternates: {
+    canonical: "/",
+  },
   title: "MATCHER — 商品を正しく見つけ、仕入れ判断を速くする",
   description: "商品同定、サプライヤー照合、利益計算、安全性確認を一つの判断フローにまとめるMATCHER。",
 };
